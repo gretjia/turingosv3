@@ -15,8 +15,8 @@ fn main() {
     let model_name = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "qwen3.5-27b-instruct-q4_k_m".to_string());
     
     // Testing small scale first to ensure network integration works.
-    let target_steps = 200; 
-    let final_omega_id = format!("hanoi_step_{}", target_steps);
+    let target_steps = 10; 
+    let final_omega_id = format!("step_{}_branch_0", target_steps); // We need to match the new ID format from swarm.rs
 
     let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 4);
 

@@ -35,6 +35,7 @@ pub struct File {
 #[derive(Debug, Clone)]
 pub struct Tape {
     pub files: HashMap<FileId, File>, // Append-only 的绝对历史账本
+    pub reverse_citations: HashMap<FileId, Vec<FileId>>, // O(1) 逆向寻址，根除 O(N^2) 死锁
 }
 
 #[derive(Debug, Clone)]
@@ -120,6 +121,14 @@ pub fn wtool(output: Output, mut qt: Q) -> Q {
     // [The Bitter Lesson] 无视冗余，废除 Market Clearing！向 tape 绝对追加！
     qt.tape.files.insert(new_file.id.clone(), new_file);
     
+    // 更新反向图：O(1) 价值倒灌的基础
+    for parent_id in &action.citations {
+        qt.tape.reverse_citations
+            .entry(parent_id.clone())
+            .or_insert_with(Vec::new)
+            .push(action.file_id.clone());
+    }
+    
     // 更新 HEAD 指针：移除父节点，新节点成为绝对前沿
     qt.head.paths.insert(action.file_id.clone());
     for cit in action.citations {
@@ -173,13 +182,15 @@ impl MapReduce {
                 if *id == self.target_omega_id { base_val += 100_000_000_000.0; } // 神迹赏金
                 
                 // 逆向吸血 (Reverse Imputation)：
-                // 扫描宇宙中所有引用了“我”的后代节点，从它们那里抽取版税分红
+                // 直接 O(1) 拿出所有的孩子，避免 O(N^2) 的全宇宙扫描
                 let mut imputed_val = 0.0;
-                for (child_id, child_file) in &tape.files {
-                    if child_file.citations.contains(id) {
-                        let weight = 1.0 / (child_file.citations.len() as f64);
-                        let child_price = new_prices.get(child_id).unwrap_or(&child_file.price);
-                        imputed_val += self.gamma * weight * child_price;
+                if let Some(children) = tape.reverse_citations.get(id) {
+                    for child_id in children {
+                        if let Some(child_file) = tape.files.get(child_id) {
+                            let weight = 1.0 / (child_file.citations.len() as f64);
+                            let child_price = new_prices.get(child_id).unwrap_or(&child_file.price);
+                            imputed_val += self.gamma * weight * child_price;
+                        }
                     }
                 }
                 new_prices.insert(id.clone(), base_val + imputed_val);
@@ -204,7 +215,10 @@ impl InitAI {
         let q0 = Q {
             q: MachineState::Running,
             head: Head { paths: HashSet::new() },
-            tape: Tape { files: HashMap::new() },
+            tape: Tape { 
+                files: HashMap::new(),
+                reverse_citations: HashMap::new(),
+            },
         };
         (q0, Predicates { law }, MapReduce { target_omega_id: omega, gamma: 0.99 })
     }

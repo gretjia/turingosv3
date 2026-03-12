@@ -14,6 +14,7 @@ pub struct SpeculativeSwarmAgent {
     pub total_steps: u64,
     pub swarm_size: usize,
     pub rt: Runtime,
+    pub queued_outputs: Vec<Output>,
 }
 
 impl SpeculativeSwarmAgent {
@@ -29,6 +30,7 @@ impl SpeculativeSwarmAgent {
             total_steps,
             swarm_size,
             rt: Runtime::new().unwrap(),
+            queued_outputs: Vec::new(),
         }
     }
 
@@ -38,96 +40,109 @@ impl SpeculativeSwarmAgent {
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a Hanoi MAKER agent. Strictly output the next move format: 'Move disk X from Y to Z'."
+                    "content": "You are a logical reasoning agent. You receive a Current State. You must output the Next Action and the resulting New State."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            // Slightly vary temperature so the swarm explores different generation paths
-            "temperature": 0.1 + (agent_id as f32 * 0.1), 
-            "max_tokens": 100
+            // Temperature varies to create genuine DAG branching
+            "temperature": 0.1 + (agent_id as f32 * 0.2), 
+            "max_tokens": 150
         });
 
-        match client.post(&url).json(&payload).send().await {
-            Ok(response) => {
-                if response.status().is_success() {
-                    if let Ok(json_body) = response.json::<serde_json::Value>().await {
-                        if let Some(content) = json_body["choices"][0]["message"]["content"].as_str() {
-                            return Some((agent_id, content.trim().to_string()));
-                        }
+        if let Ok(response) = client.post(&url).json(&payload).send().await {
+            if response.status().is_success() {
+                if let Ok(json_body) = response.json::<serde_json::Value>().await {
+                    if let Some(content) = json_body["choices"][0]["message"]["content"].as_str() {
+                        return Some((agent_id, content.trim().to_string()));
                     }
                 }
             }
-            Err(_) => {}
         }
         None
     }
 }
 
 impl AIBlackBox for SpeculativeSwarmAgent {
-    fn delta(&mut self, _input: &Input) -> Output {
+    fn delta(&mut self, input: &Input) -> Output {
+        // If we have queued branches, yield them one by one to the kernel
+        if let Some(output) = self.queued_outputs.pop() {
+            return output;
+        }
+
         self.current_step += 1;
-        info!(">>> [Swarm] Computing Hanoi Step {}/{} with {} parallel agents...", self.current_step, self.total_steps, self.swarm_size);
+        info!(">>> [Swarm] Computing Step {}/{} with {} parallel branches...", self.current_step, self.total_steps, self.swarm_size);
 
-        let q_o = if self.current_step >= self.total_steps {
-            MachineState::Halt
-        } else {
-            MachineState::Running
-        };
+        let q_o = if self.current_step >= self.total_steps { MachineState::Halt } else { MachineState::Running };
 
-        let prompt = format!("Provide the single action for Step {} of the 20-disk Tower of Hanoi problem.", self.current_step);
+        // [Phase 2 Fix]: Inject the Markov State Context!
+        // Find the latest state from the current HEAD.
+        let mut last_state = "Initial State: Peg 1: [1..20], Peg 2: [], Peg 3: []".to_string();
+        let mut parent_id = "".to_string();
         
-        // Execute the speculative swarm
-        let best_answer = self.rt.block_on(async {
+        if let Some(head_id) = input.s_i.current_head.paths.iter().next() {
+            if let Some(file) = input.s_i.visible_tape.files.get(head_id) {
+                last_state = file.payload.clone();
+                parent_id = head_id.clone();
+            }
+        }
+
+        let prompt = format!(
+            "Current State:\n{}\n\nProvide the logical NEXT STATE for the 20-disk Tower of Hanoi.", 
+            last_state
+        );
+        
+        let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
-            
             for i in 0..self.swarm_size {
                 let c = self.http_client.clone();
                 let u = self.api_url.clone();
                 let m = self.model_name.clone();
                 let p = prompt.clone();
-                
-                set.spawn(async move {
-                    Self::call_llm_async(c, u, m, p, i).await
-                });
+                set.spawn(async move { Self::call_llm_async(c, u, m, p, i).await });
             }
 
-            // Await the FIRST successful response (Speculative Execution)
-            let mut result = None;
+            let mut results = Vec::new();
+            // [Phase 4 Fix]: Do NOT abort! Collect all parallel branches for the DAG!
             while let Some(res) = set.join_next().await {
                 if let Ok(Some((agent_id, text))) = res {
-                    debug!("Agent {} won the race!", agent_id);
-                    result = Some((agent_id, text));
-                    set.abort_all(); // Cancel all other pending requests to save GPU cycles
-                    break;
+                    results.push((agent_id, text));
                 }
             }
-            result
+            results
         });
 
-        let (winning_agent, llm_payload) = match best_answer {
-            Some((id, answer)) => (format!("SwarmAgent_{}", id), answer),
-            None => {
-                error!("Entire swarm failed. Submitting network error state.");
-                ("Swarm_Failed".to_string(), "LLM_NETWORK_ERROR_OR_HALLUCINATION".to_string())
-            }
-        };
-
         let mut citations = vec![];
-        if self.current_step > 1 {
-            citations.push(format!("hanoi_step_{}", self.current_step - 1));
+        if !parent_id.is_empty() { citations.push(parent_id); }
+
+        for (agent_id, text) in answers {
+            self.queued_outputs.push(Output {
+                q_o: q_o.clone(),
+                a_o: Action {
+                    file_id: format!("step_{}_branch_{}", self.current_step, agent_id),
+                    author: format!("Agent_{}", agent_id),
+                    payload: text,
+                    citations: citations.clone(),
+                    stake: 1, // Pay the thermodynamic cost
+                }
+            });
         }
 
-        Output {
-            q_o,
-            a_o: Action {
-                file_id: format!("hanoi_step_{}", self.current_step),
-                author: winning_agent,
-                payload: llm_payload,
-                citations,
-                stake: 1,
+        // Return the first branch, others will be yielded in subsequent ticks
+        if let Some(output) = self.queued_outputs.pop() {
+            output
+        } else {
+            Output {
+                q_o,
+                a_o: Action {
+                    file_id: format!("step_{}_failed", self.current_step),
+                    author: "System".to_string(),
+                    payload: "paradox: swarm completely failed".to_string(), // Will be killed by Guillotine
+                    citations: vec![],
+                    stake: 0,
+                }
             }
         }
     }

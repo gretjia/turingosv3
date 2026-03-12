@@ -56,7 +56,13 @@ impl SpeculativeSwarmAgent {
             if response.status().is_success() {
                 if let Ok(json_body) = response.json::<serde_json::Value>().await {
                     if let Some(content) = json_body["choices"][0]["message"]["content"].as_str() {
-                        return Some((agent_id, content.trim().to_string()));
+                        let text = content.trim().to_string();
+                        // Red-Flagging: Discard if empty, too short, or lacks the required State tag.
+                        if text.len() > 10 && text.contains("[State:") {
+                            return Some((agent_id, text));
+                        } else {
+                            log::warn!("Agent {} triggered Red-Flag: Invalid format or empty payload.", agent_id);
+                        }
                     }
                 }
             }
@@ -82,15 +88,19 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         let mut last_state = "Initial State: Peg 1: [1..20], Peg 2: [], Peg 3: []".to_string();
         let mut parent_id = "".to_string();
         
-        if let Some(head_id) = input.s_i.current_head.paths.iter().next() {
-            if let Some(file) = input.s_i.visible_tape.files.get(head_id) {
-                last_state = file.payload.clone();
-                parent_id = head_id.clone();
-            }
+        // [Phase 4 Fix - Value Oriented HEAD Selection]: 
+        // Don't just pick iter().next() blindly. Find the best node based on price.
+        let best_head = input.s_i.current_head.paths.iter()
+            .filter_map(|id| input.s_i.visible_tape.files.get(id))
+            .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
+
+        if let Some(file) = best_head {
+            last_state = file.payload.clone();
+            parent_id = file.id.clone();
         }
 
         let prompt = format!(
-            "Current State:\n{}\n\nProvide the logical NEXT STATE for the 20-disk Tower of Hanoi.", 
+            "Current State:\n{}\n\nProvide the logical NEXT STATE for the 20-disk Tower of Hanoi.\n\nOUTPUT FORMAT:\n[Moves: describe the move here]\n[State: describe the exact new state here]", 
             last_state
         );
         

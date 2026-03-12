@@ -235,6 +235,14 @@ pub fn run_turing_os(human_spec: String, mut ai: impl AIBlackBox, omega: FileId)
         // [Finalization] q1 ==> if q=halt ==> halt
         if qt.q == MachineState::Halt {
             println!("==== [HALT] DOUBLE-CIRCLE REACHED. UNIVERSE FROZEN. ====");
+            println!(">>> Forcing Final MapReduce Settlement (Judgment Day)... <<<");
+            mr.tick(&mut qt.tape);
+            
+            println!("--- TAPE AUDIT DUMP ---");
+            for (id, file) in &qt.tape.files {
+                println!("ID: {} | Parent: {:?} | Price: {:.2} | Payload: {}", id, file.citations, file.price, file.payload.replace('\n', " "));
+            }
+            println!("-----------------------");
             break;
         }
 

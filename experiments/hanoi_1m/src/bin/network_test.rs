@@ -1,8 +1,7 @@
 use turingosv3::kernel::run_turing_os;
 use env_logger;
 
-use hanoi_1m::agent;
-use agent::NetworkedHanoiAgent;
+use hanoi_1m::swarm::SpeculativeSwarmAgent;
 
 fn main() {
     // Initialize logging
@@ -19,7 +18,7 @@ fn main() {
     let target_steps = 10; 
     let final_omega_id = format!("hanoi_step_{}", target_steps);
 
-    let llm_agent = NetworkedHanoiAgent::new(&api_url, &model_name, target_steps);
+    let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 4);
 
     run_turing_os(
         "Hanoi Tower 20 Disks MAKER Logic (Networked)".to_string(),

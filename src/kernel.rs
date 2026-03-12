@@ -178,8 +178,9 @@ impl MapReduce {
         // O(1) 宏观时间内瞬间完成全宇宙知识的向后价值倒灌！
         for _ in 0..15 {
             for (id, file) in &tape.files {
+                // 神迹赏金：只要包含了 omega_id (例如 "step_20")，不管哪个分支完成，都发放悬赏
                 let mut base_val = 0.0;
-                if *id == self.target_omega_id { base_val += 100_000_000_000.0; } // 神迹赏金
+                if id.starts_with(&self.target_omega_id) { base_val += 100_000_000_000.0; }
                 
                 // 逆向吸血 (Reverse Imputation)：
                 // 直接 O(1) 拿出所有的孩子，避免 O(N^2) 的全宇宙扫描

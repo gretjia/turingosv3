@@ -14,9 +14,9 @@ fn main() {
     let api_url = std::env::var("LLAMA_API_URL").unwrap_or_else(|_| "http://127.0.0.1:8080/v1/chat/completions".to_string());
     let model_name = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "qwen3.5-27b-instruct-q4_k_m".to_string());
     
-    // Testing small scale first to ensure network integration works.
-    let target_steps = 10; 
-    let final_omega_id = format!("step_{}_branch_0", target_steps); // We need to match the new ID format from swarm.rs
+    // Testing scale to 100 steps to observe memory, disk, context scaling and multi-tape rules.
+    let target_steps = 100; 
+    let final_omega_id = format!("step_{}", target_steps); // Use wildcard matching in kernel
 
     let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 4);
 

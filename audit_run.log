@@ -1,0 +1,122 @@
+warning: unused variable: `file`
+   --> src/kernel.rs:180:22
+    |
+180 |             for (id, file) in &tape.files {
+    |                      ^^^^ help: if this is intentional, prefix it with an underscore: `_file`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: useless assignment of variable of type `Q` to itself
+   --> src/kernel.rs:265:13
+    |
+265 |             qt = qt; 
+    |             ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `turingosv3` (lib) generated 2 warnings (run `cargo fix --lib -p turingosv3` to apply 1 suggestion)
+warning: unused imports: `debug` and `error`
+ --> experiments/hanoi_1m/src/swarm.rs:4:17
+  |
+4 | use log::{info, error, debug};
+  |                 ^^^^^  ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `hanoi_1m` (lib) generated 1 warning (run `cargo fix --lib -p hanoi_1m` to apply 1 suggestion)
+   Compiling hanoi_1m v0.1.0 (/home/zephryj/projects/turingosv3/experiments/hanoi_1m)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.44s
+     Running `target/debug/network_test`
+Starting V3 MAKER Hanoi Test on Windows1-W1 GPU Backend...
+>>> TuringOS Kernel Booted. Awaiting HALT. <<<
+[2026-03-12T17:29:44Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 1/10 with 4 parallel branches...
+[Tick 0] [+] ACCEPTED. File Appended.
+[Tick 1] [+] ACCEPTED. File Appended.
+[Tick 2] [+] ACCEPTED. File Appended.
+[Tick 3] [+] ACCEPTED. File Appended.
+[2026-03-12T17:30:13Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 2/10 with 4 parallel branches...
+[Tick 4] [+] ACCEPTED. File Appended.
+[Tick 5] [+] ACCEPTED. File Appended.
+[Tick 6] [+] ACCEPTED. File Appended.
+[Tick 7] [+] ACCEPTED. File Appended.
+[2026-03-12T17:30:41Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 3/10 with 4 parallel branches...
+[Tick 8] [+] ACCEPTED. File Appended.
+[Tick 9] [+] ACCEPTED. File Appended.
+>>> MapReduce Triggered: Pricing Tensor Injected. <<<
+[Tick 10] [+] ACCEPTED. File Appended.
+[Tick 11] [+] ACCEPTED. File Appended.
+[2026-03-12T17:31:09Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 4/10 with 4 parallel branches...
+[Tick 12] [+] ACCEPTED. File Appended.
+[Tick 13] [+] ACCEPTED. File Appended.
+[Tick 14] [+] ACCEPTED. File Appended.
+[Tick 15] [+] ACCEPTED. File Appended.
+[2026-03-12T17:31:38Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 5/10 with 4 parallel branches...
+[Tick 16] [+] ACCEPTED. File Appended.
+[Tick 17] [+] ACCEPTED. File Appended.
+[Tick 18] [+] ACCEPTED. File Appended.
+[Tick 19] [+] ACCEPTED. File Appended.
+>>> MapReduce Triggered: Pricing Tensor Injected. <<<
+[2026-03-12T17:32:02Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 6/10 with 4 parallel branches...
+[Tick 20] [+] ACCEPTED. File Appended.
+[Tick 21] [+] ACCEPTED. File Appended.
+[Tick 22] [+] ACCEPTED. File Appended.
+[Tick 23] [+] ACCEPTED. File Appended.
+[2026-03-12T17:32:34Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 7/10 with 4 parallel branches...
+[Tick 24] [+] ACCEPTED. File Appended.
+[Tick 25] [+] ACCEPTED. File Appended.
+[Tick 26] [+] ACCEPTED. File Appended.
+[Tick 27] [+] ACCEPTED. File Appended.
+[2026-03-12T17:32:41Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 8/10 with 4 parallel branches...
+[Tick 28] [+] ACCEPTED. File Appended.
+[Tick 29] [+] ACCEPTED. File Appended.
+>>> MapReduce Triggered: Pricing Tensor Injected. <<<
+[Tick 30] [+] ACCEPTED. File Appended.
+[Tick 31] [+] ACCEPTED. File Appended.
+[2026-03-12T17:33:09Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 9/10 with 4 parallel branches...
+[Tick 32] [+] ACCEPTED. File Appended.
+[Tick 33] [+] ACCEPTED. File Appended.
+[Tick 34] [+] ACCEPTED. File Appended.
+[Tick 35] [+] ACCEPTED. File Appended.
+[2026-03-12T17:33:40Z INFO  hanoi_1m::swarm] >>> [Swarm] Computing Step 10/10 with 4 parallel branches...
+[Tick 36] [+] ACCEPTED. File Appended.
+==== [HALT] DOUBLE-CIRCLE REACHED. UNIVERSE FROZEN. ====
+--- TAPE AUDIT DUMP ---
+ID: step_1_branch_2 | Parent: [] | Price: 0.00 | Payload: 
+ID: step_4_branch_0 | Parent: ["step_2_branch_1"] | Price: 0.00 | Payload: 
+ID: step_7_branch_2 | Parent: ["step_4_branch_2"] | Price: 0.00 | Payload: 
+ID: step_5_branch_0 | Parent: ["step_3_branch_0"] | Price: 0.00 | Payload: 
+ID: step_8_branch_0 | Parent: ["step_1_branch_3"] | Price: 0.00 | Payload: The 20-disk Tower of Hanoi is a classic problem where the goal is to move all disks from one peg to another, following specific rules. The minimum number of moves required to solve the problem with $n$ disks is $2^n - 1$. For $n = 20$, the minimum number of moves is $2^{20} - 1 = 1,048,575$.  The "next state" in the context of the Tower of Hanoi problem typically refers to the configuration of the disks after one move. However, without a specific starting configuration or a sequence of moves, it's not possible to determine the exact next state.  If we assume
+ID: step_1_branch_0 | Parent: [] | Price: 0.00 | Payload: 
+ID: step_2_branch_3 | Parent: ["step_1_branch_1"] | Price: 0.00 | Payload: 
+ID: step_2_branch_0 | Parent: ["step_1_branch_1"] | Price: 0.00 | Payload: 
+ID: step_1_branch_3 | Parent: [] | Price: 0.00 | Payload: 
+ID: step_1_branch_1 | Parent: [] | Price: 0.00 | Payload: 
+ID: step_5_branch_3 | Parent: ["step_3_branch_0"] | Price: 0.00 | Payload: 
+ID: step_3_branch_2 | Parent: ["step_2_branch_0"] | Price: 0.00 | Payload: 
+ID: step_6_branch_1 | Parent: ["step_3_branch_3"] | Price: 0.00 | Payload: The user is asking for the "next state" of the 20-disk Tower of Hanoi. This is a bit ambiguous. In the context of the Tower of Hanoi, "next state" could mean:  1. The next move in the sequence of moves to solve the puzzle. 2. The state of the puzzle after the next move. 3. The total number of moves required to solve the puzzle.  Given the phrasing "next state", I think the user is asking for the next move in the sequence of moves to solve the puzzle. However, without knowing the current state of the puzzle, I cannot determine the next move.  Alternatively, the user might be asking for the total
+ID: step_5_branch_1 | Parent: ["step_3_branch_0"] | Price: 0.00 | Payload: The Next State for the 20-disk Tower of Hanoi is the configuration where all disks are moved from the source peg to the destination peg, following the rules of the puzzle.
+ID: step_7_branch_0 | Parent: ["step_4_branch_2"] | Price: 0.00 | Payload: 
+ID: step_3_branch_0 | Parent: ["step_2_branch_0"] | Price: 0.00 | Payload: 
+ID: step_9_branch_3 | Parent: ["step_8_branch_1"] | Price: 0.00 | Payload: 
+ID: step_3_branch_1 | Parent: ["step_2_branch_0"] | Price: 0.00 | Payload: 
+ID: step_8_branch_3 | Parent: ["step_1_branch_3"] | Price: 0.00 | Payload: 
+ID: step_4_branch_3 | Parent: ["step_2_branch_1"] | Price: 0.00 | Payload: 
+ID: step_3_branch_3 | Parent: ["step_2_branch_0"] | Price: 0.00 | Payload: 
+ID: step_2_branch_2 | Parent: ["step_1_branch_1"] | Price: 0.00 | Payload: 
+ID: step_8_branch_2 | Parent: ["step_1_branch_3"] | Price: 0.00 | Payload: # Next Action Determine the first move in the 20-disk Tower of Hanoi solution.  # Resulting New State Move the smallest disk (disk 1) from the source peg to the destination peg.  # Explanation In the Tower of Hanoi problem, the optimal solution for n disks requires 2^n - 1 moves. For 20 disks, this is 2^20 - 1 = 1,048,575 moves. The first move in any Tower of Hanoi solution is always to move the smallest disk (disk 1) from the source peg to the destination peg. This is because the smallest disk must be moved first to allow
+ID: step_9_branch_0 | Parent: ["step_8_branch_1"] | Price: 0.00 | Payload: 
+ID: step_4_branch_1 | Parent: ["step_2_branch_1"] | Price: 0.00 | Payload: 
+ID: step_10_branch_2 | Parent: ["step_9_branch_0"] | Price: 0.00 | Payload: 
+ID: step_4_branch_2 | Parent: ["step_2_branch_1"] | Price: 0.00 | Payload: 
+ID: step_2_branch_1 | Parent: ["step_1_branch_1"] | Price: 0.00 | Payload: 
+ID: step_7_branch_1 | Parent: ["step_4_branch_2"] | Price: 0.00 | Payload: 
+ID: step_6_branch_2 | Parent: ["step_3_branch_3"] | Price: 0.00 | Payload: The "20-disk Tower of Hanoi" refers to a specific puzzle configuration. The question asks for the next state.  The Tower of Hanoi puzzle consists of three rods and a number of disks of different sizes. The objective is to move the entire stack of disks from the starting rod to the target rod, obeying the following rules: 1. Only one disk can be moved at a time. 2. Each move consists of taking the upper disk from one of the stacks and placing it on top of another stack or on an empty rod. 3. No disk may be placed on top of a smaller disk.  The number of moves required to solve the puzzle with $n$ disks is $
+ID: step_7_branch_3 | Parent: ["step_4_branch_2"] | Price: 0.00 | Payload: </think>  The 20-disk Tower of Hanoi requires $2^{20} - 1 = 1,048,575$ moves.
+ID: step_6_branch_0 | Parent: ["step_3_branch_3"] | Price: 0.00 | Payload: The logical next state for the 20-disk Tower of Hanoi is the configuration where all 20 disks are stacked on the destination peg, ordered by size (smallest on top, largest on bottom). This represents the completed solution of the puzzle.
+ID: step_9_branch_1 | Parent: ["step_8_branch_1"] | Price: 0.00 | Payload: 
+ID: step_8_branch_1 | Parent: ["step_1_branch_3"] | Price: 0.00 | Payload: The 20-disk Tower of Hanoi is a classic puzzle where the goal is to move all disks from one peg to another, following specific rules: 1. Only one disk can be moved at a time. 2. A larger disk cannot be placed on top of a smaller disk. 3. All moves must be made using the three pegs.  The minimum number of moves required to solve the puzzle with n disks is given by the formula: \[ \text{Minimum Moves} = 2^n - 1 \]  For 20 disks: \[ \text{Minimum Moves} = 2^{20} - 1 = 1,048,5
+ID: step_5_branch_2 | Parent: ["step_3_branch_0"] | Price: 0.00 | Payload: 
+ID: step_9_branch_2 | Parent: ["step_8_branch_1"] | Price: 0.00 | Payload: 
+ID: step_6_branch_3 | Parent: ["step_3_branch_3"] | Price: 0.00 | Payload: 
+-----------------------
+V3 MAKER Hanoi Network Test Complete.

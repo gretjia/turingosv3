@@ -18,16 +18,16 @@ pub struct SpeculativeSwarmAgent {
 }
 
 impl SpeculativeSwarmAgent {
-    pub fn new(api_url: &str, model_name: &str, total_steps: u64, swarm_size: usize) -> Self {
+    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64) -> Self {
         SpeculativeSwarmAgent {
             api_url: api_url.to_string(),
             model_name: model_name.to_string(),
             http_client: Client::builder()
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(timeout_secs))
                 .build()
                 .unwrap(),
             current_step: 0,
-            total_steps,
+            total_steps: target_steps,
             swarm_size,
             rt: Runtime::new().unwrap(),
             queued_outputs: Vec::new(),
@@ -49,21 +49,60 @@ impl SpeculativeSwarmAgent {
             ],
             // Temperature varies to create genuine DAG branching
             "temperature": 0.1 + (agent_id as f32 * 0.2), 
-            "max_tokens": 150
+            "max_tokens": 4096,
+            "stream": false
         });
 
-        if let Ok(response) = client.post(&url).json(&payload).send().await {
-            if response.status().is_success() {
-                if let Ok(json_body) = response.json::<serde_json::Value>().await {
-                    if let Some(content) = json_body["choices"][0]["message"]["content"].as_str() {
-                        let text = content.trim().to_string();
-                        // Red-Flagging: Discard if empty, too short, or lacks the required State tag.
-                        if text.len() > 10 && text.contains("[State:") {
-                            return Some((agent_id, text));
+        // Add 3 retries for transient 500/502 errors when hitting llama.cpp too hard
+        for attempt in 1..=3 {
+            match client.post(&url).json(&payload).send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        if let Ok(json_body) = response.json::<serde_json::Value>().await {
+                            // Support both OpenAI format (llama.cpp) and native Ollama format
+                            let mut final_content = String::new();
+                            
+                            if let Some(choices) = json_body.get("choices") {
+                                let message = &choices[0]["message"];
+                                if let Some(reasoning) = message.get("reasoning_content").and_then(|v| v.as_str()) {
+                                    final_content.push_str(reasoning);
+                                    final_content.push('\n');
+                                }
+                                if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
+                                    final_content.push_str(content);
+                                }
+                            } else if let Some(message) = json_body.get("message") {
+                                if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
+                                    final_content.push_str(content);
+                                }
+                            }
+
+                            if !final_content.is_empty() {
+                                let text = final_content.trim().to_string();
+                                // Red-Flagging: Discard if empty, too short, or lacks the required State tag.
+                                if text.len() > 10 && text.contains("[State:") {
+                                    return Some((agent_id, text));
+                                } else {
+                                    log::warn!("Agent {} triggered Red-Flag: Invalid format or empty payload. Payload: {}", agent_id, text);
+                                    return None; // Format error, don't retry, just die
+                                }
+                            } else {
+                                log::error!("Agent {} API Response parsed but no content found. Body: {}", agent_id, json_body);
+                            }
                         } else {
-                            log::warn!("Agent {} triggered Red-Flag: Invalid format or empty payload.", agent_id);
+                            log::error!("Agent {} failed to parse JSON response body.", agent_id);
                         }
+                    } else {
+                        log::error!("Agent {} HTTP Error: {} on attempt {}", agent_id, response.status(), attempt);
+                        // 500/502/503 errors usually mean the server queue is full
+                        tokio::time::sleep(Duration::from_secs(5 * attempt)).await;
+                        continue;
                     }
+                },
+                Err(e) => {
+                    log::error!("Agent {} HTTP Request Failed: {} on attempt {}", agent_id, e, attempt);
+                    tokio::time::sleep(Duration::from_secs(5 * attempt)).await;
+                    continue;
                 }
             }
         }
@@ -102,13 +141,28 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
 
         if let Some(file) = best_head {
-            // [Shield Goodhart Problem]: Hide metrics (Price) from the LLM. Only give it the payload.
-            last_state = file.payload.clone();
+            // [Shield Goodhart Problem & Detail Encapsulation]: 
+            // We must ONLY pass the clean physical state `[State: ...]` to the next step.
+            // We MUST strip out the `Thinking Process:` and `[Moves: ...]` to prevent Context Corruption!
+            let full_payload = file.payload.clone();
+            
+            // Extract just the "[State: ...]" block using basic string parsing
+            if let Some(start_idx) = full_payload.find("[State:") {
+                if let Some(end_idx) = full_payload[start_idx..].find("]") {
+                    last_state = full_payload[start_idx..start_idx + end_idx + 1].to_string();
+                } else {
+                    last_state = full_payload[start_idx..].to_string();
+                }
+            } else {
+                // Fallback just in case, though Red-Flag should prevent this from entering Tape
+                last_state = full_payload;
+            }
+            
             parent_id = file.id.clone();
         }
 
         let prompt = format!(
-            "Current State:\n{}\n\nProvide the logical NEXT STATE for the 20-disk Tower of Hanoi.\n\nOUTPUT FORMAT:\n[Moves: describe the move here]\n[State: describe the exact new state here]", 
+            "Current State:\n{}\n\nProvide the logical NEXT STATE for the 20-disk Tower of Hanoi.\n\nCRITICAL INSTRUCTION: You MUST use the exact tags [Moves: ...] and [State: ...]. Do not write any other text.\n\nOUTPUT FORMAT:\n[Moves: describe the single move here]\n[State: describe the exact new state of all pegs here]", 
             last_state
         );
         
@@ -119,7 +173,11 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 let u = self.api_url.clone();
                 let m = self.model_name.clone();
                 let p = prompt.clone();
-                set.spawn(async move { Self::call_llm_async(c, u, m, p, i).await });
+                set.spawn(async move { 
+                    // Stagger the initial requests to prevent slamming the Llama HTTP server all at once
+                    tokio::time::sleep(Duration::from_secs(i as u64 * 2)).await;
+                    Self::call_llm_async(c, u, m, p, i).await 
+                });
             }
 
             let mut results = Vec::new();
@@ -152,10 +210,14 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         if let Some(output) = self.queued_outputs.pop() {
             output
         } else {
+            // [Fix]: The entire swarm failed red-flagging.
+            // We must NOT advance to the next step, otherwise we leave a gaping hole in the timeline.
+            // We retract the step counter so the next tick retries the SAME step.
+            self.current_step -= 1;
             Output {
-                q_o,
+                q_o: MachineState::Running,
                 a_o: Action {
-                    file_id: format!("step_{}_failed", self.current_step),
+                    file_id: format!("step_{}_failed", self.current_step + 1),
                     author: "System".to_string(),
                     payload: "paradox: swarm completely failed".to_string(), // Will be killed by Guillotine
                     citations: vec![],

@@ -11,6 +11,11 @@
 - Verified the SSH tunnel to `windows1-w1` (local port 8080) is functioning correctly.
 - Scaled up the test target from 10 to 200 consecutive tests to evaluate stability.
 - **Successfully executed `network_test` with `target_steps = 200`. The test completed without errors and the TuringOS kernel reached `==== [HALT] DOUBLE-CIRCLE REACHED. UNIVERSE FROZEN. ====` seamlessly.**
+- **Architecture Overhaul (2026-03-14)**: Encountered Network I/O Fractures/Deadlocks due to the 4-Agent Swarm DDos'ing the Llama.cpp backend. Refactored the core into a **Dual-Chamber Architecture (Thermodynamic Sandbox + Phase-Transition Extractor)**.
+- **Backend Upgrade**: Updated the `windows1-w1` Llama.cpp backend to version `8329 (fbaa95bc2)` and expanded context window to 8192 for deep thinking.
+- **Current Run (Paused)**: The `network_test_v3` was executed but became trapped in a "Sisyphus Loop" at Step 1. The LLM output massive `<think>` reasoning but was hard-truncated at 2048 tokens, causing the Phase-Transition Extractor to drop the incomplete output and retry infinitely. The test has been stopped for analysis.
 
 ## Next Steps
-- Awaiting user instruction for the next scale-up or validation step (e.g., further increasing target steps towards 1 Million, or performing result validation).
+- Address the 2048-token generation truncation limit (either via API parameter overrides or Prompt constraints).
+- See `../truncation_audit_20260314.md` for a deep dive into the Truncation Paradox.
+- See `../engineering_lessons_20260314.md` for newly documented solutions regarding Tailscale SCP MTU blackholes, Rust Windows Cross-Compilation, and network avalanches.

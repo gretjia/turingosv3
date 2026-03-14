@@ -23,7 +23,7 @@ impl ResilientLLMClient {
     }
 
     /// 执行具备热力学韧性与指数退避的网络请求
-    pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, max_retries: u32) -> Option<String> {
+    pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, max_retries: u32, temperature: f32) -> Option<String> {
         let payload = json!({
             "model": self.model_name,
             "messages": [
@@ -37,7 +37,7 @@ impl ResilientLLMClient {
                 }
             ],
             // Temperature varies slightly based on agent_id to create genuine DAG branching
-            "temperature": 0.1 + (agent_id as f32 * 0.2), 
+            "temperature": temperature, 
             "max_tokens": 8192,
             "stream": false
         });

@@ -70,16 +70,40 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             for i in 0..self.swarm_size {
                 let c = self.client.clone();
                 let p = prompt.clone();
+                let total_agents = self.swarm_size;
                 set.spawn(async move { 
                     // Stagger the branches heavily to prevent DDoSing the llama.cpp server and triggering timeout avalanche
                     sleep(Duration::from_secs(i as u64 * 10)).await;
-                    let result = c.resilient_generate(&p, i, 5).await;
-                    if let Some(raw_text) = result {
-                        if let Some(pure_state) = distill_pure_state(&raw_text) {
-                            return Some((i, pure_state));
+                    
+                    let mut supervisor = crate::harness::AgentSupervisor::new(i, total_agents);
+                    let mut current_prompt = p.clone();
+                    
+                    loop {
+                        let temp = supervisor.apply_cognitive_divergence();
+                        let result = c.resilient_generate(&current_prompt, i, 5, temp).await;
+                        
+                        if let Some(raw_text) = result {
+                            if let Some(pure_state) = distill_pure_state(&raw_text) {
+                                return Some((i, pure_state));
+                            }
+                        }
+                        
+                        match supervisor.handle_rejection() {
+                            crate::harness::WatchdogState::Continue => {
+                                sleep(Duration::from_secs(5)).await;
+                            },
+                            crate::harness::WatchdogState::SelfHeal => {
+                                current_prompt.push_str("\n\n[SYSTEM SOS]: Your previous response was truncated by physical limits. You MUST summarize your <think> process under 1000 words and output [State: ...] immediately!");
+                                sleep(Duration::from_secs(5)).await;
+                            },
+                            crate::harness::WatchdogState::SuspendAndSOS => {
+                                error!("Agent {} suspended indefinitely waiting for human intervention.", i);
+                                loop {
+                                    sleep(Duration::from_secs(3600)).await;
+                                }
+                            }
                         }
                     }
-                    None
                 });
             }
 

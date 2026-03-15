@@ -1,4 +1,4 @@
-use turingosv3::kernel::{AIBlackBox, Input, Output, Action, MachineState};
+use turingosv3::kernel::{AIBlackBox, Input, Output, Action, MachineState, File};
 use turingosv3::sdk::membrane::distill_pure_state;
 use turingosv3::drivers::llm_http::ResilientLLMClient;
 use log::{info, error};
@@ -7,6 +7,8 @@ use tokio::runtime::Runtime;
 use tokio::task::JoinSet;
 use std::time::Duration;
 use tokio::time::sleep;
+use std::collections::HashSet;
+use crate::wal::{WalSentinel, TapeDelta};
 
 pub struct SpeculativeSwarmAgent {
     pub client: Arc<ResilientLLMClient>,
@@ -16,18 +18,48 @@ pub struct SpeculativeSwarmAgent {
     pub rt: Runtime,
     pub queued_outputs: Vec<Output>,
     pub consecutive_failures: usize,
+    pub sentinel: WalSentinel,
+    pub known_files: HashSet<String>,
 }
 
 impl SpeculativeSwarmAgent {
-    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64) -> Self {
+    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64, sentinel: WalSentinel, recovered_files: Vec<File>) -> Self {
+        let mut queued_outputs = Vec::new();
+        let mut max_step = 0;
+        
+        // We push backwards so pop() returns them in chronological order
+        for f in recovered_files.into_iter().rev() {
+            if let Some(step_str) = f.id.strip_prefix("step_") {
+                if let Some(step_num) = step_str.split('_').next() {
+                    if let Ok(num) = step_num.parse::<u64>() {
+                        if num > max_step {
+                            max_step = num;
+                        }
+                    }
+                }
+            }
+            queued_outputs.push(Output {
+                q_o: MachineState::Running,
+                a_o: Action {
+                    file_id: f.id,
+                    author: f.author,
+                    payload: f.payload,
+                    citations: f.citations,
+                    stake: f.stake,
+                }
+            });
+        }
+
         SpeculativeSwarmAgent {
             client: Arc::new(ResilientLLMClient::new(api_url, model_name, timeout_secs)),
-            current_step: 0,
+            current_step: max_step,
             total_steps: target_steps,
             swarm_size,
             rt: Runtime::new().unwrap(),
-            queued_outputs: Vec::new(),
+            queued_outputs,
             consecutive_failures: 0,
+            sentinel,
+            known_files: HashSet::new(),
         }
     }
 }
@@ -82,6 +114,18 @@ async fn run_agent(
 
 impl AIBlackBox for SpeculativeSwarmAgent {
     fn delta(&mut self, input: &Input) -> Output {
+        // WAL check: Identify new files in the visible tape
+        let mut new_files = Vec::new();
+        for (id, file) in &input.s_i.visible_tape.files {
+            if !self.known_files.contains(id) {
+                new_files.push(file.clone());
+                self.known_files.insert(id.clone());
+            }
+        }
+        if !new_files.is_empty() {
+            self.sentinel.record_delta(TapeDelta { files: new_files });
+        }
+
         if let Some(output) = self.queued_outputs.pop() {
             return output;
         }

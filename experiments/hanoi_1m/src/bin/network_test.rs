@@ -22,7 +22,15 @@ fn main() {
     let target_steps = 100_000; 
     let final_omega_id = format!("step_{}", target_steps); // Use wildcard matching in kernel
 
-    let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 100, timeout_secs);
+    let wal_path = "hanoi_1m_recovery.wal".to_string();
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let _guard = rt.enter(); // Enter the runtime context so tokio::spawn works synchronously in WalSentinel::new
+    let sentinel = hanoi_1m::wal::WalSentinel::new(wal_path.clone());
+    let recovered_files = rt.block_on(hanoi_1m::wal::recover_tape(&wal_path));
+    
+    println!("Bootloader resurrected {} files from WAL.", recovered_files.len());
+
+    let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 100, timeout_secs, sentinel, recovered_files);
 
     run_turing_os(
         "Hanoi Tower 20 Disks MAKER Logic (Networked)".to_string(),

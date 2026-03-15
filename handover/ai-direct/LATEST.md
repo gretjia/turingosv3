@@ -23,6 +23,7 @@
 - **Current Status**: `network_test_v6.exe` is currently running flawlessly on `windows1-w1` (via `windows1-back` reverse tunnel). It has bypassed previous crash limits and is actively pushing towards the 1-Million-Step goal.
 
 ## Next Steps
+- **Address the RAM Volatility Threat**: Currently, the kernel only dumps the Tape upon reaching `HALT`. If the physical machine loses power during the million-step journey, all progress is lost. We must implement a silent, asynchronous disk checkpointing mechanism in the outer harness to serialize the Tape every N ticks without polluting the kernel's pure state logic. (See `../ram_volatility_threat_20260314.md`)
 - Keep monitoring `network_test_v6.exe` on `windows1-w1`.
 - See `../kv_cache_avalanche_audit_20260314.md` for details on the Silent Void bug, reverse tunnel network bindings, and the VRAM Squeezing Protocol.
 - See `../microkernel_harness_architecture_20260314.md` for the permanent architectural guidelines.

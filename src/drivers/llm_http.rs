@@ -15,16 +15,19 @@ pub struct ResilientLLMClient {
     client: Client,
     api_url: String,
     model_name: String,
+    api_key: Option<String>,
 }
 
 impl ResilientLLMClient {
     pub fn new(api_url: &str, model_name: &str, _timeout_secs: u64) -> Self {
+        let api_key = std::env::var("SILICONFLOW_API_KEY").ok();
         Self {
             client: Client::builder()
                 .build()
                 .unwrap(),
             api_url: api_url.to_string(),
             model_name: model_name.to_string(),
+            api_key,
         }
     }
 
@@ -48,12 +51,16 @@ impl ResilientLLMClient {
             "stream": false
         });
 
-        let request = self.client.post(&self.api_url)
+        let mut request_builder = self.client.post(&self.api_url)
             // Use resilient timeout internally as well, ignoring global client timeout for these heavy requests
             .timeout(Duration::from_secs(1200))
-            .json(&payload)
-            .send()
-            .await;
+            .json(&payload);
+
+        if let Some(ref key) = self.api_key {
+            request_builder = request_builder.header("Authorization", format!("Bearer {}", key));
+        }
+
+        let request = request_builder.send().await;
 
         match request {
             Ok(response) if response.status().is_success() => {

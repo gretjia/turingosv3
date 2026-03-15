@@ -1,7 +1,7 @@
 use std::time::Duration;
 use reqwest::Client;
 use serde_json::json;
-use log::{info, error, warn};
+use log::{error, warn};
 
 #[derive(Debug)]
 pub enum DriverError {

@@ -1,5 +1,13 @@
 use log::{warn, error};
 
+#[derive(Debug)]
+pub enum HarnessError {
+    NetworkFracture(String),
+    SpacetimeTimeout,
+    HardwareTruncation,
+    SemanticCollapse,
+}
+
 pub enum WatchdogState {
     Continue,
     SelfHeal,
@@ -25,16 +33,16 @@ impl AgentSupervisor {
         0.2 + (0.6 * (self.agent_id as f32 / self.total_agents.max(1) as f32))
     }
 
-    pub fn handle_rejection(&mut self) -> WatchdogState {
+    pub fn handle_rejection(&mut self, err: &HarnessError) -> WatchdogState {
         self.strike_count += 1;
         match self.strike_count {
             1..=3 => WatchdogState::Continue,
             4..=8 => {
-                warn!("[Watchdog {}] Agent exhibiting repetitive failure ({} strikes). Initiating SelfHeal.", self.agent_id, self.strike_count);
+                warn!("[Watchdog {}] Agent exhibiting repetitive failure ({:?}, {} strikes). Initiating SelfHeal.", self.agent_id, err, self.strike_count);
                 WatchdogState::SelfHeal
             },
             _ => {
-                error!("CRITICAL: [Watchdog {}] Agent zombified after {} strikes. Suspending and issuing SOS.", self.agent_id, self.strike_count);
+                error!("CRITICAL: [Watchdog {}] Agent zombified after {} strikes ({:?}). Suspending and issuing SOS.", self.agent_id, self.strike_count, err);
                 WatchdogState::SuspendAndSOS
             }
         }

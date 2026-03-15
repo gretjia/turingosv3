@@ -18,8 +18,11 @@
   1. Injected `"max_tokens": 8192` to shatter the physical truncation limit.
   2. Implemented *Cognitive Divergence* (heterogeneous temperature per agent).
   3. Implemented a *Non-Stop Watchdog* that handles `SelfHeal` and `SuspendAndSOS` without crashing the global TuringOS timeline.
-- **Current Status**: The new binary (`network_test_v4.exe`) has been cross-compiled and delivered to the Windows GPU node via the Gigabit LAN bridge. Ready for execution.
+- **The Silent Void Fix (V6)**: `network_test_v5` silently exited when all agents simultaneously suspended. Refactored the `JoinSet` into an infinite `loop` with an "Immortal Supervisor" that instantly respawns any dead agents, guaranteeing absolute non-stop execution.
+- **The KV Cache Avalanche Solved**: At Step 39, `llama-server` OOM-crashed due to the massive 4x 8192 context buffer. Reprovisioned the backend using `-ctk q8_0 -ctv q8_0 -kvu` to halve VRAM usage via 8-bit KV quantization and unified memory pooling without sacrificing AI reasoning freedom.
+- **Current Status**: `network_test_v6.exe` is currently running flawlessly on `windows1-w1` (via `windows1-back` reverse tunnel). It has bypassed previous crash limits and is actively pushing towards the 1-Million-Step goal.
 
 ## Next Steps
-- Start the `network_test_v4.exe` on `windows1-w1` to commence the 1-Million-Step Hanoi trial with the fully realized Microkernel architecture.
+- Keep monitoring `network_test_v6.exe` on `windows1-w1`.
+- See `../kv_cache_avalanche_audit_20260314.md` for details on the Silent Void bug, reverse tunnel network bindings, and the VRAM Squeezing Protocol.
 - See `../microkernel_harness_architecture_20260314.md` for the permanent architectural guidelines.

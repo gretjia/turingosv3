@@ -32,6 +32,54 @@ impl SpeculativeSwarmAgent {
     }
 }
 
+async fn run_agent(
+    i: usize,
+    total_agents: usize,
+    client: Arc<ResilientLLMClient>,
+    prompt: String,
+) -> Option<(usize, String)> {
+    // Stagger the branches heavily to prevent DDoSing the llama.cpp server and triggering timeout avalanche
+    sleep(Duration::from_secs(i as u64 * 10)).await;
+    
+    let mut supervisor = crate::harness::AgentSupervisor::new(i, total_agents);
+    let mut current_prompt = prompt;
+    
+    loop {
+        let temp = supervisor.apply_cognitive_divergence();
+        let result = client.resilient_generate(&current_prompt, i, temp).await;
+        
+        let harness_err = match result {
+            Ok(raw_text) => {
+                if let Some(pure_state) = distill_pure_state(&raw_text) {
+                    return Some((i, pure_state));
+                } else {
+                    crate::harness::HarnessError::SemanticCollapse
+                }
+            }
+            Err(e) => match e {
+                turingosv3::drivers::llm_http::DriverError::Timeout => crate::harness::HarnessError::SpacetimeTimeout,
+                turingosv3::drivers::llm_http::DriverError::NetworkFracture(msg) => crate::harness::HarnessError::NetworkFracture(msg),
+                turingosv3::drivers::llm_http::DriverError::JsonParseError => crate::harness::HarnessError::HardwareTruncation,
+                turingosv3::drivers::llm_http::DriverError::BackendError(_) => crate::harness::HarnessError::HardwareTruncation,
+            }
+        };
+        
+        match supervisor.handle_rejection(&harness_err) {
+            crate::harness::WatchdogState::Continue => {
+                sleep(Duration::from_secs(5)).await;
+            },
+            crate::harness::WatchdogState::SelfHeal => {
+                current_prompt.push_str("\n\n[SYSTEM SOS]: Your previous response was truncated by physical limits. You MUST summarize your <think> process under 1000 words and output [State: ...] immediately!");
+                sleep(Duration::from_secs(5)).await;
+            },
+            crate::harness::WatchdogState::SuspendAndSOS => {
+                error!("Agent {} suspended indefinitely waiting for human intervention.", i);
+                return None;
+            }
+        }
+    }
+}
+
 impl AIBlackBox for SpeculativeSwarmAgent {
     fn delta(&mut self, input: &Input) -> Output {
         if let Some(output) = self.queued_outputs.pop() {
@@ -67,53 +115,49 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         
         let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
-            for i in 0..self.swarm_size {
-                let c = self.client.clone();
-                let p = prompt.clone();
-                let total_agents = self.swarm_size;
-                set.spawn(async move { 
-                    // Stagger the branches heavily to prevent DDoSing the llama.cpp server and triggering timeout avalanche
-                    sleep(Duration::from_secs(i as u64 * 10)).await;
-                    
-                    let mut supervisor = crate::harness::AgentSupervisor::new(i, total_agents);
-                    let mut current_prompt = p.clone();
-                    
-                    loop {
-                        let temp = supervisor.apply_cognitive_divergence();
-                        let result = c.resilient_generate(&current_prompt, i, 5, temp).await;
-                        
-                        if let Some(raw_text) = result {
-                            if let Some(pure_state) = distill_pure_state(&raw_text) {
-                                return Some((i, pure_state));
-                            }
-                        }
-                        
-                        match supervisor.handle_rejection() {
-                            crate::harness::WatchdogState::Continue => {
-                                sleep(Duration::from_secs(5)).await;
-                            },
-                            crate::harness::WatchdogState::SelfHeal => {
-                                current_prompt.push_str("\n\n[SYSTEM SOS]: Your previous response was truncated by physical limits. You MUST summarize your <think> process under 1000 words and output [State: ...] immediately!");
-                                sleep(Duration::from_secs(5)).await;
-                            },
-                            crate::harness::WatchdogState::SuspendAndSOS => {
-                                error!("Agent {} suspended indefinitely waiting for human intervention.", i);
-                                loop {
-                                    sleep(Duration::from_secs(3600)).await;
-                                }
-                            }
-                        }
-                    }
-                });
-            }
+            let mut next_agent_id = 0;
+            loop {
+                // 1. Defend against the void: If set is somehow completely empty, respawn everything
+                while set.len() < self.swarm_size {
+                    let new_id = next_agent_id;
+                    next_agent_id += 1;
+                    let c = self.client.clone();
+                    let p = prompt.clone();
+                    let total_agents = self.swarm_size;
+                    set.spawn(async move { 
+                        run_agent(new_id, total_agents, c, p).await
+                    });
+                }
 
-            let mut results = Vec::new();
-            while let Some(res) = set.join_next().await {
-                if let Ok(Some((agent_id, text))) = res {
-                    results.push((agent_id, text));
+                // 2. Wait for the next task event (completion, panic, success)
+                match set.join_next().await {
+                    Some(Ok(Some((agent_id, pure_state)))) => {
+                        // A hero found the answer! Return it to the kernel.
+                        // When we return from this block, the `JoinSet` is dropped and 
+                        // all running pending futures in the background are cleanly cancelled.
+                        return vec![(agent_id, pure_state)];
+                    }
+                    Some(Ok(None)) => {
+                         // An agent hit Watchdog SuspendAndSOS and gracefully exited.
+                         log::warn!("Agent naturally exited (likely executed by Watchdog). Waiting for next resurrection.");
+                    }
+                    Some(Err(join_err)) => {
+                         // An agent task SILENTLY PANICKED or was cancelled!
+                         if join_err.is_panic() {
+                             log::error!("CRITICAL: An Agent Tokio Thread SILENTLY PANICKED!");
+                         } else if join_err.is_cancelled() {
+                             log::error!("Agent task cancelled unexpectedly.");
+                         } else {
+                             log::error!("Agent task failed: {}", join_err);
+                         }
+                    }
+                    None => {
+                         // This is the true void. We should never really hit this if we respawn at the top,
+                         // but if we do, the `loop` will just jump back to the top and `while set.len() < size` will respawn everything.
+                         log::error!("JoinSet empty. The void was reached. Respawning.");
+                    }
                 }
             }
-            results
         });
 
         let mut citations = vec![];

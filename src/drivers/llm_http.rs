@@ -2,7 +2,14 @@ use std::time::Duration;
 use reqwest::Client;
 use serde_json::json;
 use log::{info, error, warn};
-use tokio::time::sleep;
+
+#[derive(Debug)]
+pub enum DriverError {
+    NetworkFracture(String),
+    Timeout,
+    JsonParseError,
+    BackendError(String),
+}
 
 pub struct ResilientLLMClient {
     client: Client,
@@ -11,10 +18,9 @@ pub struct ResilientLLMClient {
 }
 
 impl ResilientLLMClient {
-    pub fn new(api_url: &str, model_name: &str, timeout_secs: u64) -> Self {
+    pub fn new(api_url: &str, model_name: &str, _timeout_secs: u64) -> Self {
         Self {
             client: Client::builder()
-                .timeout(Duration::from_secs(timeout_secs))
                 .build()
                 .unwrap(),
             api_url: api_url.to_string(),
@@ -23,7 +29,7 @@ impl ResilientLLMClient {
     }
 
     /// 执行具备热力学韧性与指数退避的网络请求
-    pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, max_retries: u32, temperature: f32) -> Option<String> {
+    pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, temperature: f32) -> Result<String, DriverError> {
         let payload = json!({
             "model": self.model_name,
             "messages": [
@@ -42,59 +48,58 @@ impl ResilientLLMClient {
             "stream": false
         });
 
-        let mut backoff_secs = 5;
+        let request = self.client.post(&self.api_url)
+            // Use resilient timeout internally as well, ignoring global client timeout for these heavy requests
+            .timeout(Duration::from_secs(1200))
+            .json(&payload)
+            .send()
+            .await;
 
-        for attempt in 1..=max_retries {
-            let request = self.client.post(&self.api_url)
-                // Use resilient timeout internally as well, ignoring global client timeout for these heavy requests
-                .timeout(Duration::from_secs(1200))
-                .json(&payload)
-                .send()
-                .await;
-
-            match request {
-                Ok(response) if response.status().is_success() => {
-                    if let Ok(json_body) = response.json::<serde_json::Value>().await {
-                        let mut final_content = String::new();
-                        
-                        // Parse OpenAI (llama.cpp) or native Ollama formats
-                        if let Some(choices) = json_body.get("choices") {
-                            let message = &choices[0]["message"];
-                            if let Some(reasoning) = message.get("reasoning_content").and_then(|v| v.as_str()) {
-                                final_content.push_str(reasoning);
-                                final_content.push('\n');
-                            }
-                            if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
-                                final_content.push_str(content);
-                            }
-                        } else if let Some(message) = json_body.get("message") {
-                            if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
-                                final_content.push_str(content);
-                            }
+        match request {
+            Ok(response) if response.status().is_success() => {
+                if let Ok(json_body) = response.json::<serde_json::Value>().await {
+                    let mut final_content = String::new();
+                    
+                    // Parse OpenAI (llama.cpp) or native Ollama formats
+                    if let Some(choices) = json_body.get("choices") {
+                        let message = &choices[0]["message"];
+                        if let Some(reasoning) = message.get("reasoning_content").and_then(|v| v.as_str()) {
+                            final_content.push_str(reasoning);
+                            final_content.push('\n');
                         }
-
-                        if !final_content.is_empty() {
-                            return Some(final_content);
-                        } else {
-                            error!("[Driver {}] API Response parsed but no content found. Body: {}", agent_id, json_body);
+                        if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
+                            final_content.push_str(content);
                         }
-                    } else {
-                        error!("[Driver {}] JSON Parse Fault. Backend returned malformed data.", agent_id);
+                    } else if let Some(message) = json_body.get("message") {
+                        if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
+                            final_content.push_str(content);
+                        }
                     }
-                }
-                Ok(response) => warn!("[Driver {}] GPU Backpressure (HTTP {}). Slots full? attempt: {}", agent_id, response.status(), attempt),
-                Err(e) => warn!("[Driver {}] Network I/O Fracture: {} on attempt {}", agent_id, e, attempt),
-            }
 
-            // 物理法则的妥协：触发时空膨胀，错峰让出 GPU VRAM
-            if attempt < max_retries {
-                info!("[Driver {}] Spacetime Dilation: Sleeping for {}s...", agent_id, backoff_secs);
-                sleep(Duration::from_secs(backoff_secs)).await;
-                backoff_secs *= 2; // 指数衰减
+                    if !final_content.is_empty() {
+                        return Ok(final_content);
+                    } else {
+                        error!("[Driver {}] API Response parsed but no content found. Body: {}", agent_id, json_body);
+                        return Err(DriverError::JsonParseError);
+                    }
+                } else {
+                    error!("[Driver {}] JSON Parse Fault. Backend returned malformed data.", agent_id);
+                    return Err(DriverError::JsonParseError);
+                }
+            }
+            Ok(response) => {
+                warn!("[Driver {}] GPU Backpressure (HTTP {}). Slots full?", agent_id, response.status());
+                return Err(DriverError::BackendError(format!("HTTP {}", response.status())));
+            },
+            Err(e) => {
+                if e.is_timeout() {
+                    warn!("[Driver {}] Network Timeout.", agent_id);
+                    return Err(DriverError::Timeout);
+                } else {
+                    warn!("[Driver {}] Network I/O Fracture: {}", agent_id, e);
+                    return Err(DriverError::NetworkFracture(e.to_string()));
+                }
             }
         }
-
-        error!("FATAL: [Driver {}] completely starved after {} retries.", agent_id, max_retries);
-        None
     }
 }

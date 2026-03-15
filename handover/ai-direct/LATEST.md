@@ -22,9 +22,11 @@
 - **The KV Cache Avalanche Solved**: At Step 39, `llama-server` OOM-crashed due to the massive 4x 8192 context buffer. Reprovisioned the backend using `-ctk q8_0 -ctv q8_0 -kvu` to halve VRAM usage via 8-bit KV quantization and unified memory pooling without sacrificing AI reasoning freedom.
 - **Cloud API Migration (V7)**: Migrated computational payload to SiliconFlow API (`Qwen2.5-7B-Instruct`) to resolve local hardware limits. Deployed natively on `linux1-lx` to minimize GFW latency and maximize throughput.
 - **Concurrency Overdrive ($N=100$)**: Scaled from 4 to 50, then to 100 concurrent agents. Discovered that despite severe API throttling (`Network Timeouts`) and the 7B model's high hallucination rate, the $N=100$ configuration produced "God Jumps" (solving deep topological steps in 3 to 5 seconds). This empirically proved that wide temperature divergence can overpower network and parameter limitations.
-- **Current Status**: The massive cloud API stress test ($N=100$) on `linux1-lx` has been successfully concluded and manually stopped after reaching Step 284. All relevant telemetry has been gathered.
+- **The RAM Volatility Threat Solved (V8)**: Implemented an asynchronous Write-Ahead Log (`wal.rs`) to dump the Spacetime Tape incrementally to disk without blocking the main kernel execution. Created a Resurrection Bootloader to instantly recover the universe state upon reboot.
+- **Current Status**: The V8 cloud API stress test ($N=100$) on `linux1-lx` has been successfully concluded and manually stopped after crossing Step 337 with an unprecedented throughput of 11.37 seconds/step. 
 
 ## Next Steps
-- **Address the RAM Volatility Threat**: Currently, the kernel only dumps the Tape upon reaching `HALT`. If the physical machine loses power during the million-step journey, all progress is lost. We must implement a silent, asynchronous disk checkpointing mechanism in the outer harness to serialize the Tape every N ticks without polluting the kernel's pure state logic. (See `../ram_volatility_threat_20260314.md`)
+- **Address Hardcoded Kernel Heartbeat**: The kernel currently triggers the MapReduce `Pricing Tensor` using a hardcoded human magic number (`clock % 10 == 0`). According to the architecture's philosophy, this must be refactored into a dynamic, topology-aware threshold based on empirical evidence.
 - See `../concurrency_cognitive_divergence_audit_20260315.md` for the empirical analysis and log evidence of the $N=100$ "God Jumps".
+- See `../ram_volatility_threat_20260314.md` for details on the disk checkpointing and resurrection bootloader.
 - See `../microkernel_harness_architecture_20260314.md` for the permanent architectural guidelines.

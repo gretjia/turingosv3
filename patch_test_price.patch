@@ -1,0 +1,13 @@
+--- experiments/hanoi_1m/src/bin/network_test.rs
++++ experiments/hanoi_1m/src/bin/network_test.rs
+@@ -52,6 +52,10 @@
+                 }
+                 q_state = output.q_o;
+                 bus.tick_map_reduce();
++                // Optional debug to see price change (only if reduced)
++                if bus.kernel.tape.files.get(&action.file_id).unwrap().price > 0.0 {
++                     println!("    => Imputed Price: {:.2}", bus.kernel.tape.files.get(&action.file_id).unwrap().price);
++                }
+             }
+             Err(e) => {
+                 println!("[-] REJECTED by SKILL: {}", e);

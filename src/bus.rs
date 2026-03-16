@@ -58,7 +58,10 @@ impl TuringBus {
         }
 
         if !skip {
+            println!(">>> [Event Bus] Triggering REDUCE (Tape Volume: {}) <<<", current_volume);
             self.kernel.hayekian_map_reduce();
+        } else {
+            // println!(">>> [Event Bus] MapReduce SKIPPED by Policy (Tape Volume: {}) <<<", current_volume);
         }
     }
 }

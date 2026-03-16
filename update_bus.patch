@@ -1,0 +1,14 @@
+--- src/bus.rs
++++ src/bus.rs
+@@ -58,8 +58,11 @@
+         }
+ 
+         if !skip {
++            println!(">>> [Event Bus] Triggering REDUCE (Tape Volume: {}) <<<", current_volume);
+             self.kernel.hayekian_map_reduce();
++        } else {
++            // println!(">>> [Event Bus] MapReduce SKIPPED by Policy (Tape Volume: {}) <<<", current_volume);
+         }
+     }
+ }
+ 

@@ -1,0 +1,7 @@
+--- Cargo.toml
++++ Cargo.toml
+@@ -9,3 +9,4 @@
+ serde_json = "1.0"
+ env_logger = "0.10"
+ log = "0.4"
++rand = "0.8"

@@ -120,7 +120,14 @@ fn main() {
         let file_name = path.file_stem().unwrap().to_string_lossy().to_string();
         info!("--- Evaluating [{}/{}]: {} ---", i + 1, total_files, file_name);
         
-        let content = fs::read_to_string(path).expect("Unable to read lean file");
+        let mut content = fs::read_to_string(path).expect("Unable to read lean file");
+        // MiniF2F theorems often end with `by sorry`. We must strip this out so our swarm can append its own tactics.
+        let trimmed_content = content.trim_end();
+        if trimmed_content.ends_with("by sorry") {
+            content = format!("{} by", &trimmed_content[..trimmed_content.len() - 8].trim_end());
+        } else if trimmed_content.ends_with("sorry") {
+            content = format!("{}", &trimmed_content[..trimmed_content.len() - 5].trim_end());
+        }
         
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();

@@ -148,10 +148,9 @@ set_option maxHeartbeats 0
 
 open BigOperators Real Nat Topology Rat
 
-theorem mathd_algebra_107
-  (x y : ℝ)
-  (h₀ : x^2 + 8 * x + y^2 - 6 * y = 0) :
-  (x + 4)^2 + (y-3)^2 = 5^2 := by"#;
+theorem induction_11div10tonmn1ton
+  (n : ℕ) :
+  11 ∣ (10^n - (-1 : ℤ)^n) := by"#;
 
         if let Some(file) = best_head {
             last_state = file.payload.clone();

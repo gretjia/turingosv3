@@ -5,7 +5,7 @@ Proof assistants like Lean 4 have revolutionized mathematical proof verification
 To address this, we introduce **TuringOS v3**, a novel star-topology microkernel architecture that strictly decouples value backpropagation from domain-specific logical validation. By implementing an event-bus "Popperian Membrane" that interfaces directly with the Lean 4 compiler, we orchestrate a swarm of relatively small, distilled reasoning models (`DeepSeek-R1-Distill-Qwen-32B`) into a massively parallel Monte Carlo Tree Search (MCTS) without any model parameter updates (zero-shot/fine-tuning-free). 
 We empirically investigate Test-Time Compute Scaling Laws on a high-difficulty subset of the Lean 4 `miniF2F-valid` benchmark. Our results demonstrate a staggering performance leap: scaling concurrent inference agents ($N$) from $N=1$ to $N=50$ elevates the pass rate from 10.0% to 100%, entirely neutralizing the inherent hallucination penalty of the baseline model. These findings suggest a paradigm shift: leveraging small-parameter models deployed in an OS-level, strictly verified Swarm architecture can rival or exceed the performance of heavily fine-tuned, specialized formal provers.
 
-## 1. Introduction 
+## 1. Introduction
 The pursuit of Artificial General Intelligence (AGI) requires systems capable of rigorous, multi-step logical deduction. While modern LLMs excel at generating natural language proofs, they frequently suffer from logical leaps and syntax hallucinations. Formal verification systems, such as Lean 4, provide a rigid solution by acting as an absolute, deterministic arbiter of truth. However, generating Lean 4 proofs is notoriously difficult for standard LLMs due to the zero-tolerance nature of the compiler.
 
 Recent efforts to bridge this gap (e.g., DeepSeek-Prover-V1.5, InternLM2-StepProver) have primarily focused on scaling pre-training compute or generating synthetic data for supervised fine-tuning (SFT). We take an orthogonal approach, focusing purely on **Test-Time Compute (System 2 Thinking)**. 
@@ -34,7 +34,7 @@ The resulting data presents a definitive picture of Test-Time Compute scaling dy
 ## 4. Discussion and Comparisons
 ### 4.1 Comparative Baseline
 While direct comparison is nuanced due to our use of a 20-problem subset, the absolute trajectory is highly illuminating. DeepSeek-Prover-V1.5 (a model fine-tuned on millions of Lean 4 statements) achieved a 63.5% pass rate on `miniF2F-test` utilizing complex RL and RMaxTS search. Our approach, utilizing a general-purpose distilled model (32B) operating entirely zero-shot, achieved a 10% baseline that scaled to a flawless 100% on the evaluation subset simply by scaling $N$ under the supervision of the TuringOS microkernel.
-Furthermore, extrapolated runs on the full 244-problem `miniF2F-test` set utilizing N=50 indicate a stable global pass rate exceeding 90.1%, establishing a new State-of-the-Art (SOTA) for zero-shot unfinetuned open weights.
+
 ### 4.2 The Defeat of Context Avalanche
 A persistent issue in agentic theorem proving is the accumulation of failed attempts in the prompt. Throughout the N=50 and N=100 runs, no agent failed due to context length overflow. The $O(1)$ context distillation mechanism ensured that the LLMs maintained absolute focus, viewing only pristine Lean 4 code at every step, discarding the massive `<think>` chains that preceded it.
 

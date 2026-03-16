@@ -126,7 +126,7 @@ fn main() {
         let _guard = rt.enter();
 
         let sentinel = minif2f_swarm::wal::WalSentinel::new(format!("/tmp/{}_N{}.wal", file_name, swarm_size));
-        let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![]);
+        let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![], content.clone());
         
         let proved = evaluate_theorem(&file_name, &content, agent, max_steps_per_theorem, swarm_size);
         

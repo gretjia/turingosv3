@@ -20,10 +20,11 @@ pub struct SpeculativeSwarmAgent {
     pub consecutive_failures: usize,
     pub sentinel: WalSentinel,
     pub known_files: HashSet<String>,
+    pub initial_problem_statement: String,
 }
 
 impl SpeculativeSwarmAgent {
-    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64, sentinel: WalSentinel, recovered_files: Vec<File>) -> Self {
+    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64, sentinel: WalSentinel, recovered_files: Vec<File>, initial_problem_statement: String) -> Self {
         let mut queued_outputs = Vec::new();
         let mut max_step = 0;
         
@@ -60,6 +61,7 @@ impl SpeculativeSwarmAgent {
             consecutive_failures: 0,
             sentinel,
             known_files: HashSet::new(),
+            initial_problem_statement,
         }
     }
 }
@@ -142,22 +144,12 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             .filter_map(|id| input.s_i.visible_tape.files.get(id))
             .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
 
-        let lean_problem = r#"import Mathlib
-
-set_option maxHeartbeats 0
-
-open BigOperators Real Nat Topology Rat
-
-theorem induction_11div10tonmn1ton
-  (n : ℕ) :
-  11 ∣ (10^n - (-1 : ℤ)^n) := by"#;
-
         if let Some(file) = best_head {
             last_state = file.payload.clone();
             parent_id = file.id.clone();
         } else {
             // Very first step! Seed it with the actual Lean 4 theorem.
-            last_state = lean_problem.to_string();
+            last_state = self.initial_problem_statement.clone();
         }
 
         let prompt = format!(

@@ -142,14 +142,16 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             .filter_map(|id| input.s_i.visible_tape.files.get(id))
             .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
 
+        let lean_problem = r#"import Mathlib
+
+theorem amc12a_2021_p7 (x y : ℝ) (h : x * y = 2) : (x + y)^2 = (x - y)^2 + 8 := by"#;
+
         if let Some(file) = best_head {
-            let full_payload = file.payload.clone();
-            if let Some(pure_state) = distill_pure_state(&full_payload) {
-                last_state = pure_state;
-            } else {
-                last_state = full_payload;
-            }
+            last_state = file.payload.clone();
             parent_id = file.id.clone();
+        } else {
+            // Very first step! Seed it with the actual Lean 4 theorem.
+            last_state = lean_problem.to_string();
         }
 
         let prompt = format!(
@@ -176,10 +178,17 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 // 2. Wait for the next task event (completion, panic, success)
                 match set.join_next().await {
                     Some(Ok(Some((agent_id, pure_state)))) => {
-                        // A hero found the answer! Return it to the kernel.
-                        // When we return from this block, the `JoinSet` is dropped and 
-                        // all running pending futures in the background are cleanly cancelled.
-                        return vec![(agent_id, pure_state)];
+                        // Extract the tactic string from [Tactic: rfl]
+                        let tactic = if pure_state.starts_with("[Tactic:") && pure_state.ends_with("]") {
+                            pure_state[8..pure_state.len()-1].trim().to_string()
+                        } else {
+                            pure_state
+                        };
+                        
+                        // Append to previous tactics/state
+                        let new_payload = format!("{}\n  {}", last_state, tactic);
+                        
+                        return vec![(agent_id, new_payload)];
                     }
                     Some(Ok(None)) => {
                          // An agent hit Watchdog SuspendAndSOS and gracefully exited.

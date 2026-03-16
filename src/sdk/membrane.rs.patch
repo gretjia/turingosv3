@@ -1,0 +1,15 @@
+--- src/sdk/membrane.rs
++++ src/sdk/membrane.rs
+@@ -10,6 +10,13 @@
+         return Some(cap[1].to_string());
+     }
+ 
++    // Lean 4 Tactic match
++    let re_lean = Regex::new(r"\[Tactic:\s*(.*?)\]").unwrap();
++    if let Some(cap) = re_lean.captures(raw_llm_output) {
++        return Some(format!("[Tactic: {}]", cap[1].to_string()));
++    }
++
+     // Fallback for strict regex matching on the raw output
+     // This acts as the "membrane" or "guillotine", severing hallucinated prose 
+     // and only letting pure physical state through to the kernel.

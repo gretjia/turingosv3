@@ -1,5 +1,16 @@
 /// 认识论半透膜：穿透一切 <think> 与废话，只提取绝对物理基态
 pub fn distill_pure_state(raw_payload: &str) -> Option<String> {
+    // 优先匹配 [Tactic: ...] (MiniF2F/Lean4 格式)
+    let tactic_tag = "[Tactic:";
+    if let Some(start_idx) = raw_payload.rfind(tactic_tag) {
+        let slice = &raw_payload[start_idx..];
+        // Lean tactics may contain internal brackets like `simp [h]`. 
+        // So we must find the LAST closing bracket in this slice.
+        if let Some(end_offset) = slice.rfind(']') {
+            return Some(slice[..=end_offset].trim().to_string());
+        }
+    }
+
     let start_tag = "[State:";
     
     // 高级审美：使用 rfind 从后往前搜索。
@@ -7,7 +18,8 @@ pub fn distill_pure_state(raw_payload: &str) -> Option<String> {
     // 我们只提取它思考完毕后的【最终物理决定】！
     if let Some(start_idx) = raw_payload.rfind(start_tag) {
         let slice = &raw_payload[start_idx..];
-        if let Some(end_offset) = slice.find(']') {
+        // Similarly for states which might have nested lists like `[1..20]`
+        if let Some(end_offset) = slice.rfind(']') {
             // 重新锻造为绝对干净的内核态 ABI 格式
             return Some(slice[..=end_offset].trim().to_string());
         }

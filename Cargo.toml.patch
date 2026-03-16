@@ -1,0 +1,7 @@
+--- Cargo.toml
++++ Cargo.toml
+@@ -3,6 +3,7 @@
+ members = [
+     "experiments/hanoi_1m",
++    "experiments/minif2f_swarm",
+ ]

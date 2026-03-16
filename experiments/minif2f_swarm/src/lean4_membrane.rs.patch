@@ -1,0 +1,20 @@
+--- src/lean4_membrane.rs
++++ src/lean4_membrane.rs
+@@ -43,15 +43,16 @@
+     }
+ 
+     fn on_pre_append(&mut self, payload: &str) -> SkillSignal {
+-        // The payload is expected to be a Tactic, e.g., "[Tactic: rfl]"
+-        // We extract the inner tactic.
+-        let tactic = if payload.starts_with("[Tactic:") && payload.ends_with("]") {
+-            payload[8..payload.len()-1].trim()
+-        } else {
+-            return SkillSignal::Veto("Invalid Tactic Format. Must be [Tactic: ...] ".into());
+-        };
++        // The payload is the FULL proof state.
++        // We don't extract the tactic here anymore, the Swarm already appended it.
+ 
+         // Construct the full lean proof attempt.
+         // We append 'sorry' to suppress the "unsolved goals" error, so we only catch actual syntax/logic errors.
+         let test_code = format!(
+             "{}\n  sorry", 

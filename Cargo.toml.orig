@@ -1,8 +1,7 @@
 [workspace]
 members = [
     ".",
-    "experiments/hanoi_1m",
-    "experiments/minif2f_swarm"
+    "experiments/hanoi_1m"
 ]
 
 [package]

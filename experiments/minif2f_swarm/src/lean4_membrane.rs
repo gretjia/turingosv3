@@ -18,7 +18,11 @@ impl Lean4MembraneSkill {
     }
 
     fn verify_lean_code(&self, code: &str) -> Result<String, String> {
-        let temp_file = Path::new(&self.work_dir).join("temp_proof.lean");
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let rand_id = rand::random::<u64>();
+        let unique_filename = format!("temp_proof_{}_{}.lean", timestamp, rand_id);
+        let temp_file = Path::new(&self.work_dir).join(&unique_filename);
         
         // Write the code to a temporary file
         if let Err(e) = fs::write(&temp_file, code) {
@@ -31,6 +35,9 @@ impl Lean4MembraneSkill {
             .arg("-c")
             .arg(format!("cd ~/projects/turingosv3/experiments/minif2f_data_lean4 && source ~/.elan/env && lake env lean {}", temp_file.display()))
             .output();
+
+        // Clean up the temporary file so we don't pollute the drive
+        let _ = fs::remove_file(&temp_file);
 
         match output {
             Ok(output) => {

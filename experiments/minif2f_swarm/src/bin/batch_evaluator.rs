@@ -10,7 +10,7 @@ use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 
 /// Simulates `run_turing_os_v3` but returns a boolean indicating whether OMEGA was reached,
 /// or false if it failed/timeout.
-fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: SpeculativeSwarmAgent, max_kernel_steps: u64) -> bool {
+fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: SpeculativeSwarmAgent, max_kernel_steps: u64, swarm_size: usize) -> bool {
     let kernel = Kernel::new(format!("{}_target", problem_name));
     let mut bus = TuringBus::new(kernel);
 
@@ -98,28 +98,24 @@ fn main() {
     // Target the MacStudio local path for Lean4 dataset
     let valid_dir = Path::new("/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Valid");
     
+    // Read the fixed 20 theorems
+    let target_list_path = "/Users/zephryj/projects/turingosv3/experiments/minif2f_swarm/target_20_theorems.txt";
+    let target_list_content = fs::read_to_string(target_list_path).expect("Could not read target_20_theorems.txt");
+    let target_files: Vec<String> = target_list_content.lines().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+
     let mut files: Vec<PathBuf> = Vec::new();
-    if let Ok(entries) = fs::read_dir(valid_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("lean") {
-                files.push(path);
-            }
-        }
+    for f in target_files {
+        files.push(valid_dir.join(f));
     }
 
     if files.is_empty() {
-        error!("No lean files found in {:?}", valid_dir);
+        error!("No lean files found");
         return;
     }
 
-    let mut rng = thread_rng();
-    files.shuffle(&mut rng);
-    let sample = files.into_iter().take(20).collect::<Vec<_>>();
-
     let mut success_count = 0;
 
-    for (i, path) in sample.iter().enumerate() {
+    for (i, path) in files.iter().enumerate() {
         let file_name = path.file_stem().unwrap().to_string_lossy().to_string();
         info!("--- Evaluating [{}/20]: {} ---", i + 1, file_name);
         
@@ -128,10 +124,10 @@ fn main() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
 
-        let sentinel = minif2f_swarm::wal::WalSentinel::new(format!("/tmp/{}.wal", file_name));
+        let sentinel = minif2f_swarm::wal::WalSentinel::new(format!("/tmp/{}_N{}.wal", file_name, swarm_size));
         let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![]);
         
-        let proved = evaluate_theorem(&file_name, &content, agent, max_steps_per_theorem);
+        let proved = evaluate_theorem(&file_name, &content, agent, max_steps_per_theorem, swarm_size);
         
         if proved {
             info!("✅ Theorem {} PROVED!", file_name);

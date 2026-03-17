@@ -68,8 +68,10 @@ impl TuringSkill for Lean4MembraneSkill {
 
         debug!("--- Lean4 Membrane Testing Code ---\n{}\n-----------------------------------", test_code);
 
-        // 🌟 Thermodynamics: Max 10 seconds for Lean to compute
-        let gas_limit = Duration::from_secs(10);
+        // 🌟 Dynamic Thermodynamics: Base 10s + 0.5s per Tactic line
+        // As the proof tree deepens, we give the compiler more time to unwire it.
+        let tactic_count = payload.lines().count() as u64;
+        let gas_limit = Duration::from_secs(10 + (tactic_count / 2));
 
         match self.sandbox.execute_safely(&test_code, gas_limit) {
             Ok(output) => {

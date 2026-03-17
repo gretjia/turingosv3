@@ -140,11 +140,50 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         let last_state;
         let mut parent_id = "".to_string();
         
-        let best_head = input.s_i.current_head.paths.iter()
-            .filter_map(|id| input.s_i.visible_tape.files.get(id))
-            .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
+        // 🌟 Boltzmann Softmax Selection (The Backtrack Engine)
+        // We look at ALL visible files on the tape, not just the current head.
+        // This allows the system to "jump back" to a historically better (purer) node
+        // if the current frontier is polluted with zombie tactics.
+        let all_nodes: Vec<&File> = input.s_i.visible_tape.files.values()
+            .filter(|f| !f.payload.contains("failed") && f.stake > 0) // Only healthy nodes
+            .collect();
 
-        if let Some(file) = best_head {
+        let selected_head = if all_nodes.is_empty() {
+            None
+        } else {
+            // Temperature T: larger T = more exploration/backtracking, smaller T = more greedy
+            let temperature = 0.5; 
+            
+            let prices: Vec<f64> = all_nodes.iter().map(|n| n.price).collect();
+            let max_price = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            
+            let weights: Vec<f64> = prices.iter()
+                .map(|&p| ((p - max_price) / temperature).exp())
+                .collect();
+            
+            let weight_sum: f64 = weights.iter().sum();
+            
+            use rand::distributions::{WeightedIndex, Distribution};
+            let mut rng = rand::thread_rng();
+            
+            match WeightedIndex::new(&weights) {
+                Ok(dist) => {
+                    let idx = dist.sample(&mut rng);
+                    let node = all_nodes[idx];
+                    info!(
+                        ">>> [ROUTER] Softmax selected Node {} (Price: {:.2}, Prob: {:.2}%)", 
+                        node.id, node.price, (weights[idx] / weight_sum) * 100.0
+                    );
+                    Some(node)
+                }
+                Err(_) => {
+                    // Fallback to greedy if weights collapse
+                    all_nodes.iter().max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal)).copied()
+                }
+            }
+        };
+
+        if let Some(file) = selected_head {
             last_state = file.payload.clone();
             parent_id = file.id.clone();
         } else {

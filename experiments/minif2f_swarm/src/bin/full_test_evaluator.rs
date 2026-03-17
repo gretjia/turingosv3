@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use log::{info, error, warn};
 use turingosv3::kernel::{File, Head, Input, Kernel, MachineState, SensorContext};
+use turingosv3::sdk::skill::{AntiZombiePruningSkill, OverwhelmingGapArbitrator};
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatSkill};
 use turingosv3::sdk::sandbox::LocalProcessSandbox;
 use minif2f_swarm::lean4_membrane::Lean4MembraneSkill;
@@ -10,13 +11,10 @@ use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 /// Simulates `run_turing_os_v3` but returns a boolean indicating whether OMEGA was reached,
 /// or false if it failed/timeout.
 fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: SpeculativeSwarmAgent, max_kernel_steps: u64, _swarm_size: usize) -> bool {
-
     let kernel = Kernel::new(format!("{}_target", problem_name));
     let mut bus = TuringBus::new(kernel);
 
     // 1. Instantiate the Air-Gapped Sandbox
-    // We use a temporary native process for now, directing it through lake to pick up Mathlib.
-    // Using /dev/stdin to avoid writing temporary files to disk where possible.
     let sandbox = Box::new(LocalProcessSandbox::new(
         "sh", 
         vec![
@@ -26,12 +24,24 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
     ));
 
     // 2. Mount Skills
+    // 🌟 THE ULTIMATE SOTA BUS CONFIGURATION 🌟
+
+    // [HEARTBEAT] Trigger Reduce frequently but controlled by arbitrator
     bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(1)));
+
+    // [PRUNING] Prevent LLM from getting stuck in repetitive tactic loops (max 3 repeats)
+    bus.mount_skill(Box::new(AntiZombiePruningSkill::new(3)));
+
+    // [ARBITRATOR] Only unleash expensive Reduce if price jumps by 50%+
+    bus.mount_skill(Box::new(OverwhelmingGapArbitrator::new(1.5)));
+
+    // [MEMBRANE] formal verification with Identity Anchor
     bus.mount_skill(Box::new(Lean4MembraneSkill::new(
         problem_content.to_string(), 
         problem_name.to_string(),
         sandbox
     )));
+
 
     let mut q_state = MachineState::Running;
     let mut current_head = Head { paths: std::collections::HashSet::new() };
@@ -99,7 +109,7 @@ fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
     let args: Vec<String> = std::env::args().collect();
-    let swarm_size: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(20);
+    let swarm_size: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(5);
     
     info!("Starting Batch Evaluator with N={} LLMs per theorem", swarm_size);
 

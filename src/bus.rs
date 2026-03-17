@@ -48,20 +48,26 @@ impl TuringBus {
     }
 
     pub fn tick_map_reduce(&mut self) {
-        let current_volume = self.kernel.tape.files.len(); // or self.clock
+        let current_volume = self.kernel.tape.files.len();
         
+        // Find current max price in the market
+        let current_max_price = self.kernel.tape.files.values()
+            .map(|f| f.price)
+            .fold(0.0, f64::max);
+
         let mut skip = false;
         for skill in &mut self.skills {
             if skill.should_skip_reduce(current_volume) {
                 skip = true;
             }
+            if skill.should_skip_reduce_by_price(current_max_price) {
+                skip = true;
+            }
         }
 
         if !skip {
-            println!(">>> [Event Bus] Triggering REDUCE (Tape Volume: {}) <<<", current_volume);
+            println!(">>> [Event Bus] Triggering REDUCE (Volume: {}, MaxPrice: {:.2}) <<<", current_volume, current_max_price);
             self.kernel.hayekian_map_reduce();
-        } else {
-            // println!(">>> [Event Bus] MapReduce SKIPPED by Policy (Tape Volume: {}) <<<", current_volume);
         }
     }
 }

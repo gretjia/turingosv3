@@ -4,8 +4,8 @@ use log::{info, error, warn};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use turingosv3::kernel::{File, Head, Input, Kernel, MachineState, SensorContext, Output, Action};
-use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatSkill};
-use minif2f_swarm::lean4_membrane::Lean4MembraneSkill;
+use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
+use minif2f_swarm::lean4_membrane_tool::Lean4MembraneTool;
 use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 
 /// Simulates `run_turing_os_v3` but returns a boolean indicating whether OMEGA was reached,
@@ -15,8 +15,8 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
     let mut bus = TuringBus::new(kernel);
 
     // Mount Skills
-    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(10)));
-    bus.mount_skill(Box::new(Lean4MembraneSkill::new(problem_content.to_string(), "/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4")));
+    bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
+    bus.mount_tool(Box::new(Lean4MembraneTool::new(problem_content.to_string(), "/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4")));
 
     let mut q_state = MachineState::Running;
     let mut current_head = Head { paths: std::collections::HashSet::new() };

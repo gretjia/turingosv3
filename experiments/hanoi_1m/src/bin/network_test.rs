@@ -3,15 +3,15 @@ use env_logger;
 use hanoi_1m::swarm::SpeculativeSwarmAgent;
 use std::collections::HashSet;
 use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, Q, SensorContext};
-use turingosv3::bus::{TuringBus, MembraneGuardSkill, ThermodynamicHeartbeatSkill, WalSnapshotSkill};
+use turingosv3::bus::{TuringBus, MembraneGuardTool, ThermodynamicHeartbeatTool, WalSnapshotTool};
 
 pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: String) {
     let kernel = Kernel::new(omega.clone());
     let mut bus = TuringBus::new(kernel);
 
-    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(10)));
-    bus.mount_skill(Box::new(MembraneGuardSkill));
-    bus.mount_skill(Box::new(WalSnapshotSkill));
+    bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
+    bus.mount_tool(Box::new(MembraneGuardTool));
+    bus.mount_tool(Box::new(WalSnapshotTool));
 
     println!(">>> TuringOS v3 Booted. Awaiting HALT. [{}] <<<", human_spec);
 
@@ -37,6 +37,7 @@ pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: Stri
             s_i: SensorContext {
                 visible_tape: bus.kernel.tape.clone(),
                 current_head: current_head.clone(),
+                agent_balances: std::collections::HashMap::new(),
             },
         };
 

@@ -44,6 +44,7 @@ pub struct Q {
 pub struct SensorContext {
     pub visible_tape: Tape,
     pub current_head: Head,
+    pub agent_balances: HashMap<String, f64>,
 }
 
 pub struct Input {
@@ -83,6 +84,18 @@ impl Kernel {
             target_omega_id: omega,
             gamma: 0.99,
         }
+    }
+
+    /// Traces from the OMEGA node backwards to the root to extract the Golden Path.
+    pub fn trace_golden_path(&self, omega_node_id: &str) -> Vec<String> {
+        let mut path = Vec::new();
+        let mut current = omega_node_id.to_string();
+        while let Some(node) = self.tape.files.get(&current) {
+            path.push(current.clone());
+            if node.citations.is_empty() { break; }
+            current = node.citations[0].clone(); 
+        }
+        path
     }
 
     pub fn append_tape(&mut self, mut file: File, reward: f64) -> &File {

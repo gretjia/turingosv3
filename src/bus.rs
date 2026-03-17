@@ -1,9 +1,9 @@
 use crate::kernel::{Kernel, File};
-use crate::sdk::skill::{TuringSkill, SkillSignal};
+use crate::sdk::tool::{TuringTool, ToolSignal};
 
 pub struct TuringBus {
     pub kernel: Kernel,
-    pub skills: Vec<Box<dyn TuringSkill>>,
+    pub tools: Vec<Box<dyn TuringTool>>,
     pub clock: usize,
 }
 
@@ -11,32 +11,59 @@ impl TuringBus {
     pub fn new(kernel: Kernel) -> Self {
         Self {
             kernel,
-            skills: Vec::new(),
+            tools: Vec::new(),
             clock: 0,
         }
     }
 
-    pub fn mount_skill(&mut self, mut skill: Box<dyn TuringSkill>) {
-        skill.on_boot();
-        self.skills.push(skill);
+    pub fn mount_tool(&mut self, mut tool: Box<dyn TuringTool>) {
+        tool.on_boot();
+        self.tools.push(tool);
+    }
+
+    pub fn init_problem(&mut self, agents: &[String]) {
+        for tool in &mut self.tools { 
+            tool.on_init(agents); 
+        }
+    }
+
+    pub fn get_agent_balance(&self, agent_id: &str) -> f64 {
+        for tool in &self.tools {
+            if let Some(bal) = tool.query_state(&format!("balance_{}", agent_id)) {
+                return bal.parse().unwrap_or(0.0);
+            }
+        }
+        0.0
+    }
+
+    pub fn halt_and_settle(&mut self, omega_id: &str) {
+        let golden_path = self.kernel.trace_golden_path(omega_id);
+        for tool in &mut self.tools {
+            tool.on_halt(&golden_path, &mut self.kernel.tape);
+        }
     }
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
         let mut final_reward = 0.0;
         
         // 1. Pre-append hooks
-        for skill in &mut self.skills {
-            match skill.on_pre_append(&file.payload) {
-                SkillSignal::Pass => {}
-                SkillSignal::Modify(new_payload) => {
+        for tool in &mut self.tools {
+            match tool.on_pre_append(&file.author, &file.payload) {
+                ToolSignal::Pass => {}
+                ToolSignal::Modify(new_payload) => {
                     file.payload = new_payload;
                 }
-                SkillSignal::Veto(reason) => {
+                ToolSignal::Veto(reason) => {
                     return Err(reason);
                 }
-                SkillSignal::YieldReward { payload, reward } => {
+                ToolSignal::YieldReward { payload, reward } => {
                     file.payload = payload;
                     final_reward += reward;
+                }
+                ToolSignal::InvestOnly => {
+                    // This node is not appending mathematical truth, it's just a financial transaction.
+                    // We allow it to be appended to the tape to record the stake, but it doesn't change state.
+                    // The Wallet Tool has already recorded the transaction in its internal ledger.
                 }
             }
         }
@@ -45,8 +72,8 @@ impl TuringBus {
         let node = self.kernel.append_tape(file.clone(), final_reward);
 
         // 3. Post-append hooks
-        for skill in &mut self.skills {
-            skill.on_post_append(node);
+        for tool in &mut self.tools {
+            tool.on_post_append(&file.author, node);
         }
 
         self.clock += 1;
@@ -62,11 +89,11 @@ impl TuringBus {
             .fold(0.0, f64::max);
 
         let mut skip = false;
-        for skill in &mut self.skills {
-            if skill.should_skip_reduce(current_volume) {
+        for tool in &mut self.tools {
+            if tool.should_skip_reduce(current_volume) {
                 skip = true;
             }
-            if skill.should_skip_reduce_by_price(current_max_price) {
+            if tool.should_skip_reduce_by_price(current_max_price) {
                 skip = true;
             }
         }
@@ -78,12 +105,12 @@ impl TuringBus {
     }
 }
 
-pub struct ThermodynamicHeartbeatSkill {
+pub struct ThermodynamicHeartbeatTool {
     pub threshold: usize,
     pub last_mr_volume: usize,
 }
 
-impl ThermodynamicHeartbeatSkill {
+impl ThermodynamicHeartbeatTool {
     pub fn new(threshold: usize) -> Self {
         Self {
             threshold,
@@ -92,7 +119,7 @@ impl ThermodynamicHeartbeatSkill {
     }
 }
 
-impl TuringSkill for ThermodynamicHeartbeatSkill {
+impl TuringTool for ThermodynamicHeartbeatTool {
     fn manifest(&self) -> &'static str {
         "Thermodynamic Heartbeat Skill"
     }
@@ -107,25 +134,25 @@ impl TuringSkill for ThermodynamicHeartbeatSkill {
     }
 }
 
-pub struct MembraneGuardSkill;
+pub struct MembraneGuardTool;
 
-impl TuringSkill for MembraneGuardSkill {
+impl TuringTool for MembraneGuardTool {
     fn manifest(&self) -> &'static str {
         "Membrane Guard Skill"
     }
     
-    fn on_pre_append(&mut self, payload: &str) -> SkillSignal {
+    fn on_pre_append(&mut self, _author: &str, payload: &str) -> ToolSignal {
         if payload.contains("paradox") {
-            SkillSignal::Veto("Membrane rejected payload".into())
+            ToolSignal::Veto("Membrane rejected payload".into())
         } else {
-            SkillSignal::Pass
+            ToolSignal::Pass
         }
     }
 }
 
-pub struct WalSnapshotSkill;
+pub struct WalSnapshotTool;
 
-impl TuringSkill for WalSnapshotSkill {
+impl TuringTool for WalSnapshotTool {
     fn manifest(&self) -> &'static str {
         "WAL Snapshot Skill"
     }

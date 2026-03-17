@@ -3,14 +3,14 @@ use env_logger;
 use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 use std::collections::HashSet;
 use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, Q, SensorContext};
-use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatSkill, WalSnapshotSkill};
-use minif2f_swarm::lean4_membrane::Lean4MembraneSkill;
+use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool, WalSnapshotTool};
+use minif2f_swarm::lean4_membrane_tool::Lean4MembraneTool;
 
 pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: String) {
     let kernel = Kernel::new(omega.clone());
     let mut bus = TuringBus::new(kernel);
 
-    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(10)));
+    bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
     
     let lean_problem = r#"import Mathlib
 
@@ -22,9 +22,9 @@ theorem induction_11div10tonmn1ton
   (n : ℕ) :
   11 ∣ (10^n - (-1 : ℤ)^n) := by"#;
     
-    bus.mount_skill(Box::new(Lean4MembraneSkill::new(lean_problem.to_string(), "/tmp")));
+    bus.mount_tool(Box::new(Lean4MembraneTool::new(lean_problem.to_string(), "/tmp")));
     
-    bus.mount_skill(Box::new(WalSnapshotSkill));
+    bus.mount_tool(Box::new(WalSnapshotTool));
 
     println!(">>> TuringOS v3 Booted. Awaiting HALT. [{}] <<<", human_spec);
 

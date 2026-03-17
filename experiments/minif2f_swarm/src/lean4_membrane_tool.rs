@@ -1,15 +1,15 @@
-use turingosv3::sdk::skill::{TuringSkill, SkillSignal};
+use turingosv3::sdk::tool::{TuringTool, ToolSignal};
 use turingosv3::sdk::sandbox::SandboxEngine;
 use std::time::Duration;
 use log::{info, debug, warn};
 
-pub struct Lean4MembraneSkill {
+pub struct Lean4MembraneTool {
     pub problem_statement: String,
     pub theorem_name: String,
     pub sandbox: Box<dyn SandboxEngine>,
 }
 
-impl Lean4MembraneSkill {
+impl Lean4MembraneTool {
     pub fn new(problem_statement: String, theorem_name: String, sandbox: Box<dyn SandboxEngine>) -> Self {
         Self { 
             problem_statement,
@@ -46,16 +46,16 @@ impl Lean4MembraneSkill {
     }
 }
 
-impl TuringSkill for Lean4MembraneSkill {
+impl TuringTool for Lean4MembraneTool {
     fn manifest(&self) -> &'static str {
         "Lean 4 Sandboxed Membrane (Anti-Identity-Theft)"
     }
 
-    fn on_pre_append(&mut self, payload: &str) -> SkillSignal {
+    fn on_pre_append(&mut self, _author: &str, payload: &str) -> ToolSignal {
         // 1. Cognitive Defense: Check for Identity Theft / Hijacking
         if self.check_identity_theft(payload) {
             warn!(">>> [SHIELD] Identity Theft Detected! LLM tried to prove a different theorem.");
-            return SkillSignal::Veto(format!("Identity Theft: Payload does not target theorem {}", self.theorem_name));
+            return ToolSignal::Veto(format!("Identity Theft: Payload does not target theorem {}", self.theorem_name));
         }
 
         // 2. Construct the full verification code
@@ -77,7 +77,7 @@ impl TuringSkill for Lean4MembraneSkill {
             Ok(output) => {
                 if output.contains("error: No goals to be solved") {
                     info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
-                    return SkillSignal::YieldReward {
+                    return ToolSignal::YieldReward {
                         payload: format!("{}\n  -- [OMEGA]", payload),
                         reward: 100_000_000_000.0,
                     };
@@ -88,19 +88,19 @@ impl TuringSkill for Lean4MembraneSkill {
                 if let Ok(omega_output) = self.sandbox.execute_safely(payload, gas_limit) {
                     if !omega_output.contains("error:") || omega_output.contains("error: No goals to be solved") {
                         info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
-                        return SkillSignal::YieldReward {
+                        return ToolSignal::YieldReward {
                             payload: format!("{}\n  -- [OMEGA]", payload),
                             reward: 100_000_000_000.0,
                         };
                     }
                 }
                 
-                SkillSignal::Pass
+                ToolSignal::Pass
             }
             Err(e) => {
                 // The compiler threw an error or timed out. VETO!
                 debug!("Lean4 Membrane VETO: Compiler rejected the tactic or timed out.");
-                SkillSignal::Veto(format!("Compiler/Sandbox Error:\n{}", e))
+                ToolSignal::Veto(format!("Compiler/Sandbox Error:\n{}", e))
             }
         }
     }

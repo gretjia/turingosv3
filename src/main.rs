@@ -1,5 +1,5 @@
 use turingosv3::kernel::{Kernel, File};
-use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatSkill, MembraneGuardSkill, WalSnapshotSkill};
+use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool, MembraneGuardTool, WalSnapshotTool};
 
 fn main() {
     println!(">>> TuringOS v3 Microkernel Booting... <<<");
@@ -8,9 +8,9 @@ fn main() {
     let mut bus = TuringBus::new(kernel);
 
     // Mount skills
-    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(10)));
-    bus.mount_skill(Box::new(MembraneGuardSkill));
-    bus.mount_skill(Box::new(WalSnapshotSkill));
+    bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
+    bus.mount_tool(Box::new(MembraneGuardTool));
+    bus.mount_tool(Box::new(WalSnapshotTool));
 
     println!(">>> Skills mounted. Starting swarm... <<<");
 

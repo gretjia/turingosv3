@@ -2,10 +2,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use log::{info, error, warn};
 use turingosv3::kernel::{File, Head, Input, Kernel, MachineState, SensorContext};
-use turingosv3::sdk::skill::{AntiZombiePruningSkill, OverwhelmingGapArbitrator};
-use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatSkill};
+use turingosv3::sdk::tools::wallet::WalletTool;
+use turingosv3::sdk::tool::{AntiZombiePruningTool, OverwhelmingGapArbitratorTool};
+use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
 use turingosv3::sdk::sandbox::LocalProcessSandbox;
-use minif2f_swarm::lean4_membrane::Lean4MembraneSkill;
+use minif2f_swarm::lean4_membrane_tool::Lean4MembraneTool;
 use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 
 /// Simulates `run_turing_os_v3` but returns a boolean indicating whether OMEGA was reached,
@@ -27,21 +28,27 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
     // 🌟 THE ULTIMATE SOTA BUS CONFIGURATION 🌟
 
     // [HEARTBEAT] Trigger Reduce frequently but controlled by arbitrator
-    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(1)));
+    bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(1)));
 
     // [PRUNING] Prevent LLM from getting stuck in repetitive tactic loops (max 3 repeats)
-    bus.mount_skill(Box::new(AntiZombiePruningSkill::new(3)));
+    bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
 
     // [ARBITRATOR] Only unleash expensive Reduce if price jumps by 50%+
-    bus.mount_skill(Box::new(OverwhelmingGapArbitrator::new(1.5)));
+    bus.mount_tool(Box::new(OverwhelmingGapArbitratorTool::new(1.5)));
 
     // [MEMBRANE] formal verification with Identity Anchor
-    bus.mount_skill(Box::new(Lean4MembraneSkill::new(
+    bus.mount_tool(Box::new(Lean4MembraneTool::new(
         problem_content.to_string(), 
         problem_name.to_string(),
         sandbox
     )));
 
+    // [WALLET] Turing Capitalism economy engine
+    bus.mount_tool(Box::new(WalletTool::new()));
+
+    // Initialize all agents in the economy
+    let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();
+    bus.init_problem(&agent_ids);
 
     let mut q_state = MachineState::Running;
     let mut current_head = Head { paths: std::collections::HashSet::new() };
@@ -61,11 +68,18 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
 
         kernel_steps += 1;
 
+        let mut balances = std::collections::HashMap::new();
+        for i in 0..100 { // Assuming max 100 agents for now, or just query for the ones we know
+            let agent_id = format!("Agent_{}", i);
+            balances.insert(agent_id.clone(), bus.get_agent_balance(&agent_id));
+        }
+
         let input = Input {
             q_i: q_state.clone(),
             s_i: SensorContext {
                 visible_tape: bus.kernel.tape.clone(),
                 current_head: current_head.clone(),
+                agent_balances: balances,
             },
         };
 
@@ -95,6 +109,7 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
                 
                 // Early exit if this append was the OMEGA node!
                 if action.payload.contains("[OMEGA]") {
+                    bus.halt_and_settle(&action.file_id);
                     return true;
                 }
             }

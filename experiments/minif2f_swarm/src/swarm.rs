@@ -191,21 +191,27 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             last_state = self.initial_problem_statement.clone();
         }
 
-        let prompt = format!(
-            "Current Lean 4 Proof State:\n{}\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision in the exact format: [Tactic: your single lean 4 tactic here]. Everything before this final tag is considered your draft and will be safely ignored.", 
-            last_state
-        );
+        let economic_operative = std::fs::read_to_string("/home/zephryj/projects/turingosv3/skills/economic_operative.md").unwrap_or_default();
         
         let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
             let mut next_agent_id = 0;
             loop {
-                // 1. Defend against the void: If set is somehow completely empty, respawn everything
                 while set.len() < self.swarm_size {
                     let new_id = next_agent_id;
                     next_agent_id += 1;
+                    
+                    let agent_name = format!("Agent_{}", new_id);
+                    let balance = input.s_i.agent_balances.get(&agent_name).copied().unwrap_or(0.0);
+                    
+                    let p = format!(
+                        "Current Lean 4 Proof State:\n{}\n\n{}\n\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision in the exact format: [Tactic: your single lean 4 tactic here] and follow the Wallet Tool invocation rules.", 
+                        last_state,
+                        economic_operative,
+                        balance
+                    );
+                    
                     let c = self.client.clone();
-                    let p = prompt.clone();
                     let total_agents = self.swarm_size;
                     set.spawn(async move { 
                         run_agent(new_id, total_agents, c, p).await

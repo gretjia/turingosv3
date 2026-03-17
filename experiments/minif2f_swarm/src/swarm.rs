@@ -231,15 +231,30 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 // 2. Wait for the next task event (completion, panic, success)
                 match set.join_next().await {
                     Some(Ok(Some((agent_id, pure_state)))) => {
-                        // Extract the tactic string from [Tactic: rfl]
-                        let tactic = if pure_state.starts_with("[Tactic:") && pure_state.ends_with("]") {
-                            pure_state[8..pure_state.len()-1].trim().to_string()
+                        // Extract the tactic string and preserve the Tool call
+                        let mut tactic = pure_state.clone();
+                        let mut tool_call = String::new();
+                        
+                        // Separate tool call if it exists
+                        if let Some(tool_idx) = tactic.find("[Tool: Wallet") {
+                            tool_call = tactic[tool_idx..].to_string();
+                            tactic = tactic[..tool_idx].trim().to_string();
+                        }
+                        
+                        // Strip [Tactic: ] wrapper if present
+                        if tactic.starts_with("[Tactic:") && tactic.ends_with("]") {
+                            tactic = tactic[8..tactic.len()-1].trim().to_string();
+                        }
+                        
+                        // Re-attach the tool call so the bus tools can intercept it
+                        let tactic_payload = if tool_call.is_empty() {
+                            tactic
                         } else {
-                            pure_state
+                            format!("{} {}", tactic, tool_call)
                         };
                         
                         // Append to previous tactics/state
-                        let new_payload = format!("{}\n  {}", last_state, tactic);
+                        let new_payload = format!("{}\n  {}", last_state, tactic_payload);
                         
                         return vec![(agent_id, new_payload)];
                     }

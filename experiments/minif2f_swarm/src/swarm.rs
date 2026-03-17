@@ -84,8 +84,18 @@ async fn run_agent(
         
         let harness_err = match result {
             Ok(raw_text) => {
+                let mut full_state = String::new();
                 if let Some(pure_state) = distill_pure_state(&raw_text) {
-                    return Some((i, pure_state));
+                    full_state.push_str(&pure_state);
+                    
+                    // Recover Tool call if it exists since distill_pure_state strips everything else
+                    if let Some(tool_start) = raw_text.rfind("[Tool: Wallet") {
+                        if let Some(tool_end) = raw_text[tool_start..].find(']') {
+                            full_state.push_str(" ");
+                            full_state.push_str(&raw_text[tool_start..=tool_start+tool_end]);
+                        }
+                    }
+                    return Some((i, full_state));
                 } else {
                     crate::harness::HarnessError::SemanticCollapse
                 }

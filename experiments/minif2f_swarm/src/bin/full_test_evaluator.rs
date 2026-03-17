@@ -36,15 +36,15 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
     // [ARBITRATOR] Only unleash expensive Reduce if price jumps by 50%+
     bus.mount_tool(Box::new(OverwhelmingGapArbitratorTool::new(1.5)));
 
+    // [WALLET] Turing Capitalism economy engine (MUST RUN BEFORE MEMBRANE TO STRIP COMMANDS)
+    bus.mount_tool(Box::new(WalletTool::new()));
+
     // [MEMBRANE] formal verification with Identity Anchor
     bus.mount_tool(Box::new(Lean4MembraneTool::new(
         problem_content.to_string(), 
         problem_name.to_string(),
         sandbox
     )));
-
-    // [WALLET] Turing Capitalism economy engine
-    bus.mount_tool(Box::new(WalletTool::new()));
 
     // Initialize all agents in the economy
     let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();

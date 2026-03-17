@@ -16,7 +16,8 @@ Welcome to TuringOS v3.
     *   [`handover/sandbox_and_identity_theft_audit_20260316.md`](handover/sandbox_and_identity_theft_audit_20260316.md) - Deep analysis of the "Identity Theft" vulnerability.
   *   [`handover/extreme_purification_audit_20260317.md`](handover/extreme_purification_audit_20260317.md) - Architecture upgrade to real-time Hayekian pricing (Heartbeat=1).
   *   [`handover/boltzmann_retreat_audit_20260317.md`](handover/boltzmann_retreat_audit_20260317.md) - Implementation of Boltzmann Softmax selection.
-  *   [`handover/inversion_of_control_pricing_audit_20260317.md`](handover/inversion_of_control_pricing_audit_20260317.md) - **[LATEST]** The philosophical refactoring of the pricing engine to maintain kernel purity via `intrinsic_reward`.
+  *   [`handover/inversion_of_control_pricing_audit_20260317.md`](handover/inversion_of_control_pricing_audit_20260317.md) - The philosophical refactoring of the pricing engine to maintain kernel purity via `intrinsic_reward`.
+  *   [`handover/qwen_397b_execution_audit_20260317.md`](handover/qwen_397b_execution_audit_20260317.md) - **[LATEST]** Deep analysis of the Boltzmann Router in action during the Qwen 397B formal verification run.
 
 * [`experiments/`](experiments/) - Temporary test projects separated from the core kernel.
   * [`experiments/hanoi_1m/`](experiments/hanoi_1m/) - The MAKER 1-Million Hanoi Test swarm benchmark environment.

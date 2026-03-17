@@ -137,7 +137,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
 
         let q_o = if self.current_step >= self.total_steps { MachineState::Halt } else { MachineState::Running };
 
-        let mut last_state = "Initial State: [Lean 4 Theorem Statement]".to_string();
+        let last_state;
         let mut parent_id = "".to_string();
         
         let best_head = input.s_i.current_head.paths.iter()

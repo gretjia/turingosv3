@@ -1,75 +1,66 @@
 use turingosv3::sdk::skill::{TuringSkill, SkillSignal};
-use std::process::Command;
-use std::fs;
-use std::path::Path;
+use turingosv3::sdk::sandbox::SandboxEngine;
+use std::time::Duration;
 use log::{info, debug, warn};
 
 pub struct Lean4MembraneSkill {
     pub problem_statement: String,
-    pub work_dir: String,
+    pub theorem_name: String,
+    pub sandbox: Box<dyn SandboxEngine>,
 }
 
 impl Lean4MembraneSkill {
-    pub fn new(problem_statement: String, work_dir: &str) -> Self {
+    pub fn new(problem_statement: String, theorem_name: String, sandbox: Box<dyn SandboxEngine>) -> Self {
         Self { 
             problem_statement,
-            work_dir: work_dir.to_string()
+            theorem_name,
+            sandbox,
         }
     }
 
-    fn verify_lean_code(&self, code: &str) -> Result<String, String> {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        let rand_id = rand::random::<u64>();
-        let unique_filename = format!("temp_proof_{}_{}.lean", timestamp, rand_id);
-        let temp_file = Path::new(&self.work_dir).join(&unique_filename);
+    /// Extract theorem name from a Lean 4 statement
+    /// Example: "theorem amc12a_2020_p7 ..." -> "amc12a_2020_p7"
+    fn check_identity_theft(&self, payload: &str) -> bool {
+        // 1. Ensure our theorem name is present as a definition
+        if !payload.contains(&format!("theorem {}", self.theorem_name)) {
+            return true;
+        }
         
-        // Write the code to a temporary file
-        if let Err(e) = fs::write(&temp_file, code) {
-            return Err(format!("Failed to write temp file: {}", e));
-        }
-
-        // Run the lean compiler
-        // Using `~/.elan/bin/lake env lean` inside the project dir to pick up Mathlib
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(format!("cd ~/projects/turingosv3/experiments/minif2f_data_lean4 && source ~/.elan/env && lake env lean {}", temp_file.display()))
-            .output();
-
-        // Clean up the temporary file so we don't pollute the drive
-        let _ = fs::remove_file(&temp_file);
-
-        match output {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                let combined = format!("{}{}", stdout, stderr);
-                
-                if combined.contains("command not found") {
-                    Err(combined)
-                } else if combined.contains("error: No goals to be solved") {
-                    // This is actually a massive SUCCESS! 
-                    // It means the Tactic solved the goal, so our appended `sorry` became invalid!
-                    Ok("OMEGA".to_string())
-                } else if combined.contains("error:") {
-                    Err(combined)
-                } else {
-                    Ok(combined)
-                }
+        // 2. Ensure no OTHER theorem is being defined (hijacking defense)
+        let theorem_keyword = "theorem ";
+        let mut start = 0;
+        while let Some(idx) = payload[start..].find(theorem_keyword) {
+            let actual_idx = start + idx;
+            let after_theorem = &payload[actual_idx + theorem_keyword.len()..];
+            
+            // Check if what follows "theorem " is NOT our name
+            // We look at the first word after the keyword
+            let found_name = after_theorem.split_whitespace().next().unwrap_or("");
+            if found_name != self.theorem_name && !found_name.is_empty() {
+                return true; // Found a definition for a different theorem!
             }
-            Err(e) => Err(format!("Failed to execute lean: {}", e))
+            start = actual_idx + theorem_keyword.len();
         }
+
+        false
     }
 }
 
 impl TuringSkill for Lean4MembraneSkill {
     fn manifest(&self) -> &'static str {
-        "Lean 4 Membrane Guillotine (Formal Verification)"
+        "Lean 4 Sandboxed Membrane (Anti-Identity-Theft)"
     }
 
     fn on_pre_append(&mut self, payload: &str) -> SkillSignal {
-        // Construct the full lean proof attempt.
-        // We append 'sorry' to suppress the "unsolved goals" error, so we only catch actual syntax/logic errors.
+        // 1. Cognitive Defense: Check for Identity Theft / Hijacking
+        if self.check_identity_theft(payload) {
+            warn!(">>> [SHIELD] Identity Theft Detected! LLM tried to prove a different theorem.");
+            return SkillSignal::Veto(format!("Identity Theft: Payload does not target theorem {}", self.theorem_name));
+        }
+
+        // 2. Construct the full verification code
+        // MiniF2F theorems often end with `by sorry`. 
+        // The payload passed here should already have been processed to be ready for tactics.
         let test_code = format!(
             "{}\n  sorry", 
             payload
@@ -77,31 +68,31 @@ impl TuringSkill for Lean4MembraneSkill {
 
         debug!("--- Lean4 Membrane Testing Code ---\n{}\n-----------------------------------", test_code);
 
-        match self.verify_lean_code(&test_code) {
+        // 🌟 Thermodynamics: Max 10 seconds for Lean to compute
+        let gas_limit = Duration::from_secs(10);
+
+        match self.sandbox.execute_safely(&test_code, gas_limit) {
             Ok(output) => {
-                if output == "OMEGA" {
+                if output.contains("error: No goals to be solved") {
                     info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
                     return SkillSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
                 }
 
-                // Wait, if it succeeds WITH sorry, it's just a valid intermediate step.
-                // We should check if it compiles WITHOUT sorry to see if it's the Omega node!
-                let omega_code = payload.to_string();
-                
-                if let Ok(_omega_output) = self.verify_lean_code(&omega_code) {
-                    info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
-                    // Modify the payload to inject a special flag for the kernel to recognize if needed,
-                    // or just pass the clean tactic.
-                    SkillSignal::Modify(format!("{}\n  -- [OMEGA]", payload))
-                } else {
-                    // Valid intermediate step
-                    SkillSignal::Pass
+                // If it succeeds WITH sorry, it's a valid intermediate step.
+                // Now check if it compiles WITHOUT sorry to see if it's the Omega node!
+                if let Ok(omega_output) = self.sandbox.execute_safely(payload, gas_limit) {
+                    if !omega_output.contains("error:") || omega_output.contains("error: No goals to be solved") {
+                        info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
+                        return SkillSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                    }
                 }
+                
+                SkillSignal::Pass
             }
             Err(e) => {
-                // The compiler threw an error. VETO!
-                debug!("Lean4 Membrane VETO: Compiler rejected the tactic.");
-                SkillSignal::Veto(format!("Compiler Error:\n{}", e))
+                // The compiler threw an error or timed out. VETO!
+                debug!("Lean4 Membrane VETO: Compiler rejected the tactic or timed out.");
+                SkillSignal::Veto(format!("Compiler/Sandbox Error:\n{}", e))
             }
         }
     }

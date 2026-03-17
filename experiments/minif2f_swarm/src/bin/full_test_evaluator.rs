@@ -26,7 +26,7 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
     ));
 
     // 2. Mount Skills
-    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(10)));
+    bus.mount_skill(Box::new(ThermodynamicHeartbeatSkill::new(1)));
     bus.mount_skill(Box::new(Lean4MembraneSkill::new(
         problem_content.to_string(), 
         problem_name.to_string(),
@@ -99,16 +99,16 @@ fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
     let args: Vec<String> = std::env::args().collect();
-    let swarm_size: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(50);
+    let swarm_size: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(20);
     
     info!("Starting Batch Evaluator with N={} LLMs per theorem", swarm_size);
 
     let api_url = std::env::var("LLAMA_API_URL").unwrap_or_else(|_| "https://api.siliconflow.cn/v1/chat/completions".to_string());
-    let model_name = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B".to_string());
+    let model_name = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "deepseek-ai/DeepSeek-V3".to_string());
     let timeout_secs = 600;
     
     // Max steps the swarm is allowed to take to prove ONE theorem
-    let max_steps_per_theorem = 50; 
+    let max_steps_per_theorem = 100; 
 
     // Target the MacStudio local path for Lean4 dataset
     let test_dir = Path::new("/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test");

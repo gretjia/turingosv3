@@ -16,6 +16,7 @@ pub struct File {
     pub payload: String,
     pub citations: Vec<FileId>,
     pub stake: Token,
+    pub intrinsic_reward: f64,
     pub price: f64,
 }
 
@@ -84,8 +85,9 @@ impl Kernel {
         }
     }
 
-    pub fn append_tape(&mut self, mut file: File) -> &File {
-        file.price = 0.0;
+    pub fn append_tape(&mut self, mut file: File, reward: f64) -> &File {
+        file.intrinsic_reward = reward;
+        file.price = reward;
         let id = file.id.clone();
         
         for parent_id in &file.citations {
@@ -100,12 +102,22 @@ impl Kernel {
     }
 
     pub fn hayekian_map_reduce(&mut self) {
+        // Step 1: Reset market price to absolute intrinsic reward
+        for (_, node) in self.tape.files.iter_mut() {
+            node.price = node.intrinsic_reward; 
+        }
+
         let mut new_prices = HashMap::new();
         
         for _ in 0..15 {
             for id in self.tape.files.keys() {
-                let mut base_val = 0.0;
-                if id.starts_with(&self.target_omega_id) { base_val += 100_000_000_000.0; }
+                // Pure topological gravity flow, completely oblivious to content
+                let mut base_val = self.tape.files.get(id).map(|f| f.intrinsic_reward).unwrap_or(0.0);
+                
+                // Legacy compatibility for Hanoi target
+                if id.starts_with(&self.target_omega_id) { 
+                    base_val += 100_000_000_000.0; 
+                }
                 
                 let mut imputed_val = 0.0;
                 if let Some(children) = self.tape.reverse_citations.get(id) {

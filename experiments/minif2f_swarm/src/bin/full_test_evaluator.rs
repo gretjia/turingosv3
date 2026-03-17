@@ -79,6 +79,7 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
             payload: action.payload.clone(),
             citations: action.citations.clone(),
             stake: action.stake,
+            intrinsic_reward: 0.0,
             price: 0.0,
         };
 

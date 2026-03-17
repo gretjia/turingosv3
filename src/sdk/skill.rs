@@ -2,6 +2,7 @@ pub enum SkillSignal {
     Pass,
     Modify(String),
     Veto(String),
+    YieldReward { payload: String, reward: f64 },
 }
 
 pub trait TuringSkill: Send + Sync {

@@ -46,9 +46,10 @@ pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: Stri
         let file = File {
             id: action.file_id.clone(),
             author: action.author,
-            payload: action.payload,
+            payload: action.payload.clone(),
             citations: action.citations.clone(),
             stake: action.stake,
+            intrinsic_reward: 0.0,
             price: 0.0,
         };
 

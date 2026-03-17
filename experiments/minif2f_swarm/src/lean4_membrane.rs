@@ -77,7 +77,10 @@ impl TuringSkill for Lean4MembraneSkill {
             Ok(output) => {
                 if output.contains("error: No goals to be solved") {
                     info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
-                    return SkillSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                    return SkillSignal::YieldReward {
+                        payload: format!("{}\n  -- [OMEGA]", payload),
+                        reward: 100_000_000_000.0,
+                    };
                 }
 
                 // If it succeeds WITH sorry, it's a valid intermediate step.
@@ -85,7 +88,10 @@ impl TuringSkill for Lean4MembraneSkill {
                 if let Ok(omega_output) = self.sandbox.execute_safely(payload, gas_limit) {
                     if !omega_output.contains("error:") || omega_output.contains("error: No goals to be solved") {
                         info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
-                        return SkillSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                        return SkillSignal::YieldReward {
+                            payload: format!("{}\n  -- [OMEGA]", payload),
+                            reward: 100_000_000_000.0,
+                        };
                     }
                 }
                 

@@ -12,6 +12,7 @@ pub struct WalRecord {
     pub payload: String,
     pub citations: Vec<String>,
     pub stake: u64,
+    pub intrinsic_reward: f64,
     pub price: f64,
 }
 
@@ -23,6 +24,7 @@ impl From<&TuringFile> for WalRecord {
             payload: tf.payload.clone(),
             citations: tf.citations.clone(),
             stake: tf.stake,
+            intrinsic_reward: tf.intrinsic_reward,
             price: tf.price,
         }
     }
@@ -36,6 +38,7 @@ impl Into<TuringFile> for WalRecord {
             payload: self.payload,
             citations: self.citations,
             stake: self.stake,
+            intrinsic_reward: self.intrinsic_reward,
             price: self.price,
         }
     }

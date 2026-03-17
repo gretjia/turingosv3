@@ -22,6 +22,8 @@ impl TuringBus {
     }
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
+        let mut final_reward = 0.0;
+        
         // 1. Pre-append hooks
         for skill in &mut self.skills {
             match skill.on_pre_append(&file.payload) {
@@ -32,11 +34,15 @@ impl TuringBus {
                 SkillSignal::Veto(reason) => {
                     return Err(reason);
                 }
+                SkillSignal::YieldReward { payload, reward } => {
+                    file.payload = payload;
+                    final_reward += reward;
+                }
             }
         }
 
         // 2. Kernel append
-        let node = self.kernel.append_tape(file.clone());
+        let node = self.kernel.append_tape(file.clone(), final_reward);
 
         // 3. Post-append hooks
         for skill in &mut self.skills {

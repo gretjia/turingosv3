@@ -22,6 +22,7 @@ fn main() {
             payload: format!("knowledge payload #{}", i),
             citations: vec![],
             stake: 100,
+            intrinsic_reward: 0.0,
             price: 0.0,
         };
 

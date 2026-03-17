@@ -1,30 +1,37 @@
-# TuringOS v3 Handover & Memory
+# TuringOS Handover Documentation
 
-## Legacy Repositories (Read-Only Reference)
+This directory is the central repository for AI Agents and Human Architects to understand the theoretical, philosophical, and operational state of the TuringOS v3 project. 
 
-We have two "treasure" repositories from previous iterations:
-- `/projects/turingos`
-- `/projects/turingosv2`
+**Rule #1:** If you are an AI Agent waking up in this workspace, you MUST read `ai-direct/LATEST.md` before taking any action.
 
-Inside their respective `/handover/` directories, there are rich records of experiences, architectural decisions, and lessons learned from past versions.
+## 1. Core Philosophical Texts
+The foundation of the Star-Topology Microkernel and Thermodynamic Swarm computation.
+*   [`bible.md`](bible.md) - The fundamental architectural philosophy and rules of TuringOS. (Do not modify without explicit human authorization).
+*   [`topology.md`](topology.md) - Conceptual Mermaid diagrams of the Swarm logic and Kernel map-reduce.
+*   [`project_topology.md`](project_topology.md) - Network and hardware infrastructure mappings for the intra-network (`omega-vm`, `mac-studio`, `linux`).
+*   [`network_topology_and_ssh.md`](network_topology_and_ssh.md) - Specifics on Reverse Tunnels, WireGuard, and API routing.
 
-**CRITICAL RULE FOR AI AGENTS:**
-- When encountering problems or needing historical context, you are encouraged to **read and refer** to the `/handover/` folders of these legacy repositories.
-- **NEVER** copy any files from `turingos` or `turingosv2` into this brand new `turingosv3` project. We must maintain a strict "zero pollution" policy for the v3 architecture.
+## 2. Architecture Audits & Upgrades (Chronological)
+Detailed post-mortem reports and architectural upgrade logs. These explain *why* the codebase is written the way it is.
 
-## Core Disciplines & Architectural Rules
+### March 14, 2026
+*   [`ram_volatility_threat_20260314.md`](ram_volatility_threat_20260314.md) - Introduction of WAL (Write-Ahead Log) for state persistence.
+*   [`microkernel_harness_architecture_20260314.md`](microkernel_harness_architecture_20260314.md) - Formalization of the `Kernel` vs `TSP Bus` vs `SKILL` separation.
+*   [`engineering_lessons_20260314.md`](engineering_lessons_20260314.md) - Summary of early Rust trait abstractions.
 
-1. **Kernel Immutability:** The core kernel of this project (`kernel.rs`) must not be changed unless absolutely necessary and ONLY with explicit permission from the human architect.
-2. **Unix-Like Elegance & Modularity:** Maintain the project as elegantly as Unix. Everything non-kernel must be hot-pluggable, residing completely outside the kernel, and communicating exclusively via APIs.
-3. **LLM as an External Blackbox:** Always use industry-standard external APIs for LLM communication. NEVER internalize or hardcode LLM logic into the project.
-4. **Architectural Alignment:** Any critical changes must strictly align with the principles defined in `bible.md` and the topology laid out in `topology.md`.
-5. **No Hardcoding for Tests:** Never use hardcoding simply to pass a test. This system is designed to face countless real-world, highly complex problems in the future.
-6. **Strict Separation of Experiments:** All test projects and benchmarks (such as the MAKER 1 Million Hanoi Test) are temporary test projects. Do not internalize them into the core program. They must be strictly separated from the main project at the file structure level (e.g., placed in an `experiments/` or `benchmarks/` directory).
+### March 15, 2026
+*   [`concurrency_cognitive_divergence_audit_20260315.md`](concurrency_cognitive_divergence_audit_20260315.md) - Analysis of $N=100$ parallel branches and the "God Jump" phenomenon.
 
-## Local Directory Context
+### March 16, 2026 (MiniF2F Lean 4 Implementation)
+*   [`sandbox_and_identity_theft_audit_20260316.md`](sandbox_and_identity_theft_audit_20260316.md) - Deep analysis of LLMs hallucinating proofs for simpler theorems and the creation of `SandboxEngine` and "Identity Anchoring".
+*   [`minif2f_data_contamination_audit_20260316.md`](minif2f_data_contamination_audit_20260316.md) - Proof that the Lean 4 Popperian Membrane mathematically prevents dataset contamination cheating.
 
-The `/handover/` directory in this v3 project is actively maintained to contain:
-- [`README.md`](README.md) - This document, containing core rules and philosophy.
-- [`turingosv3_maker_hanoi_audit.md`](turingosv3_maker_hanoi_audit.md) - The architectural and execution audit report from the 200-step Hanoi trial. Details critical flaws like O(N²) bottlenecks, lack of logical Guillotine implementation, and blind swarm agents.
-- [`ai-direct/`](ai-direct/) - The operational handover states.
-  - [`ai-direct/LATEST.md`](ai-direct/LATEST.md) - The real-time, frequently updated scratchpad of current work context, goals, and next steps for AI agents. Always read this when starting a session.
+### March 17, 2026 (The SOTA Run Physics Updates)
+*   [`extreme_purification_audit_20260317.md`](extreme_purification_audit_20260317.md) - Upgrade to real-time Hayekian pricing (Heartbeat=1).
+*   [`boltzmann_retreat_audit_20260317.md`](boltzmann_retreat_audit_20260317.md) - The transition from Greedy Routing to Softmax Probabilistic Backtracking.
+*   [`inversion_of_control_pricing_audit_20260317.md`](inversion_of_control_pricing_audit_20260317.md) - The removal of magic strings from `kernel.rs` and the introduction of `intrinsic_reward` yielded by SKILLs.
+*   [`qwen_397b_execution_audit_20260317.md`](qwen_397b_execution_audit_20260317.md) - Empirical analysis of Qwen-397B's "last-mile cognitive blind spot" during the formal verification of Theorem 2.
+
+## 3. Operations
+*   [`ai-direct/LATEST.md`](ai-direct/LATEST.md) - Live execution state (Current: MiniF2F N=15 run on `zephrymac-studio`).
+*   [`archive/`](archive/) - Deprecated architecture notes and raw diff patches.

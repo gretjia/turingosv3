@@ -1,23 +1,29 @@
-# TuringOS v3
+# TuringOS v3 (Silicon-Native Microkernel)
 
-Welcome to TuringOS v3.
+Welcome to TuringOS v3, a framework for Large Language Models executing formal verification, symbolic reasoning, and deep swarm speculation without system prompt hacks.
 
-## Documents
+## 1. System Architecture
 
-* [Bible (`bible.md`)](bible.md) - The architectural philosophy and rules.
-* [Topology (`topology.md`)](topology.md) - The system topology diagrams (Mermaid).
+TuringOS v3 is not a prompt-chaining script. It is an operating system built on a **Star-Topology Microkernel Architecture** specifically designed to emulate thermodynamic concepts like Brownian motion, phase transitions, and Hayekian value decay over a computational tape.
 
-## Directory Structure
+*   **The Kernel (`src/kernel.rs`)**: Absolutely mathematically pure. It manages the `Tape` (the global log of all thoughts and actions) and computes $O(V+E)$ `hayekian_map_reduce`. It has zero knowledge of the business domain.
+*   **The TSP Bus (`src/bus.rs`)**: The Turing Skill Protocol bus. It passes data between the AI Blackbox and the Kernel, allowing external hooks (Skills) to modify or veto data in real-time.
+*   **The Skills (`src/sdk/skill.rs`)**: The specific "laws of physics" applied to the current simulation (e.g., `Lean4MembraneSkill` for Lean 4 formal verification, `AntiZombiePruningSkill` for deadlock prevention).
 
-* [`src/`](src/) - The core TuringOS microkernel codebase.
-* [`handover/`](handover/) - Documentation, architectural rules, audit reports, and AI state handover files. Start here if you are an AI agent.
-  *   [`handover/README.md`](handover/README.md) - Core rules and legacy repo reference guidelines.
-    *   [`handover/turingosv3_maker_hanoi_audit.md`](handover/turingosv3_maker_hanoi_audit.md) - The latest architecture execution audit.
-    *   [`handover/sandbox_and_identity_theft_audit_20260316.md`](handover/sandbox_and_identity_theft_audit_20260316.md) - Deep analysis of the "Identity Theft" vulnerability.
-  *   [`handover/extreme_purification_audit_20260317.md`](handover/extreme_purification_audit_20260317.md) - Architecture upgrade to real-time Hayekian pricing (Heartbeat=1).
-  *   [`handover/boltzmann_retreat_audit_20260317.md`](handover/boltzmann_retreat_audit_20260317.md) - Implementation of Boltzmann Softmax selection.
-  *   [`handover/inversion_of_control_pricing_audit_20260317.md`](handover/inversion_of_control_pricing_audit_20260317.md) - The philosophical refactoring of the pricing engine to maintain kernel purity via `intrinsic_reward`.
-  *   [`handover/qwen_397b_execution_audit_20260317.md`](handover/qwen_397b_execution_audit_20260317.md) - **[LATEST]** Deep analysis of the Boltzmann Router in action during the Qwen 397B formal verification run.
+## 2. Recent Updates (March 2026)
 
-* [`experiments/`](experiments/) - Temporary test projects separated from the core kernel.
-  * [`experiments/hanoi_1m/`](experiments/hanoi_1m/) - The MAKER 1-Million Hanoi Test swarm benchmark environment.
+The framework has fundamentally evolved during the **MiniF2F SOTA Run**:
+1.  **Inversion of Control (Pricing)**: The kernel was stripped of all string-matching logic. All value minting (`intrinsic_reward = 100_000_000_000.0`) is now exclusively yielded by the external formal verification Membrane. 
+2.  **Boltzmann Softmax Router**: The swarm routing engine upgraded from `ArgMax` (Greedy) to `Softmax` (Probabilistic), naturally resolving "Roadroller deadlocks" by allowing the swarm compute cloud to spontaneously backtrack to earlier, purer nodes when blocked.
+3.  **Air-Gapped Sandboxing**: Complete isolation of the LLM from the host filesystem during Lean 4 verification, operating exclusively over memory pipes.
+
+## 3. Directory Structure & Documentation
+
+*   [`src/`](src/) - The core TuringOS microkernel codebase.
+*   [`experiments/`](experiments/) - Temporary test projects separated from the core kernel.
+    *   [`experiments/minif2f_swarm/`](experiments/minif2f_swarm/) - The current SOTA execution harness for 244 Lean 4 theorems.
+*   [`handover/`](handover/) - **[START HERE FOR AI AGENTS]** Documentation, architectural rules, audit reports, and AI state handover files. 
+    *   [`handover/README.md`](handover/README.md) - The core philosophy, rules, and directory index of the handover assets.
+    *   [`handover/ai-direct/LATEST.md`](handover/ai-direct/LATEST.md) - The absolute single source of truth for the current execution state of the workspace.
+*   [`archive/`](archive/) - Deprecated patches and logs.
+*   [`audit/`](audit/) - Raw tarballs of corrupted WAL files or specific execution artifacts for forensic analysis.

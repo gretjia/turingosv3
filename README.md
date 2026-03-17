@@ -15,7 +15,8 @@ Welcome to TuringOS v3.
     *   [`handover/turingosv3_maker_hanoi_audit.md`](handover/turingosv3_maker_hanoi_audit.md) - The latest architecture execution audit.
     *   [`handover/sandbox_and_identity_theft_audit_20260316.md`](handover/sandbox_and_identity_theft_audit_20260316.md) - Deep analysis of the "Identity Theft" vulnerability.
   *   [`handover/extreme_purification_audit_20260317.md`](handover/extreme_purification_audit_20260317.md) - Architecture upgrade to real-time Hayekian pricing (Heartbeat=1).
-  *   [`handover/boltzmann_retreat_audit_20260317.md`](handover/boltzmann_retreat_audit_20260317.md) - **[LATEST]** Implementation of Boltzmann Softmax selection, Zombie Pruning, and Automatic Backtracking.
+  *   [`handover/boltzmann_retreat_audit_20260317.md`](handover/boltzmann_retreat_audit_20260317.md) - Implementation of Boltzmann Softmax selection.
+  *   [`handover/inversion_of_control_pricing_audit_20260317.md`](handover/inversion_of_control_pricing_audit_20260317.md) - **[LATEST]** The philosophical refactoring of the pricing engine to maintain kernel purity via `intrinsic_reward`.
 
 * [`experiments/`](experiments/) - Temporary test projects separated from the core kernel.
   * [`experiments/hanoi_1m/`](experiments/hanoi_1m/) - The MAKER 1-Million Hanoi Test swarm benchmark environment.

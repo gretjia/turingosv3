@@ -20,7 +20,7 @@ pub struct ResilientLLMClient {
 
 impl ResilientLLMClient {
     pub fn new(api_url: &str, model_name: &str, _timeout_secs: u64) -> Self {
-        let api_key = std::env::var("SILICONFLOW_API_KEY").ok();
+        let api_key = std::env::var("VOLCENGINE_API_KEY").or_else(|_| std::env::var("SILICONFLOW_API_KEY")).ok();
         Self {
             client: Client::builder()
                 .build()

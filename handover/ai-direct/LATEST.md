@@ -1,25 +1,32 @@
-# TuringOS v3 State Handover - 2026-03-18
+# TuringOS v3 Progress & State
 
-## 1. System Incident & Recovery
-*   **OOM Crash & Node.js Memory Limit:** During the session, the Gemini CLI agent crashed with a `JavaScript heap out of memory` fatal error due to the V8 engine hitting its default ~4GB limit.
-*   **Permanent Fix:** Modified `~/.bashrc` and `~/.zshrc` to export `NODE_OPTIONS="--max-old-space-size=8192"`, permanently safely raising the Node.js memory limit to 8GB. The active background daemon was not killed, and the fix was applied seamlessly to new sessions.
+## Current Core Mission
+- We are running **TuringOS v3**, focusing on the **MiniF2F Lean 4 Formal Proof Swarm**.
+- The ultimate goal is to solve formal mathematics problems by employing a massive, concurrent swarm of LLM agents (up to N=100) exploring proof trees in a custom execution engine.
 
-## 2. The Free Market (Austrian Economics) Implementation
-Following the Chief Architect's analysis of the "Deflationary Deadlock" in the 100-step test tape, the codebase was heavily modified to strip out "Keynesian" fixed-cost interventions and implement a pure Laissez-faire model.
+## The Turing Capitalism Architecture
+The system has fully migrated to a **Proof-of-Stake** and **Austrian Economics** model:
+- **Free-Floating Stakes:** Agents decide their own cost to execute a node (`1.0` for low confidence, `1000.0` for high confidence). Capital generates topological gravity.
+- **The Graveyard Protocol (`src/bus.rs`):** Agents that generate code causing a `Compiler/Sandbox Error` are immediately liquidated (capital burned). Their failure and the explicit Lean 4 compiler error are etched into a public `Graveyard` on the node, forcing future Agents to learn via In-Context Reflection.
+- **The Market Ticker (`src/kernel.rs`):** The Kernel generates a dynamic top-3 node leaderboard based on `market_price`. This breaks the information silo and is injected into every prompt.
+- **Venture Capital:** Agents facing dead ends can choose to act as VC investors, staking their funds on top leaderboard nodes rather than risking compilation errors, shifting computing power naturally to the most promising branches without centralized orchestration.
 
-*   **The Graveyard Protocol (`src/bus.rs`):** Implemented a memory system for failed compiler attempts. When an Agent hits a `Compiler/Sandbox Error`, the state is vetoed, the capital is burned, and the failed code/error message is permanently etched into the `Graveyard` of that node. Subsequent Agents can see these "tombstones" to avoid repeating the exact same compilation errors (In-Context Reflection).
-*   **The Market Ticker (`src/kernel.rs` & `swarm.rs`):** Broke the information silo by injecting a `get_market_ticker(top_n)` probe. Before every step, Agents now see a `=== 📈 GLOBAL MARKET LEADERBOARD ===` in their prompt, displaying the nodes with the highest topological value/capital.
-*   **Free-Floating Stake & VC Injection (`skills/economic_operative.md`):** Agents are no longer forced to pay `500.0` TuringCoins. They can now dynamically choose their stake (`1.0` to explore, `1000.0` for certainty). Furthermore, they are explicitly instructed to act as Venture Capitalists: if they run low on funds or lack confidence, they can invest their remaining capital into top nodes on the Market Ticker, offloading the compiler risk while driving topological gravity towards successful branches.
+## Execution Environment & Hardware
+- **Infrastructure:** Tests are primarily executed on `zephrymac-studio` using `tmux` sessions (e.g., `minif2f-sota-run`) to maintain persistence.
+- **API Provider:** Due to extreme HTTP 401/429 backpressure and GPU slot exhaustion on SiliconFlow at high concurrency (N=30+), the workload has been completely migrated to **Volcengine Ark (火山引擎)**.
+- **Active Model:** We are currently utilizing `doubao-1-5-pro-32k-250115` as the primary reasoning engine for the Swarm, as it natively supports high-throughput concurrent requests without truncating massive `<think>` blocks.
 
-## 3. The API / Volcengine Migration Crisis
-*   **The 401 Meltdown:** Upon deploying the new Free Market code to `zephrymac-studio` and starting `full_test_evaluator` via `tmux`, the entire swarm instantly zombified. The logs flooded with `[Driver] GPU Backpressure (HTTP 401 Unauthorized)` leading the Watchdog to suspend all agents after 9 strikes.
-*   **The Missing Endpoint:** Investigation revealed the migration from SiliconFlow to Volcengine (Doubao-2.0-Pro) lacked the necessary authentication variables (`VOLCENGINE_API_KEY`, `LLAMA_API_URL`, `LLAMA_MODEL`) in the remote runtime environment.
-*   **API Key Resolution:** The API key `6ef79179-f1f6-484d-8258-585a9ff61b32` was provided and written to `.env`.
-*   **Direct Model Id Support Verification:** After extensive searching for the `ep-` ID (Endpoint) across local logs, git history, and the Volcengine API, a direct curl test confirmed that the Volcengine v3 Chat completions API *does* accept direct model tags for specific versions. Tested and verified that `doubao-1-5-pro-32k-250115` responds successfully with a 200 OK without requiring an explicit custom `ep-` ID.
-*   **Environment Reset:** Recreated the `~/projects/turingosv3/.env` file on `zephrymac-studio` containing the validated Volcengine URL, API Key, and Model ID.
+## Latest Incidents & Resolutions (March 17-18, 2026)
+1. **The Deflationary Deadlock:** A hardcoded `500` coin tax previously caused the entire Swarm to bankrupt itself rapidly, grinding execution to a halt around step 30. Fixed via the aforementioned Austrian Economics patch (floating stakes + VC).
+2. **Volcengine Migration Crisis:** The initial migration failed due to a missing `ep-` ID configuration. After extensive research, we verified that the Volcengine v3 Chat Completions API accepts direct model tags (`doubao-1-5-pro-32k-250115`). The remote `.env` on `zephrymac-studio` has been fully reconstructed with the correct API URL and API Key (`6ef79179-f1f6-484d-8258-585a9ff61b32`).
+3. **Node.js Memory Exhaustion:** The local Gemini CLI Agent experienced an OOM (JavaScript heap out of memory) crash. Permanently fixed by appending `export NODE_OPTIONS="--max-old-space-size=8192"` to the system's `~/.bashrc` and `~/.zshrc`.
 
-## Next Steps for the Next Session
-1.  Connect to `zephrymac-studio`.
-2.  Kill the current stalled `minif2f-sota-run` tmux session if it is still running or looping.
-3.  Start a new tmux session and run `export $(cat ~/projects/turingosv3/.env | xargs) && cargo run --release --bin full_test_evaluator` to restart the Swarm.
-4.  Observe the newly implemented Free Market dynamics (Graveyards and VC Investments) to see if they successfully prevent the early-stage bankruptcy deadlock.
+## Immediate Next Steps (Actionable for New Agents)
+1.  **Restart the Swarm:** SSH into `zephrymac-studio`, connect to the `minif2f-sota-run` tmux session, ensure the `.env` is loaded, and start the `full_test_evaluator`. Command:
+    ```bash
+    cd ~/projects/turingosv3/experiments/minif2f_swarm
+    export $(cat ~/projects/turingosv3/.env | xargs)
+    cargo run --release --bin full_test_evaluator
+    ```
+2.  **Monitor the Graveyard:** Observe the terminal logs. You must verify that `[MARKET CASUALTY]` events are firing and successfully preventing early-stage bankruptcy loops via the In-Context Reflection mechanism.
+3.  **Monitor VC Activity:** Check if the prompt injections of the `=== 📈 GLOBAL MARKET LEADERBOARD ===` are successfully inducing `ToolSignal::InvestOnly` actions from the LLMs.

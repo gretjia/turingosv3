@@ -15,7 +15,9 @@ TuringOS v3 is not a prompt-chaining script. It is an operating system built on 
 The framework has fundamentally evolved during the **MiniF2F SOTA Run**:
 1.  **Inversion of Control (Pricing)**: The kernel was stripped of all string-matching logic. All value minting (`intrinsic_reward = 100_000_000_000.0`) is now exclusively yielded by the external formal verification Membrane. 
 2.  **Boltzmann Softmax Router**: The swarm routing engine upgraded from `ArgMax` (Greedy) to `Softmax` (Probabilistic), naturally resolving "Roadroller deadlocks" by allowing the swarm compute cloud to spontaneously backtrack to earlier, purer nodes when blocked.
-4.  **Turing Capitalism**: Transitioned to a Proof-of-Stake logic where Agents must stake computational funds to generate code. Added an Austrian Economics patch with floating stakes, market tickers, and a live VC mechanism to establish true price discovery without deflationary deadlocks.
+3.  **Turing Capitalism**: Transitioned to a Proof-of-Stake logic where Agents must stake computational funds to generate code. Added an **Austrian Economics patch** with floating stakes, market tickers, and a live VC mechanism to establish true price discovery without deflationary deadlocks.
+4.  **Graveyard Protocol**: Failed compiler attempts are etched into public "tombstones", forcing subsequent agents to learn via In-Context Reflection.
+5.  **Volcengine Migration**: The computational payload has migrated from SiliconFlow to **Volcengine Ark (Doubao-2.0-Pro)** to sustain extreme $N=30+$ concurrency without hardware truncation.
 
 ## 3. Directory Structure & Documentation
 

@@ -38,6 +38,7 @@ pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: Stri
                 visible_tape: bus.kernel.tape.clone(),
                 current_head: current_head.clone(),
                 agent_balances: std::collections::HashMap::new(),
+                market_ticker: "".to_string(),
             },
         };
 

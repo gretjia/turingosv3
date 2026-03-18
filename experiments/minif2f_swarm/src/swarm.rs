@@ -215,9 +215,10 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                     let balance = input.s_i.agent_balances.get(&agent_name).copied().unwrap_or(0.0);
                     
                     let p = format!(
-                        "Current Lean 4 Proof State:\n{}\n\n{}\n\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic AND the wallet payment exactly like this:\n[Tactic: your single lean 4 tactic here] [Tool: Wallet | Action: Stake | Node: self | Amount: 500]", 
+                        "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic AND the wallet payment exactly like this:\n[Tactic: your single lean 4 tactic here] [Tool: Wallet | Action: Stake | Node: self | Amount: 500]", 
                         last_state,
                         economic_operative,
+                        input.s_i.market_ticker,
                         balance
                     );
                     

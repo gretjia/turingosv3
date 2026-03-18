@@ -5,7 +5,7 @@ pub enum ToolSignal {
     Modify(String),
     Veto(String),
     YieldReward { payload: String, reward: f64 },
-    InvestOnly, 
+    InvestOnly { target_node: String, amount: f64 }, 
 }
 
 pub trait TuringTool: Send + Sync {

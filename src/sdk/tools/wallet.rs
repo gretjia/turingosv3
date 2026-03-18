@@ -53,11 +53,12 @@ impl TuringTool for WalletTool {
 
         let (target, amount) = match self.parse_payment(payload) {
             Some(cmd) => cmd,
-            None => return ToolSignal::Veto("Payment Required: Missing Wallet Tool call.".into()),
+            None => return ToolSignal::Veto("Bankruptcy/Fraud: Missing Wallet Tool call.".into()),
         };
 
-        if amount <= 0.0 {
-            return ToolSignal::Veto("Invalid Transaction: Stake must be positive.".into());
+        // 【奥地利学派的底线】：自由出价，但拒绝零元购（防粉尘攻击）
+        if amount < 1.0 {
+            return ToolSignal::Veto("Market Rule Violation: Stake must be >= 1.0. No free lunch.".into());
         }
 
         let balance = *self.balances.get(author).unwrap_or(&0.0);
@@ -65,19 +66,25 @@ impl TuringTool for WalletTool {
             return ToolSignal::Veto(format!("Bankrupt: Insufficient funds. Balance: {:.2}", balance));
         }
 
-        // Deduct
+        // 🌟 物理扣款（风险前置）！
+        // 钱已经划走。如果稍后 Lean4 断头台报 Error 导致 Veto，这笔钱将作为热力学废气彻底烧毁！
         *self.balances.get_mut(author).unwrap() -= amount;
         self.global_pool += amount;
 
         if target.to_lowercase() == "self" {
             self.pending_self_stakes.insert(author.to_string(), amount);
-            // Clean payload
             let clean_payload = payload.split("[Tool: Wallet").next().unwrap_or(payload).trim().to_string();
-            ToolSignal::Modify(clean_payload)
+            
+            // 🌟 资本即引力：大模型的自由报价，直接成为新节点的内生悬赏 (Intrinsic Reward)！
+            ToolSignal::YieldReward {
+                payload: clean_payload,
+                reward: amount, 
+            }
         } else {
+            // 纯金融 VC 投资行为：记录股权，等待 Halt 时的赢家通吃结算
             self.stakes.push(StakeRecord { agent_id: author.to_string(), amount, target_node: target.clone() });
-            log::info!(">>> [WALLET VC] {} invested {:.2} in existing Node {}.", author, amount, target);
-            ToolSignal::InvestOnly
+            log::info!(">>> [FREE MARKET VC] Agent {} invested {:.2} Coins into Node {}!", author, amount, target);
+            ToolSignal::InvestOnly { target_node: target, amount }
         }
     }
 

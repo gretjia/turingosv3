@@ -45,6 +45,7 @@ pub struct SensorContext {
     pub visible_tape: Tape,
     pub current_head: Head,
     pub agent_balances: HashMap<String, f64>,
+    pub market_ticker: String,
 }
 
 pub struct Input {
@@ -96,6 +97,23 @@ impl Kernel {
             current = node.citations[0].clone(); 
         }
         path
+    }
+
+    pub fn get_market_ticker(&self, top_n: usize) -> String {
+        let mut active_nodes: Vec<_> = self.tape.files.values().collect();
+        // Sort descending by market price
+        active_nodes.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap_or(std::cmp::Ordering::Equal));
+        
+        let mut ticker = String::from("\n=== 📈 GLOBAL MARKET LEADERBOARD (Top 3) ===\n");
+        if active_nodes.is_empty() {
+            ticker.push_str("- Market is empty. Be the first to IPO!\n");
+        } else {
+            for (i, node) in active_nodes.iter().take(top_n).enumerate() {
+                ticker.push_str(&format!("Rank {}: [Node ID: {}] | Market Cap: {:.2} Coins\n", i + 1, node.id, node.price));
+            }
+        }
+        ticker.push_str("============================================\n");
+        ticker
     }
 
     pub fn append_tape(&mut self, mut file: File, reward: f64) -> &File {

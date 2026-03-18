@@ -45,6 +45,9 @@ impl TuringBus {
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
         let mut final_reward = 0.0;
+        let mut is_invest_only = false;
+        let mut invest_target = String::new();
+        let mut invest_amount = 0.0;
         
         // 1. Pre-append hooks
         for tool in &mut self.tools {
@@ -60,12 +63,26 @@ impl TuringBus {
                     file.payload = payload;
                     final_reward += reward;
                 }
-                ToolSignal::InvestOnly => {
-                    // This node is not appending mathematical truth, it's just a financial transaction.
-                    // We allow it to be appended to the tape to record the stake, but it doesn't change state.
-                    // The Wallet Tool has already recorded the transaction in its internal ledger.
+                ToolSignal::InvestOnly { target_node, amount } => {
+                    is_invest_only = true;
+                    invest_target = target_node;
+                    invest_amount = amount;
+                    break; // Break tool chain, bypass Lean4 membrane
                 }
             }
+        }
+
+        if is_invest_only {
+            // 🌟 Inject capital directly into historical node
+            if let Some(node) = self.kernel.tape.files.get_mut(&invest_target) {
+                node.intrinsic_reward += invest_amount;
+                log::info!(">>> [MARKET PUMP] Node {} received VC funding of {:.2}! Market Cap surging!", invest_target, invest_amount);
+                // Trigger global gravity recalculation
+                self.kernel.hayekian_map_reduce();
+            } else {
+                log::warn!(">>> [VC ERROR] Node {} does not exist. Investment burned.", invest_target);
+            }
+            return Ok(()); // End turn, no new node created
         }
 
         // 2. Kernel append

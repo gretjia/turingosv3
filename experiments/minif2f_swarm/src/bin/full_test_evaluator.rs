@@ -80,6 +80,7 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
                 visible_tape: bus.kernel.tape.clone(),
                 current_head: current_head.clone(),
                 agent_balances: balances,
+                market_ticker: bus.kernel.get_market_ticker(3),
             },
         };
 

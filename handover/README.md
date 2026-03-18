@@ -33,6 +33,9 @@ Detailed post-mortem reports and architectural upgrade logs. These explain *why*
 *   [`qwen_397b_execution_audit_20260317.md`](qwen_397b_execution_audit_20260317.md) - Empirical analysis of Qwen-397B's "last-mile cognitive blind spot" during the formal verification of Theorem 2.
 *   [`turing_capitalism_upgrade_audit_20260317.md`](turing_capitalism_upgrade_audit_20260317.md) - **[LATEST]** The epic architectural shift to a Proof-of-Stake economy, including the lexical purge separating TOOLs from SKILLs.
 
+### March 18, 2026 (The Free Market Upgrade)
+*   [`austrian_economics_patch_audit_20260318.md`](austrian_economics_patch_audit_20260318.md) - **[LATEST]** The strict implementation of Laissez-faire economics, floating stakes, Market Tickers, and the migration to Volcengine Ark (Doubao-2.0-Pro) to sustain extreme N=30 concurrency.
+
 ## 3. Operations
-*   [`ai-direct/LATEST.md`](ai-direct/LATEST.md) - Live execution state (Current: MiniF2F N=15 run on `zephrymac-studio`).
+*   [`ai-direct/LATEST.md`](ai-direct/LATEST.md) - Live execution state (Current: MiniF2F N=30 run on `zephrymac-studio` via Volcengine Ark).
 *   [`archive/`](archive/) - Deprecated architecture notes and raw diff patches.

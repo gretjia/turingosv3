@@ -32,6 +32,14 @@ pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: Stri
             break;
         }
 
+        let mut tombstones = std::collections::HashMap::new();
+        for id in bus.kernel.tape.files.keys() {
+            let graves = bus.get_tombstones(id);
+            if !graves.is_empty() {
+                tombstones.insert(id.clone(), graves);
+            }
+        }
+
         let input = Input {
             q_i: q_state.clone(),
             s_i: SensorContext {
@@ -39,6 +47,7 @@ pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: Stri
                 current_head: current_head.clone(),
                 agent_balances: std::collections::HashMap::new(),
                 market_ticker: "".to_string(),
+                tombstones,
             },
         };
 

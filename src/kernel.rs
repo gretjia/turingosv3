@@ -46,6 +46,7 @@ pub struct SensorContext {
     pub current_head: Head,
     pub agent_balances: HashMap<String, f64>,
     pub market_ticker: String,
+    pub tombstones: std::collections::HashMap<String, String>,
 }
 
 pub struct Input {
@@ -104,7 +105,7 @@ impl Kernel {
         // Sort descending by market price
         active_nodes.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap_or(std::cmp::Ordering::Equal));
         
-        let mut ticker = String::from("\n=== 📈 GLOBAL MARKET LEADERBOARD (Top 3) ===\n");
+        let mut ticker = format!("\n=== 📈 GLOBAL MARKET LEADERBOARD (Top {}) ===\n", top_n);
         if active_nodes.is_empty() {
             ticker.push_str("- Market is empty. Be the first to IPO!\n");
         } else {

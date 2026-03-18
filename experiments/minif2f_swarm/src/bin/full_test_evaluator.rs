@@ -74,6 +74,14 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
             balances.insert(agent_id.clone(), bus.get_agent_balance(&agent_id));
         }
 
+        let mut tombstones = std::collections::HashMap::new();
+        for id in bus.kernel.tape.files.keys() {
+            let graves = bus.get_tombstones(id);
+            if !graves.is_empty() {
+                tombstones.insert(id.clone(), graves);
+            }
+        }
+
         let input = Input {
             q_i: q_state.clone(),
             s_i: SensorContext {
@@ -81,6 +89,7 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
                 current_head: current_head.clone(),
                 agent_balances: balances,
                 market_ticker: bus.kernel.get_market_ticker(3),
+                tombstones,
             },
         };
 

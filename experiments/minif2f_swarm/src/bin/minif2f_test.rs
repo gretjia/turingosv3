@@ -6,24 +6,20 @@ use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, Q,
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool, WalSnapshotTool};
 use minif2f_swarm::lean4_membrane_tool::Lean4MembraneTool;
 
-pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: String) {
+pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: String, lean_problem: String) {
     let kernel = Kernel::new(omega.clone());
     let mut bus = TuringBus::new(kernel);
 
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
-    
-    let lean_problem = r#"import Mathlib
 
-set_option maxHeartbeats 0
-
-open BigOperators Real Nat Topology Rat
-
-theorem induction_11div10tonmn1ton
-  (n : ℕ) :
-  11 ∣ (10^n - (-1 : ℤ)^n) := by"#;
-    
-    bus.mount_tool(Box::new(Lean4MembraneTool::new(lean_problem.to_string(), "/tmp")));
-    
+    let sandbox = Box::new(turingosv3::sdk::sandbox::LocalProcessSandbox::new(
+        "sh",
+        vec![
+            "-c".to_string(),
+            "cd /Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4 && source ~/.elan/env && lake env lean /dev/stdin".to_string()
+        ]
+    ));
+    bus.mount_tool(Box::new(Lean4MembraneTool::new(lean_problem, "target".to_string(), sandbox)));    
     bus.mount_tool(Box::new(WalSnapshotTool));
 
     println!(">>> TuringOS v3 Booted. Awaiting HALT. [{}] <<<", human_spec);
@@ -45,11 +41,22 @@ theorem induction_11div10tonmn1ton
             break;
         }
 
+        let mut tombstones = std::collections::HashMap::new();
+        for id in bus.kernel.tape.files.keys() {
+            let graves = bus.get_tombstones(id);
+            if !graves.is_empty() {
+                tombstones.insert(id.clone(), graves);
+            }
+        }
+
         let input = Input {
             q_i: q_state.clone(),
             s_i: SensorContext {
                 visible_tape: bus.kernel.tape.clone(),
                 current_head: current_head.clone(),
+                agent_balances: std::collections::HashMap::new(),
+                market_ticker: bus.kernel.get_market_ticker(3),
+                tombstones,
             },
         };
 
@@ -59,9 +66,10 @@ theorem induction_11div10tonmn1ton
         let file = File {
             id: action.file_id.clone(),
             author: action.author,
-            payload: action.payload,
+            payload: action.payload.clone(),
             citations: action.citations.clone(),
             stake: action.stake,
+            intrinsic_reward: 0.0,
             price: 0.0,
         };
 
@@ -99,7 +107,17 @@ fn main() {
         .parse()
         .unwrap_or(600);
     
-    let target_steps = 50_000; 
+    let lean_problem = r#"import Mathlib
+
+    set_option maxHeartbeats 0
+
+    open BigOperators Real Nat Topology Rat
+
+    theorem induction_11div10tonmn1ton
+    (n : ℕ) :
+    11 ∣ (10^n - (-1 : ℤ)^n) := by"#;
+
+    let target_steps = 50_000;
     let final_omega_id = format!("step_{}", target_steps);
 
     let wal_path = "minif2f_swarm_recovery.wal".to_string();
@@ -107,16 +125,16 @@ fn main() {
     let _guard = rt.enter();
     let sentinel = minif2f_swarm::wal::WalSentinel::new(wal_path.clone());
     let recovered_files = rt.block_on(minif2f_swarm::wal::recover_tape(&wal_path));
-    
+
     println!("Bootloader resurrected {} files from WAL.", recovered_files.len());
 
-    let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 50, timeout_secs, sentinel, recovered_files);
+    let llm_agent = SpeculativeSwarmAgent::new(&api_url, &model_name, target_steps, 50, timeout_secs, sentinel, recovered_files, lean_problem.to_string());
 
     run_turing_os_v3(
         "MiniF2F Lean4 Formal Proof (Swarm N=50)".to_string(),
         llm_agent,
-        final_omega_id
+        final_omega_id,
+        lean_problem.to_string()
     );
-
     println!("V3 MAKER Hanoi Network Test Complete.");
 }

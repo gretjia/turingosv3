@@ -1,10 +1,45 @@
 use crate::kernel::{Kernel, File};
 use crate::sdk::tool::{TuringTool, ToolSignal};
+use std::collections::{HashMap, VecDeque};
+
+#[derive(Debug, Clone, Default)]
+pub struct Graveyard {
+    pub tombstones: HashMap<String, VecDeque<String>>,
+}
+
+impl Graveyard {
+    pub fn new() -> Self {
+        Self { tombstones: HashMap::new() }
+    }
+    
+    pub fn record_death(&mut self, node_id: &str, reason: &str) {
+        let entry = self.tombstones.entry(node_id.to_string()).or_insert_with(VecDeque::new);
+        entry.push_back(reason.to_string());
+        if entry.len() > 3 {
+            entry.pop_front();
+        }
+    }
+    
+    pub fn get_tombstones(&self, node_id: &str) -> String {
+        if let Some(graves) = self.tombstones.get(node_id) {
+            if graves.is_empty() { return String::new(); }
+            let mut s = String::from("\n=== 🪦 GRAVEYARD: RECENT BANKRUPTCIES ON THIS NODE ===\n");
+            for (i, reason) in graves.iter().enumerate() {
+                s.push_str(&format!("Failure {}: {}\n", i + 1, reason));
+            }
+            s.push_str("=====================================================\n");
+            s
+        } else {
+            String::new()
+        }
+    }
+}
 
 pub struct TuringBus {
     pub kernel: Kernel,
     pub tools: Vec<Box<dyn TuringTool>>,
     pub clock: usize,
+    pub graveyard: Graveyard,
 }
 
 impl TuringBus {
@@ -13,6 +48,7 @@ impl TuringBus {
             kernel,
             tools: Vec::new(),
             clock: 0,
+            graveyard: Graveyard::new(),
         }
     }
 
@@ -36,6 +72,10 @@ impl TuringBus {
         0.0
     }
 
+    pub fn get_tombstones(&self, node_id: &str) -> String {
+        self.graveyard.get_tombstones(node_id)
+    }
+
     pub fn halt_and_settle(&mut self, omega_id: &str) {
         let golden_path = self.kernel.trace_golden_path(omega_id);
         for tool in &mut self.tools {
@@ -57,6 +97,12 @@ impl TuringBus {
                     file.payload = new_payload;
                 }
                 ToolSignal::Veto(reason) => {
+                    let parent_id = if file.citations.is_empty() {
+                        "root".to_string()
+                    } else {
+                        file.citations[0].clone()
+                    };
+                    self.graveyard.record_death(&parent_id, &reason);
                     return Err(reason);
                 }
                 ToolSignal::YieldReward { payload, reward } => {

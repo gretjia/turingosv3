@@ -16,7 +16,14 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
 
     // Mount Skills
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
-    bus.mount_tool(Box::new(Lean4MembraneTool::new(problem_content.to_string(), "/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4")));
+    let sandbox = Box::new(turingosv3::sdk::sandbox::LocalProcessSandbox::new(
+        "sh", 
+        vec![
+            "-c".to_string(), 
+            "cd /Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4 && source ~/.elan/env && lake env lean /dev/stdin".to_string()
+        ]
+    ));
+    bus.mount_tool(Box::new(Lean4MembraneTool::new(problem_content.to_string(), problem_name.to_string(), sandbox)));
 
     let mut q_state = MachineState::Running;
     let mut current_head = Head { paths: std::collections::HashSet::new() };
@@ -36,11 +43,22 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
 
         kernel_steps += 1;
 
+        let mut tombstones = std::collections::HashMap::new();
+        for id in bus.kernel.tape.files.keys() {
+            let graves = bus.get_tombstones(id);
+            if !graves.is_empty() {
+                tombstones.insert(id.clone(), graves);
+            }
+        }
+
         let input = Input {
             q_i: q_state.clone(),
             s_i: SensorContext {
                 visible_tape: bus.kernel.tape.clone(),
                 current_head: current_head.clone(),
+                agent_balances: std::collections::HashMap::new(),
+                market_ticker: bus.kernel.get_market_ticker(3),
+                tombstones,
             },
         };
 
@@ -54,6 +72,7 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
             payload: action.payload.clone(),
             citations: action.citations.clone(),
             stake: action.stake,
+            intrinsic_reward: 0.0,
             price: 0.0,
         };
 
@@ -125,7 +144,7 @@ fn main() {
         let _guard = rt.enter();
 
         let sentinel = minif2f_swarm::wal::WalSentinel::new(format!("/tmp/{}_N{}.wal", file_name, swarm_size));
-        let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![]);
+        let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![], content.clone());
         
         let proved = evaluate_theorem(&file_name, &content, agent, max_steps_per_theorem, swarm_size);
         

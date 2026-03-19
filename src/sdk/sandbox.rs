@@ -63,7 +63,18 @@ impl SandboxEngine for LocalProcessSandbox {
                     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
                 } else {
                     // 将沙盒内的痛苦嚎叫（Error Message）返回给上层，实现单向痛觉反馈
-                    Err(String::from_utf8_lossy(&output.stderr).into_owned())
+                    // Lean 4 (lake env lean) writes errors to stdout, not stderr.
+                    // Merge both streams so Graveyard always captures the real error.
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let combined = if stderr.is_empty() {
+                        stdout.into_owned()
+                    } else if stdout.is_empty() {
+                        stderr.into_owned()
+                    } else {
+                        format!("{}\n{}", stderr, stdout)
+                    };
+                    Err(combined)
                 }
             }
             Ok(Err(e)) => Err(format!("Execution failed: {}", e)),

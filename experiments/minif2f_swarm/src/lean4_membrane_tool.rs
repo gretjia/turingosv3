@@ -99,7 +99,7 @@ impl TuringTool for Lean4MembraneTool {
             }
             Err(e) => {
                 // The compiler threw an error or timed out. VETO!
-                debug!("Lean4 Membrane VETO: Compiler rejected the tactic or timed out.");
+                warn!("Lean4 Membrane VETO: Compiler rejected the tactic or timed out.");
                 ToolSignal::Veto(format!("Compiler/Sandbox Error:\n{}", e))
             }
         }

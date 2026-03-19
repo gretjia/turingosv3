@@ -97,6 +97,7 @@ impl TuringBus {
                     file.payload = new_payload;
                 }
                 ToolSignal::Veto(reason) => {
+                    log::warn!(">>> [TOOL VETO] Author: {}, Reason: {}", file.author, reason);
                     let parent_id = if file.citations.is_empty() {
                         "root".to_string()
                     } else {

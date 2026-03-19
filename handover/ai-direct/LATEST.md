@@ -16,10 +16,17 @@ The system has fully migrated to a **Proof-of-Stake** and **Austrian Economics**
 - **API Provider:** Due to extreme HTTP 401/429 backpressure and GPU slot exhaustion on SiliconFlow at high concurrency (N=30+), the workload has been completely migrated to **Volcengine Ark (火山引擎)**.
 - **Active Model:** We are currently utilizing `doubao-1-5-pro-32k-250115` as the primary reasoning engine for the Swarm, as it natively supports high-throughput concurrent requests without truncating massive `<think>` blocks.
 
-## Latest Incidents & Resolutions (March 17-18, 2026)
+## Latest Incidents & Resolutions (March 17-19, 2026)
 1. **The Deflationary Deadlock:** A hardcoded `500` coin tax previously caused the entire Swarm to bankrupt itself rapidly, grinding execution to a halt around step 30. Fixed via the aforementioned Austrian Economics patch (floating stakes + VC).
 2. **Volcengine Migration Crisis:** The initial migration failed due to a missing `ep-` ID configuration. After extensive research, we verified that the Volcengine v3 Chat Completions API accepts direct model tags (`doubao-1-5-pro-32k-250115`). The remote `.env` on `zephrymac-studio` has been fully reconstructed with the correct API URL and API Key (`6ef79179-f1f6-484d-8258-585a9ff61b32`).
-3. **Node.js Memory Exhaustion:** The local Gemini CLI Agent experienced an OOM (JavaScript heap out of memory) crash. Permanently fixed by appending `export NODE_OPTIONS="--max-old-space-size=8192"` to the system's `~/.bashrc` and `~/.zshrc`.
+3. **Node.js Memory Exhaustion:** The local Gemini CLI Agent experienced an OOM (JavaScript heap out of memory) crash. This was the final straw that triggered the migration to Claude Code.
+4. **Claude Code Harness Migration (March 19):** Migrated from Gemini CLI Agent to **Claude Code** with a complete three-layer governance system:
+   - **CLAUDE.md** — Project constitution (Layer 1 eternal invariants + Layer 2 evolvable parameters)
+   - **Hooks** — `block-destructive.sh` (PreToolUse), `post-edit-validate.sh` (auto cargo check), `stop-guard.sh` (Stop)
+   - **Skills** — `/dev-cycle`, `/validate`, `/swarm-launch`, `/handover-update`, `/architect-ingest`
+   - **Agents** — `kernel-auditor` (Opus read-only audit), `swarm-monitor` (Sonnet runtime), `handover-writer` (Sonnet handover)
+   - **VIA_NEGATIVA.md** — Registry of 5 proven-false paths
+   - **`.claudeignore`** — Context isolation (target/, WAL, logs, .elan/)
 
 ## Immediate Next Steps (Actionable for New Agents)
 1.  **Restart the Swarm:** SSH into `zephrymac-studio`, connect to the `minif2f-sota-run` tmux session, ensure the `.env` is loaded, and start the `full_test_evaluator`. Command:

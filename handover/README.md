@@ -36,6 +36,15 @@ Detailed post-mortem reports and architectural upgrade logs. These explain *why*
 ### March 18, 2026 (The Free Market Upgrade)
 *   [`austrian_economics_patch_audit_20260318.md`](austrian_economics_patch_audit_20260318.md) - **[LATEST]** The strict implementation of Laissez-faire economics, floating stakes, Market Tickers, and the migration to Volcengine Ark (Doubao-2.0-Pro) to sustain extreme N=30 concurrency.
 
+### March 19, 2026 (Claude Code Harness Migration)
+*   Migrated from Gemini CLI Agent to **Claude Code** with full three-layer governance (Hook → Skill → Agent).
+*   Created [`CLAUDE.md`](../CLAUDE.md) — Project constitution with Layer 1/2 invariants and engineering rules.
+*   Created [`VIA_NEGATIVA.md`](../VIA_NEGATIVA.md) — Registry of proven-false paths.
+*   Harness files under [`.claude/`](../.claude/):
+    *   **Hooks**: [`block-destructive.sh`](../.claude/hooks/block-destructive.sh) (PreToolUse guard), [`post-edit-validate.sh`](../.claude/hooks/post-edit-validate.sh) (auto `cargo check`), [`stop-guard.sh`](../.claude/hooks/stop-guard.sh) (uncommitted change reminder)
+    *   **Agents**: [`kernel-auditor.md`](../.claude/agents/kernel-auditor.md) (Opus, read-only 8-point audit), [`swarm-monitor.md`](../.claude/agents/swarm-monitor.md) (Sonnet, runtime diagnostics), [`handover-writer.md`](../.claude/agents/handover-writer.md) (Sonnet, session handover)
+    *   **Skills**: [`/dev-cycle`](../.claude/skills/dev-cycle/SKILL.md), [`/validate`](../.claude/skills/validate/SKILL.md), [`/swarm-launch`](../.claude/skills/swarm-launch/SKILL.md), [`/handover-update`](../.claude/skills/handover-update/SKILL.md), [`/architect-ingest`](../.claude/skills/architect-ingest/SKILL.md)
+
 ## 3. Operations
 *   [`ai-direct/LATEST.md`](ai-direct/LATEST.md) - Live execution state (Current: MiniF2F N=30 run on `zephrymac-studio` via Volcengine Ark).
 *   [`archive/`](archive/) - Deprecated architecture notes and raw diff patches.

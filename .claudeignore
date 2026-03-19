@@ -1,0 +1,37 @@
+# Build artifacts (Rust)
+target/
+*.rlib
+*.rmeta
+*.d
+
+# WAL and runtime data
+*.wal
+*.wal.bak
+experiments/*/data/
+
+# Binary and archive files
+*.tar
+*.gz
+*.zip
+*.7z
+
+# Git internals
+.git/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Lean toolchain (large)
+.elan/
+lake-packages/
+
+# Logs
+*.log
+
+# Do NOT exclude (critical context):
+# src/           — core microkernel
+# experiments/   — swarm harness source
+# handover/      — project state & philosophy
+# skills/        — SKILL definitions
+# audit/         — post-mortems

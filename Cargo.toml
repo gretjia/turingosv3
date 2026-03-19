@@ -2,7 +2,8 @@
 members = [
     ".",
     "experiments/hanoi_1m",
-    "experiments/minif2f_swarm"
+    "experiments/minif2f_swarm",
+    "experiments/zeta_regularization"
 ]
 
 [package]

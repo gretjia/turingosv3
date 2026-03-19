@@ -132,8 +132,14 @@ impl TuringBus {
             return Ok(()); // End turn, no new node created
         }
 
-        // 2. Kernel append
-        let node = self.kernel.append_tape(file.clone(), final_reward);
+        // 2. Kernel append (with causality enforcement)
+        let node = match self.kernel.append_tape(file.clone(), final_reward) {
+            Ok(node) => node,
+            Err(reason) => {
+                log::warn!(">>> [KERNEL REJECT] {}", reason);
+                return Err(reason);
+            }
+        };
 
         // 3. Post-append hooks
         for tool in &mut self.tools {

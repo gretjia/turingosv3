@@ -6,8 +6,8 @@ use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, Q,
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool, WalSnapshotTool};
 use minif2f_swarm::lean4_membrane_tool::Lean4MembraneTool;
 
-pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: String, lean_problem: String) {
-    let kernel = Kernel::new(omega.clone());
+pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, lean_problem: String) {
+    let kernel = Kernel::new();
     let mut bus = TuringBus::new(kernel);
 
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
@@ -118,8 +118,6 @@ fn main() {
     11 ∣ (10^n - (-1 : ℤ)^n) := by"#;
 
     let target_steps = 50_000;
-    let final_omega_id = format!("step_{}", target_steps);
-
     let wal_path = "minif2f_swarm_recovery.wal".to_string();
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _guard = rt.enter();
@@ -133,7 +131,6 @@ fn main() {
     run_turing_os_v3(
         "MiniF2F Lean4 Formal Proof (Swarm N=50)".to_string(),
         llm_agent,
-        final_omega_id,
         lean_problem.to_string()
     );
     println!("V3 MAKER Hanoi Network Test Complete.");

@@ -24,6 +24,9 @@ pub struct File {
 pub struct Tape {
     pub files: HashMap<FileId, File>,
     pub reverse_citations: HashMap<FileId, Vec<FileId>>,
+    /// Time Arrow: insertion-order record of all node IDs.
+    /// Since Tape is Append-Only, this is a natural topological sort of the DAG.
+    pub time_arrow: Vec<FileId>,
 }
 
 // ----------------------------------------------------------------------------
@@ -75,15 +78,13 @@ pub trait AIBlackBox {
 #[derive(Debug, Clone)]
 pub struct Kernel {
     pub tape: Tape,
-    pub target_omega_id: FileId,
     pub gamma: f64,
 }
 
 impl Kernel {
-    pub fn new(omega: FileId) -> Self {
+    pub fn new() -> Self {
         Self {
             tape: Tape::default(),
-            target_omega_id: omega,
             gamma: 0.99,
         }
     }
@@ -117,56 +118,71 @@ impl Kernel {
         ticker
     }
 
-    pub fn append_tape(&mut self, mut file: File, reward: f64) -> &File {
+    /// Append a node to the Tape. Returns Err if causality is violated.
+    /// - Rejects duplicate FileId (V6: prevents reverse_citations corruption)
+    /// - Strips citations to non-existent nodes (V5: prevents cycles)
+    pub(crate) fn append_tape(&mut self, mut file: File, reward: f64) -> Result<&File, String> {
+        let id = file.id.clone();
+
+        // V6: Reject duplicate FileId — prevent spacetime overwrite
+        if self.tape.files.contains_key(&id) {
+            return Err(format!("Spacetime Paradox: Node ID {} already exists.", id));
+        }
+
+        // V5: Causality defense — only allow citations to existing nodes
+        let mut valid_citations = Vec::new();
+        for cid in &file.citations {
+            if self.tape.files.contains_key(cid) {
+                valid_citations.push(cid.clone());
+            } else {
+                log::warn!(">>> [CAUSALITY] Stripping ghost citation: {} cited non-existent {}", id, cid);
+            }
+        }
+        file.citations = valid_citations;
+
         file.intrinsic_reward = reward;
         file.price = reward;
-        let id = file.id.clone();
-        
+
         for parent_id in &file.citations {
             self.tape.reverse_citations
                 .entry(parent_id.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(id.clone());
         }
-        
+
         self.tape.files.insert(id.clone(), file);
-        self.tape.files.get(&id).unwrap()
+        self.tape.time_arrow.push(id.clone());
+
+        Ok(self.tape.files.get(&id).unwrap())
     }
 
+    /// O(V+E) Time-Arrow backpropagation.
+    /// Since Tape is Append-Only, time_arrow is a natural topological sort.
+    /// Iterating in reverse guarantees all children are settled before their parents.
     pub fn hayekian_map_reduce(&mut self) {
-        // Step 1: Reset market price to absolute intrinsic reward
-        for (_, node) in self.tape.files.iter_mut() {
-            node.price = node.intrinsic_reward; 
+        // Step 1: Reset prices to intrinsic reward
+        for node in self.tape.files.values_mut() {
+            node.price = node.intrinsic_reward;
         }
 
-        let mut new_prices = HashMap::new();
-        
-        for _ in 0..15 {
-            for id in self.tape.files.keys() {
-                // Pure topological gravity flow, completely oblivious to content
-                let mut base_val = self.tape.files.get(id).map(|f| f.intrinsic_reward).unwrap_or(0.0);
-                
-                // Legacy compatibility for Hanoi target
-                if id.starts_with(&self.target_omega_id) { 
-                    base_val += 100_000_000_000.0; 
-                }
-                
-                let mut imputed_val = 0.0;
-                if let Some(children) = self.tape.reverse_citations.get(id) {
-                    for child_id in children {
-                        if let Some(child_file) = self.tape.files.get(child_id) {
-                            let weight = 1.0 / (child_file.citations.len() as f64);
-                            let child_price = new_prices.get(child_id).unwrap_or(&child_file.price);
-                            imputed_val += self.gamma * weight * child_price;
-                        }
+        // Step 2: Single-pass reverse Time-Arrow propagation
+        for id in self.tape.time_arrow.iter().rev() {
+            let mut imputed_val = 0.0;
+
+            if let Some(children) = self.tape.reverse_citations.get(id) {
+                for child_id in children {
+                    if let Some(child_file) = self.tape.files.get(child_id) {
+                        // V7: guard against division by zero (belt-and-suspenders)
+                        let citation_count = (child_file.citations.len() as f64).max(1.0);
+                        let weight = 1.0 / citation_count;
+                        imputed_val += self.gamma * weight * child_file.price;
                     }
                 }
-                new_prices.insert(id.clone(), base_val + imputed_val);
             }
-        }
-        
-        for (id, price) in new_prices {
-            if let Some(file) = self.tape.files.get_mut(&id) { file.price = price; }
+
+            if let Some(file) = self.tape.files.get_mut(id) {
+                file.price = file.intrinsic_reward + imputed_val;
+            }
         }
     }
 }

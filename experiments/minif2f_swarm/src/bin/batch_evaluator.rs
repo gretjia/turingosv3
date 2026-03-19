@@ -11,7 +11,7 @@ use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 /// Simulates `run_turing_os_v3` but returns a boolean indicating whether OMEGA was reached,
 /// or false if it failed/timeout.
 fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: SpeculativeSwarmAgent, max_kernel_steps: u64, swarm_size: usize) -> bool {
-    let kernel = Kernel::new(format!("{}_target", problem_name));
+    let kernel = Kernel::new();
     let mut bus = TuringBus::new(kernel);
 
     // Mount Skills

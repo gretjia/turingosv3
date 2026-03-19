@@ -4,7 +4,7 @@ use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool, MembraneGuardTool, 
 fn main() {
     println!(">>> TuringOS v3 Microkernel Booting... <<<");
 
-    let kernel = Kernel::new("step_20".to_string());
+    let kernel = Kernel::new();
     let mut bus = TuringBus::new(kernel);
 
     // Mount skills

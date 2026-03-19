@@ -116,10 +116,10 @@ impl TuringTool for WalletTool {
             }
         }
 
-        let initial_size = tape.files.len();
-        tape.files.retain(|id, _| golden_set.contains(id));
-        log::info!(">>> [GC] Dead branches pruned: {} nodes vaporized.", initial_size - tape.files.len());
-        
+        // V1 fix: Tape is Append-Only. No node deletion — ever.
+        // Dead branches are permanently archived as RLAIF training data.
+        log::info!(">>> [IMMUTABLE SPACETIME] Settlement complete. {} total nodes preserved.", tape.files.len());
+
         self.global_pool = 0.0;
     }
 

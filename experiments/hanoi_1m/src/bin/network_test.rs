@@ -5,8 +5,8 @@ use std::collections::HashSet;
 use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, Q, SensorContext};
 use turingosv3::bus::{TuringBus, MembraneGuardTool, ThermodynamicHeartbeatTool, WalSnapshotTool};
 
-pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, omega: String) {
-    let kernel = Kernel::new(omega.clone());
+pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox) {
+    let kernel = Kernel::new();
     let mut bus = TuringBus::new(kernel);
 
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(10)));
@@ -98,8 +98,7 @@ fn main() {
         .parse()
         .unwrap_or(600);
     
-    let target_steps = 100_000; 
-    let final_omega_id = format!("step_{}", target_steps);
+    let target_steps = 100_000;
 
     let wal_path = "hanoi_1m_recovery.wal".to_string();
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -113,8 +112,7 @@ fn main() {
 
     run_turing_os_v3(
         "Hanoi Tower 20 Disks MAKER Logic (Networked)".to_string(),
-        llm_agent,
-        final_omega_id
+        llm_agent
     );
 
     println!("V3 MAKER Hanoi Network Test Complete.");

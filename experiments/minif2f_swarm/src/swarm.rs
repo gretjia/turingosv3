@@ -152,45 +152,51 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         let last_state;
         let mut parent_id = "".to_string();
         
-        // 🌟 Boltzmann Softmax Selection (The Backtrack Engine)
-        // We look at ALL visible files on the tape, not just the current head.
-        // This allows the system to "jump back" to a historically better (purer) node
-        // if the current frontier is polluted with zombie tactics.
-        let all_nodes: Vec<&File> = input.s_i.visible_tape.files.values()
-            .filter(|f| !f.payload.contains("failed") && f.stake > 0) // Only healthy nodes
+        // 🌟 Frontier Boltzmann Selection (Topology-Aware Router)
+        // Select from FRONTIER nodes (leaves with no children) using intrinsic_reward.
+        // Backpropagated `price` is for path evaluation, not exploration routing —
+        // ancestors accumulate descendant prices and create inescapable gravity wells.
+        // Selecting from leaves ensures proof depth advances while Softmax preserves
+        // lateral competition between frontier branches.
+        let reverse_citations = &input.s_i.visible_tape.reverse_citations;
+        let frontier_nodes: Vec<&File> = input.s_i.visible_tape.files.values()
+            .filter(|f| !f.payload.contains("failed") && f.stake > 0)
+            .filter(|f| {
+                // Leaf = no children in the DAG (pure topological property)
+                reverse_citations.get(&f.id).map_or(true, |children| children.is_empty())
+            })
             .collect();
 
-        let selected_head = if all_nodes.is_empty() {
+        let selected_head = if frontier_nodes.is_empty() {
             None
         } else {
-            // Temperature T: larger T = more exploration/backtracking, smaller T = more greedy
-            let temperature = 0.5; 
-            
-            let prices: Vec<f64> = all_nodes.iter().map(|n| n.price).collect();
-            let max_price = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-            
-            let weights: Vec<f64> = prices.iter()
-                .map(|&p| ((p - max_price) / temperature).exp())
+            let temperature = 0.5;
+
+            // Use intrinsic_reward (self-assessed value) not backprop price
+            let rewards: Vec<f64> = frontier_nodes.iter().map(|n| n.intrinsic_reward).collect();
+            let max_reward = rewards.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+
+            let weights: Vec<f64> = rewards.iter()
+                .map(|&r| ((r - max_reward) / temperature).exp())
                 .collect();
-            
+
             let weight_sum: f64 = weights.iter().sum();
-            
+
             use rand::distributions::{WeightedIndex, Distribution};
             let mut rng = rand::thread_rng();
-            
+
             match WeightedIndex::new(&weights) {
                 Ok(dist) => {
                     let idx = dist.sample(&mut rng);
-                    let node = all_nodes[idx];
+                    let node = frontier_nodes[idx];
                     info!(
-                        ">>> [ROUTER] Softmax selected Node {} (Price: {:.2}, Prob: {:.2}%)", 
-                        node.id, node.price, (weights[idx] / weight_sum) * 100.0
+                        ">>> [ROUTER] Frontier selected Node {} (Reward: {:.2}, Prob: {:.2}%, Frontier size: {})",
+                        node.id, node.intrinsic_reward, (weights[idx] / weight_sum) * 100.0, frontier_nodes.len()
                     );
                     Some(node)
                 }
                 Err(_) => {
-                    // Fallback to greedy if weights collapse
-                    all_nodes.iter().max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal)).copied()
+                    frontier_nodes.iter().max_by(|a, b| a.intrinsic_reward.partial_cmp(&b.intrinsic_reward).unwrap_or(std::cmp::Ordering::Equal)).copied()
                 }
             }
         };

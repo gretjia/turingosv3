@@ -30,7 +30,8 @@ impl AgentSupervisor {
     }
 
     pub fn apply_cognitive_divergence(&self) -> f32 {
-        0.2 + (0.6 * (self.agent_id as f32 / self.total_agents.max(1) as f32))
+        let raw = 0.2 + (0.6 * (self.agent_id as f32 / self.total_agents.max(1) as f32));
+        raw.clamp(0.1, 1.8) // Stay within API limits (most providers cap at 2.0)
     }
 
     pub fn handle_rejection(&mut self, err: &HarnessError) -> WatchdogState {

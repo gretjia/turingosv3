@@ -65,6 +65,23 @@ impl TuringTool for AntiZombiePruningTool {
                 consecutive_count = 1;
             }
         }
+        // Period-2 cycle detection: A → B → A → B
+        if tactics.len() >= 4 {
+            let n = tactics.len();
+            let mut cycle2_count = 0;
+            for i in (2..n).rev() {
+                if tactics[i] == tactics[i - 2] {
+                    cycle2_count += 1;
+                } else {
+                    break;
+                }
+            }
+            if cycle2_count >= 3 {
+                log::warn!(">>> [PRUNE] Period-2 Zombie Cycle Detected: '{}' <-> '{}'", tactics[n-1], tactics[n-2]);
+                return ToolSignal::Veto(format!("Zombie Behavior: LLM trapped in period-2 cycle '{}' <-> '{}'", tactics[n-1], tactics[n-2]));
+            }
+        }
+
         ToolSignal::Pass
     }
 }

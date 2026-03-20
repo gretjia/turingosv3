@@ -195,7 +195,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
 
             // Score = intrinsic_reward × (1 + α × depth) — deeper survived nodes get more attention
             let scores: Vec<f64> = frontier_nodes.iter().zip(node_depths.iter())
-                .map(|(n, &d)| n.intrinsic_reward * (1.0 + depth_alpha * d as f64))
+                .map(|(n, &d)| (n.intrinsic_reward + 0.01) * (1.0 + depth_alpha * d as f64))
                 .collect();
 
             let max_score = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
@@ -329,8 +329,9 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                             tactic = tactic[..tool_idx].trim().to_string();
                         }
 
-                        if tactic.starts_with("[Tactic:") && tactic.ends_with("]") {
-                            tactic = tactic[8..tactic.len()-1].trim().to_string();
+                        let tactic_trimmed = tactic.trim();
+                        if tactic_trimmed.starts_with("[Tactic:") && tactic_trimmed.ends_with("]") {
+                            tactic = tactic_trimmed[8..tactic_trimmed.len()-1].trim().to_string();
                         }
 
                         let tactic_payload = if tool_call.is_empty() {

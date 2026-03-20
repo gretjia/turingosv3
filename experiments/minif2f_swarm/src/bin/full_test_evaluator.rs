@@ -132,10 +132,12 @@ fn evaluate_theorem(
 
         match bus.append(file) {
             Ok(_) => {
-                // Update Head
-                current_head.paths.insert(action.file_id.clone());
-                for cit in &action.citations {
-                    current_head.paths.remove(cit);
+                // Only update Head if node was actually appended (InvestOnly doesn't create nodes)
+                if bus.kernel.tape.files.contains_key(&action.file_id) {
+                    current_head.paths.insert(action.file_id.clone());
+                    for cit in &action.citations {
+                        current_head.paths.remove(cit);
+                    }
                 }
                 q_state = output.q_o;
                 bus.tick_map_reduce();

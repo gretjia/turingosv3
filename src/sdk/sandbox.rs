@@ -1,5 +1,6 @@
 use std::time::Duration;
 use std::process::{Command, Stdio};
+use std::os::unix::process::CommandExt;
 use std::io::Write;
 use std::sync::mpsc;
 use std::thread;
@@ -38,8 +39,11 @@ impl SandboxEngine for LocalProcessSandbox {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .process_group(0)
             .spawn()
             .map_err(|e| format!("FATAL: Failed to spawn local jail: {}", e))?;
+
+        let child_pid = child.id();
 
         if let Some(mut stdin) = child.stdin.take() {
             let code = sealed_code.to_string();
@@ -79,9 +83,11 @@ impl SandboxEngine for LocalProcessSandbox {
             }
             Ok(Err(e)) => Err(format!("Execution failed: {}", e)),
             Err(mpsc::RecvTimeoutError::Timeout) => {
+                unsafe { libc::kill(-(child_pid as i32), libc::SIGKILL); }
                 Err("Sandbox Timeout: LLM generated an infinite loop or exceeded gas limit.".into())
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
+                unsafe { libc::kill(-(child_pid as i32), libc::SIGKILL); }
                 Err("Sandbox internal error: thread disconnected".into())
             }
         }

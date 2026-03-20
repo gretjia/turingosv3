@@ -21,25 +21,41 @@ impl Lean4MembraneTool {
     /// Extract theorem name from a Lean 4 statement
     /// Example: "theorem amc12a_2020_p7 ..." -> "amc12a_2020_p7"
     fn check_identity_theft(&self, payload: &str) -> bool {
-        // 1. Ensure our theorem name is present as a definition
-        if !payload.contains(&format!("theorem {}", self.theorem_name)) {
+        // 1. Ensure our theorem name is present somewhere in the payload
+        if !payload.contains(&self.theorem_name) {
             return true;
         }
-        
-        // 2. Ensure no OTHER theorem is being defined (hijacking defense)
-        let theorem_keyword = "theorem ";
-        let mut start = 0;
-        while let Some(idx) = payload[start..].find(theorem_keyword) {
-            let actual_idx = start + idx;
-            let after_theorem = &payload[actual_idx + theorem_keyword.len()..];
-            
-            // Check if what follows "theorem " is NOT our name
-            // We look at the first word after the keyword
-            let found_name = after_theorem.split_whitespace().next().unwrap_or("");
-            if found_name != self.theorem_name && !found_name.is_empty() {
-                return true; // Found a definition for a different theorem!
+
+        // 2. Only scan the LLM-generated INCREMENT (after the problem statement)
+        //    for hijacking attempts. The problem statement itself naturally contains
+        //    `def`, `instance`, etc. from MiniF2F preambles — those are legitimate.
+        let increment = if !self.problem_statement.is_empty() {
+            if let Some(idx) = payload.find(&self.problem_statement) {
+                &payload[idx + self.problem_statement.len()..]
+            } else {
+                payload
             }
-            start = actual_idx + theorem_keyword.len();
+        } else {
+            payload
+        };
+
+        // Dangerous definition keywords that could introduce fake theorems
+        let hijack_keywords = ["theorem ", "lemma ", "def ", "example ", "instance ",
+                               "abbrev ", "axiom ", "constant ", "class ", "structure ",
+                               "macro ", "syntax ", "elab "];
+
+        for keyword in &hijack_keywords {
+            let mut start = 0;
+            while let Some(idx) = increment[start..].find(keyword) {
+                let actual_idx = start + idx;
+                let after_keyword = &increment[actual_idx + keyword.len()..];
+                let found_name = after_keyword.split_whitespace().next().unwrap_or("");
+                // Any definition in the increment that isn't our theorem is suspicious
+                if !found_name.is_empty() && found_name != self.theorem_name {
+                    return true;
+                }
+                start = actual_idx + keyword.len();
+            }
         }
 
         false
@@ -59,8 +75,49 @@ impl TuringTool for Lean4MembraneTool {
             return ToolSignal::Veto(format!("Identity Theft: Payload does not target theorem {}", self.theorem_name));
         }
 
-        // 2. Construct the full verification code
-        // MiniF2F theorems often end with `by sorry`. 
+        // 2a. Sorry Firewall: LLM must never use sorry (tactic or term mode)
+        // Uses word-boundary check to avoid false positives on identifiers like sorry_lemma
+        {
+            let by_idx = payload.find(":= by");
+            let tactic_region = if let Some(idx) = by_idx {
+                &payload[idx..]
+            } else {
+                payload
+            };
+            for token in ["sorry", "sorryAx"] {
+                // Check for word-boundary: sorry must not be preceded/followed by alphanumeric or _
+                let mut search_start = 0;
+                while let Some(pos) = tactic_region[search_start..].find(token) {
+                    let abs_pos = search_start + pos;
+                    let before_ok = abs_pos == 0 || !tactic_region.as_bytes()[abs_pos - 1].is_ascii_alphanumeric() && tactic_region.as_bytes()[abs_pos - 1] != b'_';
+                    let after_pos = abs_pos + token.len();
+                    let after_ok = after_pos >= tactic_region.len() || !tactic_region.as_bytes()[after_pos].is_ascii_alphanumeric() && tactic_region.as_bytes()[after_pos] != b'_';
+                    if before_ok && after_ok {
+                        warn!(">>> [SHIELD] Sorry/SorryAx detected in payload! Forbidden.");
+                        return ToolSignal::Veto(format!("Forbidden: '{}' detected in tactic payload", token));
+                    }
+                    search_start = abs_pos + token.len();
+                }
+            }
+        }
+
+        // 2b. RCE Soft Defense: block dangerous Lean 4 metaprogramming keywords
+        {
+            let dangerous_keywords = [
+                "#eval", "#check", "#reduce", "#exec",
+                "native_decide", "IO.Process", "IO.FS",
+                "System.FilePath", "run_tac", "unsafe",
+            ];
+            for kw in &dangerous_keywords {
+                if payload.contains(kw) {
+                    warn!(">>> [SHIELD] Dangerous Lean 4 keyword '{}' detected!", kw);
+                    return ToolSignal::Veto(format!("Forbidden: dangerous keyword '{}' in payload", kw));
+                }
+            }
+        }
+
+        // 3. Construct the full verification code
+        // MiniF2F theorems often end with `by sorry`.
         // The payload passed here should already have been processed to be ready for tactics.
         let test_code = format!(
             "{}\n  sorry", 

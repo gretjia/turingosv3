@@ -167,18 +167,20 @@ fn main() {
     let api_url = std::env::var("LLAMA_API_URL").unwrap_or_else(|_| "https://api.siliconflow.cn/v1/chat/completions".to_string());
     let primary_model = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "doubao-1-5-pro-32k-250115".to_string());
     let smart_model = std::env::var("SMART_MODEL").unwrap_or_else(|_| primary_model.clone());
+    let smart_model_2 = std::env::var("SMART_MODEL_2").unwrap_or_else(|_| smart_model.clone());
     let timeout_secs = 600;
 
-    // Heterogeneous model configuration: round-robin across models
-    // Agent 0 → primary, Agent 1 → primary, Agent 2 → primary, Agent 3 → smart, Agent 4 → smart
-    let models: Vec<(&str, &str)> = if smart_model != primary_model {
-        info!("Heterogeneous swarm: primary={}, smart={}", primary_model, smart_model);
+    // Heterogeneous model configuration:
+    // Agent 0-2 → primary (fast miners), Agent 3 → smart_1, Agent 4 → smart_2
+    let is_heterogeneous = smart_model != primary_model || smart_model_2 != smart_model;
+    let models: Vec<(&str, &str)> = if is_heterogeneous {
+        info!("Heterogeneous swarm: miners={}, smart1={}, smart2={}", primary_model, smart_model, smart_model_2);
         vec![
             (&api_url, primary_model.as_str()),
             (&api_url, primary_model.as_str()),
             (&api_url, primary_model.as_str()),
             (&api_url, smart_model.as_str()),
-            (&api_url, smart_model.as_str()),
+            (&api_url, smart_model_2.as_str()),
         ]
     } else {
         info!("Homogeneous swarm: model={}", primary_model);

@@ -171,13 +171,29 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             None
         } else {
             let temperature = 0.5;
+            let depth_alpha = 0.1; // Layer 2 param: depth preference strength
 
-            // Use intrinsic_reward (self-assessed value) not backprop price
-            let rewards: Vec<f64> = frontier_nodes.iter().map(|n| n.intrinsic_reward).collect();
-            let max_reward = rewards.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            // Compute DAG depth for each frontier node (pure topological property)
+            let node_depths: Vec<usize> = frontier_nodes.iter().map(|n| {
+                let mut depth = 0;
+                let mut current = &n.id;
+                while let Some(file) = input.s_i.visible_tape.files.get(current) {
+                    if file.citations.is_empty() { break; }
+                    depth += 1;
+                    current = &file.citations[0];
+                }
+                depth
+            }).collect();
 
-            let weights: Vec<f64> = rewards.iter()
-                .map(|&r| ((r - max_reward) / temperature).exp())
+            // Score = intrinsic_reward × (1 + α × depth) — deeper survived nodes get more attention
+            let scores: Vec<f64> = frontier_nodes.iter().zip(node_depths.iter())
+                .map(|(n, &d)| n.intrinsic_reward * (1.0 + depth_alpha * d as f64))
+                .collect();
+
+            let max_score = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+
+            let weights: Vec<f64> = scores.iter()
+                .map(|&s| ((s - max_score) / temperature).exp())
                 .collect();
 
             let weight_sum: f64 = weights.iter().sum();
@@ -190,8 +206,8 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                     let idx = dist.sample(&mut rng);
                     let node = frontier_nodes[idx];
                     info!(
-                        ">>> [ROUTER] Frontier selected Node {} (Reward: {:.2}, Prob: {:.2}%, Frontier size: {})",
-                        node.id, node.intrinsic_reward, (weights[idx] / weight_sum) * 100.0, frontier_nodes.len()
+                        ">>> [ROUTER] Frontier selected Node {} (Reward: {:.2}, Depth: {}, Prob: {:.2}%, Frontier size: {})",
+                        node.id, node.intrinsic_reward, node_depths[idx], (weights[idx] / weight_sum) * 100.0, frontier_nodes.len()
                     );
                     Some(node)
                 }

@@ -80,6 +80,19 @@ impl TuringBus {
         self.graveyard.get_tombstones(node_id)
     }
 
+    /// Extract all agent balances for cross-theorem persistence
+    pub fn extract_wallet_balances(&self) -> std::collections::HashMap<String, f64> {
+        let mut balances = std::collections::HashMap::new();
+        for i in 0..100 {
+            let agent_id = format!("Agent_{}", i);
+            let balance = self.get_agent_balance(&agent_id);
+            if balance > 0.0 {
+                balances.insert(agent_id, balance);
+            }
+        }
+        balances
+    }
+
     pub fn halt_and_settle(&mut self, omega_id: &str) {
         let golden_path = self.kernel.trace_golden_path(omega_id);
         for tool in &mut self.tools {

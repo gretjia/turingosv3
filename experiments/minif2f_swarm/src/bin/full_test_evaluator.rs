@@ -9,46 +9,57 @@ use turingosv3::sdk::sandbox::LocalProcessSandbox;
 use minif2f_swarm::lean4_membrane_tool::Lean4MembraneTool;
 use minif2f_swarm::swarm::SpeculativeSwarmAgent;
 
-/// Simulates `run_turing_os_v3` but returns a boolean indicating whether OMEGA was reached,
-/// or false if it failed/timeout.
-fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: SpeculativeSwarmAgent, max_kernel_steps: u64, _swarm_size: usize) -> bool {
+/// Simulates `run_turing_os_v3` but returns (proved, final_balances).
+/// If `initial_balances` is provided, wallet inherits those balances instead of fresh 10000.
+fn evaluate_theorem(
+    problem_name: &str,
+    problem_content: &str,
+    mut agent: SpeculativeSwarmAgent,
+    max_kernel_steps: u64,
+    _swarm_size: usize,
+    initial_balances: Option<&std::collections::HashMap<String, f64>>,
+) -> (bool, std::collections::HashMap<String, f64>) {
     let kernel = Kernel::new();
     let mut bus = TuringBus::new(kernel);
 
-    // 1. Instantiate the Air-Gapped Sandbox
     let sandbox = Box::new(LocalProcessSandbox::new(
-        "sh", 
+        "sh",
         vec![
-            "-c".to_string(), 
+            "-c".to_string(),
             "cd /Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4 && source ~/.elan/env && lake env lean /dev/stdin".to_string()
         ]
     ));
 
-    // 2. Mount Skills
-    // 🌟 THE ULTIMATE SOTA BUS CONFIGURATION 🌟
-
-    // [HEARTBEAT] Trigger Reduce frequently but controlled by arbitrator
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(1)));
-
-    // [PRUNING] Prevent LLM from getting stuck in repetitive tactic loops (max 3 repeats)
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
-
-    // [ARBITRATOR] Only unleash expensive Reduce if price jumps by 50%+
     bus.mount_tool(Box::new(OverwhelmingGapArbitratorTool::new(1.5)));
 
-    // [WALLET] Turing Capitalism economy engine (MUST RUN BEFORE MEMBRANE TO STRIP COMMANDS)
-    bus.mount_tool(Box::new(WalletTool::new()));
+    // [WALLET] — initialized with persistent balances if available
+    let mut wallet = WalletTool::new();
+    let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();
 
-    // [MEMBRANE] formal verification with Identity Anchor
+    if let Some(balances) = initial_balances {
+        // Cross-theorem balance persistence: inherit balances from previous theorem
+        use turingosv3::sdk::tool::TuringTool;
+        wallet.on_init(&agent_ids);
+        for (agent_id, &balance) in balances {
+            wallet.balances.insert(agent_id.clone(), balance);
+        }
+        info!(">>> [ECONOMY] Inherited balances from previous theorem. Min: {:.2}, Max: {:.2}",
+              wallet.balances.values().cloned().fold(f64::INFINITY, f64::min),
+              wallet.balances.values().cloned().fold(f64::NEG_INFINITY, f64::max));
+    }
+    bus.mount_tool(Box::new(wallet));
+
     bus.mount_tool(Box::new(Lean4MembraneTool::new(
-        problem_content.to_string(), 
+        problem_content.to_string(),
         problem_name.to_string(),
         sandbox
     )));
 
-    // Initialize all agents in the economy
-    let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();
-    bus.init_problem(&agent_ids);
+    if initial_balances.is_none() {
+        bus.init_problem(&agent_ids);
+    }
 
     let mut q_state = MachineState::Running;
     let mut current_head = Head { paths: std::collections::HashSet::new() };
@@ -63,7 +74,9 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
                     break;
                 }
             }
-            return proved;
+            // Extract final balances for cross-theorem persistence
+            let final_balances = bus.extract_wallet_balances();
+            return (proved, final_balances);
         }
 
         kernel_steps += 1;
@@ -120,7 +133,8 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
                 // Early exit if this append was the OMEGA node!
                 if action.payload.contains("[OMEGA]") {
                     bus.halt_and_settle(&action.file_id);
-                    return true;
+                    let final_balances = bus.extract_wallet_balances();
+                    return (true, final_balances);
                 }
             }
             Err(e) => {
@@ -166,28 +180,34 @@ fn main() {
 
     let mut success_count = 0;
     let total_files = files.len();
+    let mut persistent_balances: Option<std::collections::HashMap<String, f64>> = None;
 
     for (i, path) in files.iter().enumerate() {
         let file_name = path.file_stem().unwrap().to_string_lossy().to_string();
         info!("--- Evaluating [{}/{}]: {} ---", i + 1, total_files, file_name);
-        
+
         let mut content = fs::read_to_string(path).expect("Unable to read lean file");
-        // MiniF2F theorems often end with `by sorry`. We must strip this out so our swarm can append its own tactics.
         let trimmed_content = content.trim_end();
         if trimmed_content.ends_with("by sorry") {
             content = format!("{} by", &trimmed_content[..trimmed_content.len() - 8].trim_end());
         } else if trimmed_content.ends_with("sorry") {
             content = format!("{}", &trimmed_content[..trimmed_content.len() - 5].trim_end());
         }
-        
+
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
 
         let sentinel = minif2f_swarm::wal::WalSentinel::new(format!("/tmp/{}_N{}.wal", file_name, swarm_size));
         let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![], content.clone());
-        
-        let proved = evaluate_theorem(&file_name, &content, agent, max_steps_per_theorem, swarm_size);
-        
+
+        let (proved, final_balances) = evaluate_theorem(
+            &file_name, &content, agent, max_steps_per_theorem, swarm_size,
+            persistent_balances.as_ref(),
+        );
+
+        // Cross-theorem balance persistence: carry balances forward
+        persistent_balances = Some(final_balances);
+
         if proved {
             info!("✅ Theorem {} PROVED!", file_name);
             success_count += 1;

@@ -80,6 +80,19 @@ impl TuringBus {
         self.graveyard.get_tombstones(node_id)
     }
 
+    /// Redistribute global_pool among surviving agents between theorems
+    pub fn redistribute_pool(&mut self) {
+        use crate::sdk::tools::wallet::WalletTool;
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    wallet.redistribute_pool();
+                }
+                break;
+            }
+        }
+    }
+
     /// Extract all agent balances for cross-theorem persistence
     pub fn extract_wallet_balances(&self) -> std::collections::HashMap<String, f64> {
         let mut balances = std::collections::HashMap::new();
@@ -210,6 +223,7 @@ impl TuringTool for ThermodynamicHeartbeatTool {
     fn manifest(&self) -> &'static str {
         "Thermodynamic Heartbeat Skill"
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
     fn should_skip_reduce(&mut self, current_volume: usize) -> bool {
         if current_volume - self.last_mr_volume >= self.threshold {
@@ -227,6 +241,7 @@ impl TuringTool for MembraneGuardTool {
     fn manifest(&self) -> &'static str {
         "Membrane Guard Skill"
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
     
     fn on_pre_append(&mut self, _author: &str, payload: &str) -> ToolSignal {
         if payload.contains("paradox") {
@@ -243,4 +258,5 @@ impl TuringTool for WalSnapshotTool {
     fn manifest(&self) -> &'static str {
         "WAL Snapshot Skill"
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 }

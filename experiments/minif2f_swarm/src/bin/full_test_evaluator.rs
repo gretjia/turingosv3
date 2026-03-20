@@ -74,8 +74,18 @@ fn evaluate_theorem(
                     break;
                 }
             }
-            // Extract final balances for cross-theorem persistence
-            let final_balances = bus.extract_wallet_balances();
+            // Redistribute pool among survivors before extracting balances
+            bus.redistribute_pool();
+            let mut final_balances = bus.extract_wallet_balances();
+            // Rebirth: dead agents get fresh 10000 capital (new consciousness, same body)
+            for i in 0..100 {
+                let agent_id = format!("Agent_{}", i);
+                let balance = final_balances.entry(agent_id.clone()).or_insert(0.0);
+                if *balance < 1.0 {
+                    info!(">>> [REBIRTH] Agent {} died (balance: {:.2}). New agent awakened with 10000.", agent_id, balance);
+                    *balance = 10000.0;
+                }
+            }
             return (proved, final_balances);
         }
 
@@ -133,6 +143,7 @@ fn evaluate_theorem(
                 // Early exit if this append was the OMEGA node!
                 if action.payload.contains("[OMEGA]") {
                     bus.halt_and_settle(&action.file_id);
+                    // Pool already settled by halt_and_settle, just extract
                     let final_balances = bus.extract_wallet_balances();
                     return (true, final_balances);
                 }

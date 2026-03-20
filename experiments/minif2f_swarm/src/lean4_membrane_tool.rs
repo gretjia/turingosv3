@@ -50,6 +50,7 @@ impl TuringTool for Lean4MembraneTool {
     fn manifest(&self) -> &'static str {
         "Lean 4 Sandboxed Membrane (Anti-Identity-Theft)"
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
     fn on_pre_append(&mut self, _author: &str, payload: &str) -> ToolSignal {
         // 1. Cognitive Defense: Check for Identity Theft / Hijacking

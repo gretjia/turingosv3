@@ -10,6 +10,8 @@ pub enum ToolSignal {
 
 pub trait TuringTool: Send + Sync {
     fn manifest(&self) -> &'static str;
+    /// Downcast support for inter-tool communication (e.g., bus → wallet redistribution)
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn on_boot(&mut self) {}
     
     fn on_init(&mut self, _agents: &[String]) {}
@@ -40,6 +42,7 @@ impl AntiZombiePruningTool {
 
 impl TuringTool for AntiZombiePruningTool {
     fn manifest(&self) -> &'static str { "core.skill.anti_zombie_pruning_shield" }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
     fn on_pre_append(&mut self, _author: &str, payload: &str) -> ToolSignal {
         // Extract pure Tactic lines
@@ -79,6 +82,7 @@ impl OverwhelmingGapArbitratorTool {
 
 impl TuringTool for OverwhelmingGapArbitratorTool {
     fn manifest(&self) -> &'static str { "core.skill.overwhelming_gap_arbitrator" }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
     fn should_skip_reduce_by_price(&mut self, current_max_price: f64) -> bool {
         if current_max_price >= self.last_max_price * self.threshold_ratio {

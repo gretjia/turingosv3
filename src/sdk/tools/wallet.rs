@@ -20,6 +20,23 @@ impl WalletTool {
         Self { balances: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new() }
     }
 
+    /// Redistribute global_pool equally among surviving agents (balance >= 1.0).
+    /// Called between theorems to prevent deflationary death spiral.
+    pub fn redistribute_pool(&mut self) {
+        let survivors: Vec<String> = self.balances.iter()
+            .filter(|(_, &b)| b >= 1.0)
+            .map(|(id, _)| id.clone())
+            .collect();
+        if survivors.is_empty() || self.global_pool <= 0.0 { return; }
+        let share = self.global_pool / survivors.len() as f64;
+        for id in &survivors {
+            *self.balances.get_mut(id).unwrap() += share;
+        }
+        log::info!(">>> [REDISTRIBUTION] Pool {:.2} split among {} survivors ({:.2} each)",
+                   self.global_pool, survivors.len(), share);
+        self.global_pool = 0.0;
+    }
+
     fn parse_payment(&self, payload: &str) -> Option<(String, f64)> {
         let tag = "[Tool: Wallet | Action: Stake | Node: ";
         let start = payload.find(tag)?;
@@ -37,6 +54,7 @@ impl WalletTool {
 
 impl TuringTool for WalletTool {
     fn manifest(&self) -> &'static str { "core.tool.crypto_wallet" }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
 
     fn on_init(&mut self, agents: &[String]) {
         self.stakes.clear();

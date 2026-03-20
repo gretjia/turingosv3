@@ -111,8 +111,10 @@ impl ResilientLLMClient {
                 }
             }
             Ok(response) => {
-                warn!("[Driver {}] GPU Backpressure (HTTP {}). Slots full?", agent_id, response.status());
-                return Err(DriverError::BackendError(format!("HTTP {}", response.status())));
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                warn!("[Driver {}] API Error (HTTP {}): {}", agent_id, status, &body[..body.len().min(300)]);
+                return Err(DriverError::BackendError(format!("HTTP {}: {}", status, &body[..body.len().min(200)])));
             },
             Err(e) => {
                 if e.is_timeout() {

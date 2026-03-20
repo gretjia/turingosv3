@@ -36,13 +36,14 @@ impl AgentSupervisor {
     pub fn handle_rejection(&mut self, err: &HarnessError) -> WatchdogState {
         self.strike_count += 1;
         match self.strike_count {
-            1..=3 => WatchdogState::Continue,
-            4..=8 => {
-                warn!("[Watchdog {}] Agent exhibiting repetitive failure ({:?}, {} strikes). Initiating SelfHeal.", self.agent_id, err, self.strike_count);
+            1..=2 => WatchdogState::Continue,
+            3 => {
+                warn!("[Watchdog {}] Agent failing ({:?}, {} strikes). SelfHeal attempt.", self.agent_id, err, self.strike_count);
                 WatchdogState::SelfHeal
             },
             _ => {
-                error!("CRITICAL: [Watchdog {}] Agent zombified after {} strikes ({:?}). Suspending and issuing SOS.", self.agent_id, self.strike_count, err);
+                // Suspend quickly to prevent SelfHeal prompt accumulation → 400 death spiral
+                error!("[Watchdog {}] Agent zombified after {} strikes ({:?}). Suspending.", self.agent_id, self.strike_count, err);
                 WatchdogState::SuspendAndSOS
             }
         }

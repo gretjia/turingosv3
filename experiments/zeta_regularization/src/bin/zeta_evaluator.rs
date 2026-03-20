@@ -1,5 +1,7 @@
 use log::{info, warn};
+use std::sync::Arc;
 use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, SensorContext};
+use turingosv3::drivers::llm_http::ResilientLLMClient;
 use turingosv3::sdk::tools::wallet::WalletTool;
 use turingosv3::sdk::tool::{AntiZombiePruningTool, OverwhelmingGapArbitratorTool};
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
@@ -25,18 +27,18 @@ fn main() {
     info!("=== ζ(-1) = -1/12 Regularization Theorem Test ===");
     info!("Swarm N={}, Max Steps={}", SWARM_SIZE, MAX_KERNEL_STEPS);
 
-    // Silicon Flow API — independent of minif2f's Volcengine config
-    let api_url = std::env::var("ZETA_API_URL")
-        .unwrap_or_else(|_| "https://api.siliconflow.cn/v1/chat/completions".to_string());
-    let model_name = std::env::var("ZETA_MODEL")
-        .unwrap_or_else(|_| "Pro/deepseek-ai/DeepSeek-V3.2".to_string());
-    let timeout_secs: u64 = std::env::var("ZETA_TIMEOUT")
-        .unwrap_or_else(|_| "600".to_string())
-        .parse()
-        .unwrap_or(600);
+    let api_url = "https://api.siliconflow.cn/v1/chat/completions";
 
+    // Dual API keys for separate rate limits
+    let key_primary = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
+    let key_secondary = std::env::var("SILICONFLOW_API_KEY_SECONDARY").unwrap_or_else(|_| key_primary.clone());
+
+    // Heterogeneous model pool: R1 (deep reasoning) + V3.2 (fast iteration)
+    let client_r1 = Arc::new(ResilientLLMClient::with_key(api_url, "Pro/deepseek-ai/DeepSeek-R1", &key_primary));
+    let client_v3 = Arc::new(ResilientLLMClient::with_key(api_url, "Pro/deepseek-ai/DeepSeek-V3.2", &key_secondary));
+
+    info!("Heterogeneous Swarm: R1 (key_primary) + V3.2 (key_secondary)");
     info!("API: {}", api_url);
-    info!("Model: {}", model_name);
 
     // Independent WAL
     let wal_path = format!("/tmp/{}_N{}.wal", THEOREM_NAME, SWARM_SIZE);
@@ -46,13 +48,11 @@ fn main() {
     let recovered_files = rt.block_on(zeta_regularization::wal::recover_tape(&wal_path));
     info!("WAL recovered {} files from {}", recovered_files.len(), wal_path);
 
-    // Build swarm agent (reads SILICONFLOW_API_KEY internally via ResilientLLMClient)
-    let mut agent = SpeculativeSwarmAgent::new(
-        &api_url,
-        &model_name,
+    // Build heterogeneous swarm: round-robin R1, V3.2
+    let mut agent = SpeculativeSwarmAgent::new_multi(
+        vec![client_r1, client_v3],
         MAX_KERNEL_STEPS,
         SWARM_SIZE,
-        timeout_secs,
         sentinel,
         recovered_files,
         LEAN_PROBLEM.to_string(),

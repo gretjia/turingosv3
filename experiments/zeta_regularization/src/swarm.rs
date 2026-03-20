@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use crate::wal::{WalSentinel, TapeDelta};
 
 pub struct SpeculativeSwarmAgent {
-    pub client: Arc<ResilientLLMClient>,
+    pub clients: Vec<Arc<ResilientLLMClient>>,
     pub current_step: u64,
     pub total_steps: u64,
     pub swarm_size: usize,
@@ -52,7 +52,38 @@ impl SpeculativeSwarmAgent {
         }
 
         SpeculativeSwarmAgent {
-            client: Arc::new(ResilientLLMClient::new(api_url, model_name, timeout_secs)),
+            clients: vec![Arc::new(ResilientLLMClient::new(api_url, model_name, timeout_secs))],
+            current_step: max_step,
+            total_steps: target_steps,
+            swarm_size,
+            rt: Runtime::new().unwrap(),
+            queued_outputs,
+            consecutive_failures: 0,
+            sentinel,
+            known_files: HashSet::new(),
+            initial_problem_statement,
+        }
+    }
+
+    /// Multi-model constructor: heterogeneous agent pool
+    pub fn new_multi(clients: Vec<Arc<ResilientLLMClient>>, target_steps: u64, swarm_size: usize, sentinel: WalSentinel, recovered_files: Vec<File>, initial_problem_statement: String) -> Self {
+        let mut queued_outputs = Vec::new();
+        let mut max_step = 0;
+        for f in recovered_files.into_iter().rev() {
+            if let Some(step_str) = f.id.strip_prefix("step_") {
+                if let Some(step_num) = step_str.split('_').next() {
+                    if let Ok(num) = step_num.parse::<u64>() {
+                        if num > max_step { max_step = num; }
+                    }
+                }
+            }
+            queued_outputs.push(Output {
+                q_o: MachineState::Running,
+                a_o: Action { file_id: f.id, author: f.author, payload: f.payload, citations: f.citations, stake: f.stake }
+            });
+        }
+        SpeculativeSwarmAgent {
+            clients,
             current_step: max_step,
             total_steps: target_steps,
             swarm_size,
@@ -153,48 +184,70 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         let last_state;
         let mut parent_id = "".to_string();
         
-        // 🌟 Boltzmann Softmax Selection (The Backtrack Engine)
-        // We look at ALL visible files on the tape, not just the current head.
-        // This allows the system to "jump back" to a historically better (purer) node
-        // if the current frontier is polluted with zombie tactics.
+        // Depth-weighted frontier selection with thermodynamic annealing
+        // Frontier = nodes with no children (leaf nodes of the DAG)
         let all_nodes: Vec<&File> = input.s_i.visible_tape.files.values()
-            .filter(|f| !f.payload.contains("failed") && f.stake > 0) // Only healthy nodes
+            .filter(|f| !f.payload.contains("failed") && f.stake > 0)
             .collect();
 
-        let selected_head = if all_nodes.is_empty() {
+        let frontier_nodes: Vec<&File> = all_nodes.iter()
+            .filter(|f| {
+                !input.s_i.visible_tape.reverse_citations.get(&f.id)
+                    .map_or(false, |children| !children.is_empty())
+            })
+            .copied()
+            .collect();
+
+        let nodes_to_select = if frontier_nodes.is_empty() { &all_nodes } else { &frontier_nodes };
+
+        let selected_head = if nodes_to_select.is_empty() {
             None
         } else {
             // Thermodynamic Annealing: Boltzmann router temperature
-            // Early: T=2.0 → uniform exploration across all nodes
-            // Late:  T=0.3 → greedy exploitation of highest-price nodes
             let progress = self.current_step as f64 / self.total_steps.max(1) as f64;
             let temperature = 2.0 - 1.7 * progress; // 2.0 → 0.3
-            
-            let prices: Vec<f64> = all_nodes.iter().map(|n| n.price).collect();
-            let max_price = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-            
-            let weights: Vec<f64> = prices.iter()
-                .map(|&p| ((p - max_price) / temperature).exp())
+            let depth_alpha = 0.1; // Depth preference strength
+
+            // Compute DAG depth for each node (pure topological property)
+            let node_depths: Vec<usize> = nodes_to_select.iter().map(|n| {
+                let mut depth = 0;
+                let mut current = &n.id;
+                while let Some(file) = input.s_i.visible_tape.files.get(current) {
+                    if file.citations.is_empty() { break; }
+                    depth += 1;
+                    current = &file.citations[0];
+                }
+                depth
+            }).collect();
+
+            // Score = intrinsic_reward × (1 + α × depth)
+            let scores: Vec<f64> = nodes_to_select.iter().zip(node_depths.iter())
+                .map(|(n, &d)| n.intrinsic_reward * (1.0 + depth_alpha * d as f64))
                 .collect();
-            
+
+            let max_score = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+
+            let weights: Vec<f64> = scores.iter()
+                .map(|&s| ((s - max_score) / temperature).exp())
+                .collect();
+
             let weight_sum: f64 = weights.iter().sum();
-            
+
             use rand::distributions::{WeightedIndex, Distribution};
             let mut rng = rand::thread_rng();
-            
+
             match WeightedIndex::new(&weights) {
                 Ok(dist) => {
                     let idx = dist.sample(&mut rng);
-                    let node = all_nodes[idx];
+                    let node = nodes_to_select[idx];
                     info!(
-                        ">>> [ROUTER] Softmax selected Node {} (Price: {:.2}, Prob: {:.2}%)", 
-                        node.id, node.price, (weights[idx] / weight_sum) * 100.0
+                        ">>> [ROUTER] Frontier selected Node {} (Reward: {:.2}, Depth: {}, Prob: {:.2}%, Frontier size: {})",
+                        node.id, node.intrinsic_reward, node_depths[idx], (weights[idx] / weight_sum) * 100.0, nodes_to_select.len()
                     );
                     Some(node)
                 }
                 Err(_) => {
-                    // Fallback to greedy if weights collapse
-                    all_nodes.iter().max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal)).copied()
+                    nodes_to_select.iter().max_by(|a, b| a.intrinsic_reward.partial_cmp(&b.intrinsic_reward).unwrap_or(std::cmp::Ordering::Equal)).copied()
                 }
             }
         };
@@ -250,7 +303,9 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                     balance
                 );
 
-                let c = self.client.clone();
+                // Heterogeneous model routing: round-robin across client pool
+                let c = self.clients[spawned % self.clients.len()].clone();
+                log::info!(">>> [DISPATCH] Agent {} → {} (line {})", new_id, c.model_name(), spawned % self.clients.len());
                 let total_agents = self.swarm_size;
                 let agent_progress = self.current_step as f32 / self.total_steps.max(1) as f32;
                 set.spawn(async move {

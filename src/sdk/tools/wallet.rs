@@ -72,6 +72,8 @@ impl TuringTool for WalletTool {
         self.global_pool += amount;
 
         if target.to_lowercase() == "self" {
+            log::info!(">>> [SELF-STAKE] Agent {} stakes {:.2} on own output. Balance after: {:.2}",
+                       author, amount, self.balances.get(author).unwrap_or(&0.0));
             self.pending_self_stakes.insert(author.to_string(), amount);
             let clean_payload = payload.split("[Tool: Wallet").next().unwrap_or(payload).trim().to_string();
             

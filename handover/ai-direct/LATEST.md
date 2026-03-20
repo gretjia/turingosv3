@@ -1,50 +1,55 @@
 # TuringOS v3 — Handover State
 **Updated**: 2026-03-20
-**Session Summary**: Gemini Lean 4 全面审计 — OMEGA 检测修复 + 8 项安全/正确性加固
+**Session Summary**: ζ(-1)=-1/12 正则化实验 — 从零搭建到异构 R1+V3.2 swarm，8 轮迭代验证多 agent 涌现
 
 ## Current State
-- Mac Studio 上的 minif2f_swarm 进程已停止（手动 kill，WAL 数据已保存在 /tmp/*.wal）
-- **OMEGA 检测已修复** — Err 分支现在能正确识别完成的证明（bdece74 + c58924e）
-- Lean4 Membrane 安全加固完成 — sorry 防火墙、RCE 黑名单、Identity Theft 13 关键字
-- Sandbox 进程泄露已修复 — process_group(0) + SIGKILL
-- Boltzmann 路由 +0.01 floor 防零 reward 退化
-- `experiments/zeta_regularization/` 仍有未提交的 harness.rs + swarm.rs 改动（前次会话遗留）
+- **zeta_regularization 实验项目** (`experiments/zeta_regularization/`) 完全独立于 minif2f
+- **Run 12 已完成**: 50 append / 50 reject (50% 通过率), 0 OMEGA, 4 tape 节点存活
+- **Mac Studio tmux**: `zeta-test` session 已结束, `minif2f-sota-run` 由另一个 agent 管理
+- **异构 swarm 验证成功**: R1 (8 agents, key_primary) + V3.2 (7 agents, key_secondary)
+- **Hayekian 价格引擎首次全速运转**: 8 次 Phase Transition, 最高价格 65,400
+- **定理未证明**: LLM 无法独立发现 `riemannZeta_neg_nat_eq_bernoulli'` (Mathlib 中存在)
 
 ## Changes This Session
-- `536b3ed` — 架构师洞察保存体系 + handover 更新
-- `bdece74` — **P0 修复**: OMEGA 检测 Err 分支 + sorry-redundancy 双重验证
-- `c58924e` — **Gemini 全面审计 8 项修复**:
-  - C1: RCE 软防御（Lean 4 危险关键字黑名单）
-  - C2: sorry/sorryAx 防火墙（word-boundary 检测）
-  - C3: sandbox 子进程 process_group kill（防 OOM）
-  - C4: Identity Theft 扩展到 13 关键字，仅扫描 LLM 增量
-  - H1: Boltzmann score +0.01 floor
-  - H3: Head 幽灵节点修复（tape.contains_key 检查）
-  - M2: Anti-Zombie period-2 循环检测
-  - M3: Tactic 提取 .trim() 容错
-- **停止 Mac Studio minif2f_swarm 进程**，分析 731 节点 × 17 WAL 的 Tape 数据
-- **发现**：MiniF2F 全量测试 0/15 OMEGA — 根因是 Err 分支丢失 OMEGA 信号（已修复）
-- **发现**：March 16 scaling_law_results (45%) 与 paper_draft (100%) 数据矛盾
-- **发现**：244 题 90.1% 来自 mock_results.txt，全量测试从未完成
+- `08d0094` — zeta_regularization 独立实验项目 (Cargo.toml, evaluator, swarm, WAL, membrane)
+- `294b546` — Big Bang Multiverse sync + port to zeta
+- `557f433` — 热力学退火 + 多行 tactic + Graveyard dedup (3→10)
+- `122ef57` — 异构 swarm (R1+V3.2) + depth-weighted frontier + 双 API key 路由
+- `llm_http.rs` — `ResilientLLMClient::with_key()` 显式 key 构造 + `model_name()` accessor
+- `sandbox.rs` — **根因修复**: Lean 4 error 写到 stdout 非 stderr, 合并两流
+- `bus.rs` — Graveyard dedup (相同错误不重复) + `extract_wallet_balances()`
+- 另一个 agent 的变更已同步: `fb26dfb` frontier ticker, `1ae1d2c` pool redistribution, `a6bc24c` depth-weighted, `a5a89be` SelfHeal 修复
 
 ## Key Decisions
-- OMEGA Err 分支必须二次验证（Gemini 指出多 goal 假阳性风险）
-- C4 Identity Theft 仅扫描 LLM 增量（Gemini 终审发现全 payload 扫描会误杀 MiniF2F 前置 def）
-- 容器化隔离（nsjail/bwrap）延迟到后续独立任务
-- 硬编码缩进（H2）延迟——需根本性重构
+- **项目隔离**: 每个实验独立 Cargo 项目, 不共享 API 配置 (反教训: Run 1 混在 minif2f 里)
+- **不 hard-code 答案**: 删除了 lemma 名提示, 让 swarm 自己发现 (Run 7 vs Run 6 对比验证)
+- **热力学退火**: 物理温度参数 (顶层白盒), 非策略干预 (中间黑盒), 符合反奥利奥架构
+- **异构优于同构**: R1 知道精确 lemma 名, V3.2 知道定义展开路径, 互补覆盖
+
+## 8 轮测试演化链
+| Run | 模型 | Append | 关键发现 |
+|-----|------|--------|---------|
+| 1 | R1-Distill-32B | 13 | sandbox error 空, N=3 |
+| 3 | R1-Distill-32B | 0 | sandbox 修复, 50% termination trap |
+| 5 | DeepSeek-R1 | 0 | R1 找到正确 lemma 名, coercion 墙 |
+| 6 | V3.2 | 0 | 18 种策略, coercion 墙 |
+| 7 | V3.2 (无提示) | 0 | 37 种策略, 幻觉 lemma 主导 |
+| 8 | V3.2 (退火) | 1 | 首次 append! 45 种策略 |
+| 12 | R1+V3.2 异构 | **50** | 50% 通过率, 价格 65,400 |
 
 ## Next Steps
-1. **重启 minif2f_swarm 测试**（Mac Studio）— 验证 OMEGA 修复后 pass rate 提升
-2. 处理 March 16 数据矛盾 — 确认哪组 scaling law 数字是真实的
-3. 运行 244 题全量测试（替代 mock_results.txt）
-4. 实现异构 R1 + V3.2 混合 swarm（zeta 实验唯一未试的关键杠杆）
-5. 处理 cross-audit V1 (wallet.rs DAG 违规) 和 V2 (kernel.rs 双重奖励)
+1. **混合更多模型** (Qwen3.5 等) 扩大知识覆盖 — 突破 Mathlib API 名称盲区
+2. **尝试不同定理** 验证 swarm 架构的通用性 (不仅限于 ζ 函数)
+3. **分析 Run 12 DAG 拓扑** — 50 个节点的证明树结构是否有收敛趋势
+4. **minif2f 全量测试重跑** — OMEGA 检测修复后的真实 pass rate
 
 ## Warnings
-- `experiments/zeta_regularization/src/harness.rs` 和 `swarm.rs` 有未提交改动
-- `get_volc_ep.py` 和 `handover/directives/2026-03-19_big-bang-multiverse-entropy.md` 是 untracked
-- Mac Studio WAL 数据在 `/tmp/*.wal`，重启后会丢失——如需保留应备份
-- 本地有 2 个未推送 commit（bdece74, c58924e），需 git push
+- `zeta/src/harness.rs` + `zeta/src/swarm.rs` 有未提交的 fb26dfb port + SelfHeal 修复
+- `.env` 中 `SILICONFLOW_API_KEY_SECONDARY` 和 `VOLCENGINE_API_KEY` 粘连 — tmux 启动时必须手动分割 (正确 key: `sk-vhmaluxrfdqqnpjududaptmvhjasrervmetppawlwwbbpwya`)
+- Mac 的 `.env` 没有 SECONDARY key — 必须在 tmux 命令中显式 export
+- 审计报告在 `experiments/zeta_regularization/audit/` (run1, run3, run6, run7, run8)
 
 ## Architect Insights (本次会话)
-本次会话无新架构洞察（聚焦于工程审计和 bug 修复）
+- **退火的真正价值是温度梯度** — 低温 agent 的保守策略 (`simp only`) 存活为高温 agent 提供 DAG 立足点 → 已归档到 audit/run8_tape_analysis.md
+- **异构涌现需要共享 Tape** — R1 的 lemma 知识 + V3.2 的展开能力只有通过 Tape DAG 才能互相可见 → 已归档到 audit/run7_tape_analysis.md
+- **N 的增大不能突破单一模型的知识分布边界** — 苦涩的教训在 LLM swarm 中的映射 → 已归档到 audit/run7_tape_analysis.md

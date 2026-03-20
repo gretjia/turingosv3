@@ -222,7 +222,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
 
             // Score = intrinsic_reward × (1 + α × depth)
             let scores: Vec<f64> = nodes_to_select.iter().zip(node_depths.iter())
-                .map(|(n, &d)| n.intrinsic_reward * (1.0 + depth_alpha * d as f64))
+                .map(|(n, &d)| (n.intrinsic_reward + 0.01) * (1.0 + depth_alpha * d as f64))
                 .collect();
 
             let max_score = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
@@ -271,13 +271,42 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 tombstones_str = graves.clone();
             }
         } else {
-            // When Tape is empty, failures are recorded against "root".
-            // Inject root tombstones so LLM can learn from prior rejections.
             if let Some(graves) = input.s_i.tombstones.get("root") {
                 tombstones_str = graves.clone();
             }
         }
-        
+
+        // Build Frontier Market Ticker — prices ARE information (Hayek 1945)
+        let frontier_market = {
+            let reverse_citations = &input.s_i.visible_tape.reverse_citations;
+            let mut frontier_with_depth: Vec<(&File, usize)> = input.s_i.visible_tape.files.values()
+                .filter(|f| !f.payload.contains("failed") && f.stake > 0)
+                .filter(|f| reverse_citations.get(&f.id).map_or(true, |c| c.is_empty()))
+                .map(|f| {
+                    let mut depth = 0;
+                    let mut cur = &f.id;
+                    while let Some(file) = input.s_i.visible_tape.files.get(cur) {
+                        if file.citations.is_empty() { break; }
+                        depth += 1;
+                        cur = &file.citations[0];
+                    }
+                    (f, depth)
+                })
+                .collect();
+            frontier_with_depth.sort_by(|a, b| b.1.cmp(&a.1).then(b.0.intrinsic_reward.partial_cmp(&a.0.intrinsic_reward).unwrap_or(std::cmp::Ordering::Equal)));
+
+            let mut ticker = String::from("\n=== FRONTIER MARKET (Top investment opportunities) ===\n");
+            if frontier_with_depth.is_empty() {
+                ticker.push_str("Market is empty. Be the first miner to IPO!\n");
+            } else {
+                for (i, (node, depth)) in frontier_with_depth.iter().take(5).enumerate() {
+                    ticker.push_str(&format!("Rank {}: [Node: {}] | Reward: {:.2} | Proof Depth: {}\n", i + 1, node.id, node.intrinsic_reward, depth));
+                }
+            }
+            ticker.push_str("=== To invest in a node: [State: INVEST] [Tool: Wallet | Action: Stake | Node: <ID> | Amount: <FLOAT>] ===\n");
+            ticker
+        };
+
         let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
 
@@ -295,17 +324,18 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 }
 
                 let p = format!(
-                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next Lean 4 tactic block to advance this proof. You may write MULTIPLE tactic lines (separated by newlines) as a single submission.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic block AND the wallet payment. You MUST replace <FLOAT> with a real decimal number (see economic rules above).\nFor a single tactic: [Tactic: simp] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\nFor multi-line tactics: [Tactic: have h := some_lemma 1\\n  simp at h\\n  convert h using 1\\n  norm_num] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]",
+                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nYou have TWO choices each step:\n\nOPTION A (Mine): Produce a Lean 4 tactic block and stake on your own work. You may write MULTIPLE tactic lines (separated by \\n) as a single submission.\n[Tactic: your lean 4 tactic] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\nFor multi-line: [Tactic: have h := some_lemma 1\\n  simp at h\\n  exact h] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\n\nOPTION B (Invest): Study the FRONTIER MARKET above and invest in a promising node.\n[State: INVEST] [Tool: Wallet | Action: Stake | Node: <node_id> | Amount: <FLOAT>]\n\nYou are FREE to choose either path based on your judgment.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou may use <think>...</think> tags to reason freely.\n\nWARNING: If your account balance reaches 0, you DIE. Stake wisely — survival is the first priority.",
                     last_state,
                     economic_operative,
+                    frontier_market,
                     input.s_i.market_ticker,
                     tombstones_str,
                     balance
                 );
 
                 // Heterogeneous model routing: round-robin across client pool
-                let c = self.clients[spawned % self.clients.len()].clone();
-                log::info!(">>> [DISPATCH] Agent {} → {} (line {})", new_id, c.model_name(), spawned % self.clients.len());
+                let c = self.clients[new_id % self.clients.len()].clone();
+                log::info!(">>> [DISPATCH] Agent {} → {} (line {})", new_id, c.model_name(), new_id % self.clients.len());
                 let total_agents = self.swarm_size;
                 let agent_progress = self.current_step as f32 / self.total_steps.max(1) as f32;
                 set.spawn(async move {
@@ -334,8 +364,9 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                             tactic = tactic[..tool_idx].trim().to_string();
                         }
 
-                        if tactic.starts_with("[Tactic:") && tactic.ends_with("]") {
-                            tactic = tactic[8..tactic.len()-1].trim().to_string();
+                        let tactic_trimmed = tactic.trim();
+                        if tactic_trimmed.starts_with("[Tactic:") && tactic_trimmed.ends_with("]") {
+                            tactic = tactic_trimmed[8..tactic_trimmed.len()-1].trim().to_string();
                             // Support multi-line tactics: LLM uses literal \n to separate lines
                             tactic = tactic.replace("\\n", "\n");
                         }

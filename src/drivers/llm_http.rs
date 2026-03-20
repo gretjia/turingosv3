@@ -22,6 +22,8 @@ impl ResilientLLMClient {
     pub fn new(api_url: &str, model_name: &str, _timeout_secs: u64) -> Self {
         let api_key = if api_url.contains("volcengine") || api_url.contains("volces.com") {
             std::env::var("VOLCENGINE_API_KEY").or_else(|_| std::env::var("SILICONFLOW_API_KEY")).ok()
+        } else if api_url.contains("deepseek.com") {
+            std::env::var("DEEPSEEK_API_KEY").ok()
         } else {
             std::env::var("SILICONFLOW_API_KEY").or_else(|_| std::env::var("VOLCENGINE_API_KEY")).ok()
         };

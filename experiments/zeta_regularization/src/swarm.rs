@@ -72,8 +72,10 @@ async fn run_agent(
     client: Arc<ResilientLLMClient>,
     prompt: String,
 ) -> Option<(usize, String)> {
-    // Stagger the branches heavily to prevent DDoSing the llama.cpp server and triggering timeout avalanche
-    sleep(Duration::from_secs(i as u64 * 10)).await;
+    // Millisecond jitter — true concurrent launch, no artificial stagger
+    use rand::Rng;
+    let jitter_ms = rand::thread_rng().gen_range(0..300);
+    sleep(Duration::from_millis(jitter_ms)).await;
     
     let mut supervisor = crate::harness::AgentSupervisor::new(i, total_agents);
     let mut current_prompt = prompt;
@@ -215,96 +217,87 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         
         let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
-            let mut next_agent_id = 0;
-            loop {
-                while set.len() < self.swarm_size {
-                    let new_id = next_agent_id;
-                    next_agent_id += 1;
-                    
-                    let agent_name = format!("Agent_{}", new_id);
-                    let balance = input.s_i.agent_balances.get(&agent_name).copied().unwrap_or(0.0);
 
-                    // Hayekian Law: insolvent agents are physically stripped of execution rights
-                    if balance < 1.0 {
-                        log::warn!(">>> [LIQUIDATION] Agent {} is bankrupt (balance: {:.2}). Stripped of execution rights.", agent_name, balance);
-                        if next_agent_id >= 100 {
-                            break;
-                        }
-                        continue;
-                    }
+            // Phase 1: Spawn — one batch of agents, skip bankrupt ones
+            let mut spawned = 0;
+            for new_id in 0..100 {
+                if spawned >= self.swarm_size { break; }
 
-                    let p = format!(
-                        "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic AND the wallet payment You MUST replace <FLOAT> with a real decimal number (see economic rules above):\n[Tactic: your single lean 4 tactic here] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]", 
-                        last_state,
-                        economic_operative,
-                        input.s_i.market_ticker,
-                        tombstones_str,
-                        balance
-                    );
-                    
-                    let c = self.client.clone();
-                    let total_agents = self.swarm_size;
-                    set.spawn(async move { 
-                        run_agent(new_id, total_agents, c, p).await
-                    });
+                let agent_name = format!("Agent_{}", new_id);
+                let balance = input.s_i.agent_balances.get(&agent_name).copied().unwrap_or(0.0);
+
+                if balance < 1.0 {
+                    log::warn!(">>> [LIQUIDATION] Agent {} is bankrupt (balance: {:.2}). Stripped of execution rights.", agent_name, balance);
+                    continue;
                 }
 
-                if set.is_empty() {
-                    log::error!(">>> [MACROECONOMICS] Liquidity Crisis! All agents bankrupt. Market Collapsed.");
-                    break vec![];
-                }
+                let p = format!(
+                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic AND the wallet payment You MUST replace <FLOAT> with a real decimal number (see economic rules above):\n[Tactic: your single lean 4 tactic here] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]",
+                    last_state,
+                    economic_operative,
+                    input.s_i.market_ticker,
+                    tombstones_str,
+                    balance
+                );
 
-                // 2. Wait for the next task event (completion, panic, success)
-                match set.join_next().await {
-                    Some(Ok(Some((agent_id, pure_state)))) => {
+                let c = self.client.clone();
+                let total_agents = self.swarm_size;
+                set.spawn(async move {
+                    run_agent(new_id, total_agents, c, p).await
+                });
+                spawned += 1;
+            }
+
+            if set.is_empty() {
+                log::error!(">>> [MACROECONOMICS] Liquidity Crisis! All agents bankrupt. Market Collapsed.");
+                return vec![];
+            }
+
+            // Phase 2: Drain — collect ALL surviving branches (true multiverse)
+            let mut results: Vec<(usize, String)> = Vec::new();
+
+            while let Some(join_result) = set.join_next().await {
+                match join_result {
+                    Ok(Some((agent_id, pure_state))) => {
                         // Extract the tactic string and preserve the Tool call
                         let mut tactic = pure_state.clone();
                         let mut tool_call = String::new();
-                        
-                        // Separate tool call if it exists
+
                         if let Some(tool_idx) = tactic.find("[Tool: Wallet") {
                             tool_call = tactic[tool_idx..].to_string();
                             tactic = tactic[..tool_idx].trim().to_string();
                         }
-                        
-                        // Strip [Tactic: ] wrapper if present
+
                         if tactic.starts_with("[Tactic:") && tactic.ends_with("]") {
                             tactic = tactic[8..tactic.len()-1].trim().to_string();
                         }
-                        
-                        // Re-attach the tool call so the bus tools can intercept it
+
                         let tactic_payload = if tool_call.is_empty() {
                             tactic
                         } else {
                             format!("{} {}", tactic, tool_call)
                         };
-                        
-                        // Append to previous tactics/state
+
                         let new_payload = format!("{}\n  {}", last_state, tactic_payload);
-                        
-                        return vec![(agent_id, new_payload)];
+                        log::info!(">>> [MULTIVERSE] Agent {} generated a valid universe branch.", agent_id);
+                        results.push((agent_id, new_payload));
                     }
-                    Some(Ok(None)) => {
-                         // An agent hit Watchdog SuspendAndSOS and gracefully exited.
-                         log::warn!("Agent naturally exited (likely executed by Watchdog). Waiting for next resurrection.");
+                    Ok(None) => {
+                        log::warn!("Agent naturally exited (Watchdog).");
                     }
-                    Some(Err(join_err)) => {
-                         // An agent task SILENTLY PANICKED or was cancelled!
-                         if join_err.is_panic() {
-                             log::error!("CRITICAL: An Agent Tokio Thread SILENTLY PANICKED!");
-                         } else if join_err.is_cancelled() {
-                             log::error!("Agent task cancelled unexpectedly.");
-                         } else {
-                             log::error!("Agent task failed: {}", join_err);
-                         }
-                    }
-                    None => {
-                         // This is the true void. We should never really hit this if we respawn at the top,
-                         // but if we do, the `loop` will just jump back to the top and `while set.len() < size` will respawn everything.
-                         log::error!("JoinSet empty. The void was reached. Respawning.");
+                    Err(join_err) => {
+                        if join_err.is_panic() {
+                            log::error!("CRITICAL: An Agent Tokio Thread SILENTLY PANICKED!");
+                        } else if join_err.is_cancelled() {
+                            log::error!("Agent task cancelled unexpectedly.");
+                        } else {
+                            log::error!("Agent task failed: {}", join_err);
+                        }
                     }
                 }
             }
+
+            results
         });
 
         let mut citations = vec![];

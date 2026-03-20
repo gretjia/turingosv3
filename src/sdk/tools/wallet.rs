@@ -13,28 +13,31 @@ pub struct WalletTool {
     pub stakes: Vec<StakeRecord>,
     pub global_pool: f64,
     pending_self_stakes: HashMap<String, f64>,
+    /// Track agents who actually participated (staked) this theorem — no free riders
+    participants: HashSet<String>,
 }
 
 impl WalletTool {
     pub fn new() -> Self {
-        Self { balances: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new() }
+        Self { balances: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new(), participants: HashSet::new() }
     }
 
-    /// Redistribute global_pool equally among surviving agents (balance >= 1.0).
-    /// Called between theorems to prevent deflationary death spiral.
+    /// Redistribute global_pool among PARTICIPANTS only (agents who staked this theorem).
+    /// Hayekian principle: no labor, no pay. Idle agents get nothing.
     pub fn redistribute_pool(&mut self) {
-        let survivors: Vec<String> = self.balances.iter()
-            .filter(|(_, &b)| b >= 1.0)
-            .map(|(id, _)| id.clone())
+        let eligible: Vec<String> = self.participants.iter()
+            .filter(|id| self.balances.get(*id).copied().unwrap_or(0.0) >= 1.0)
+            .cloned()
             .collect();
-        if survivors.is_empty() || self.global_pool <= 0.0 { return; }
-        let share = self.global_pool / survivors.len() as f64;
-        for id in &survivors {
+        if eligible.is_empty() || self.global_pool <= 0.0 { return; }
+        let share = self.global_pool / eligible.len() as f64;
+        for id in &eligible {
             *self.balances.get_mut(id).unwrap() += share;
         }
-        log::info!(">>> [REDISTRIBUTION] Pool {:.2} split among {} survivors ({:.2} each)",
-                   self.global_pool, survivors.len(), share);
+        log::info!(">>> [REDISTRIBUTION] Pool {:.2} split among {} participants ({:.2} each). {} idle agents excluded.",
+                   self.global_pool, eligible.len(), share, self.balances.len() - eligible.len());
         self.global_pool = 0.0;
+        self.participants.clear();
     }
 
     fn parse_payment(&self, payload: &str) -> Option<(String, f64)> {
@@ -84,8 +87,10 @@ impl TuringTool for WalletTool {
             return ToolSignal::Veto(format!("Bankrupt: Insufficient funds. Balance: {:.2}", balance));
         }
 
+        // Record participation — this agent is working, not free-riding
+        self.participants.insert(author.to_string());
+
         // 🌟 物理扣款（风险前置）！
-        // 钱已经划走。如果稍后 Lean4 断头台报 Error 导致 Veto，这笔钱将作为热力学废气彻底烧毁！
         *self.balances.get_mut(author).unwrap() -= amount;
         self.global_pool += amount;
 

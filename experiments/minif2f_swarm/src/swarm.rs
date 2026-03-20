@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use crate::wal::{WalSentinel, TapeDelta};
 
 pub struct SpeculativeSwarmAgent {
-    pub client: Arc<ResilientLLMClient>,
+    pub clients: Vec<Arc<ResilientLLMClient>>,
     pub current_step: u64,
     pub total_steps: u64,
     pub swarm_size: usize,
@@ -24,35 +24,35 @@ pub struct SpeculativeSwarmAgent {
 }
 
 impl SpeculativeSwarmAgent {
-    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64, sentinel: WalSentinel, recovered_files: Vec<File>, initial_problem_statement: String) -> Self {
+    /// Create a heterogeneous swarm with multiple LLM models.
+    /// Agents are assigned models round-robin: agent_0 → clients[0], agent_1 → clients[1], ...
+    pub fn new_heterogeneous(models: Vec<(&str, &str)>, target_steps: u64, swarm_size: usize, timeout_secs: u64, sentinel: WalSentinel, recovered_files: Vec<File>, initial_problem_statement: String) -> Self {
+        let clients: Vec<Arc<ResilientLLMClient>> = models.iter()
+            .map(|(url, model)| Arc::new(ResilientLLMClient::new(url, model, timeout_secs)))
+            .collect();
+
         let mut queued_outputs = Vec::new();
         let mut max_step = 0;
-        
-        // We push backwards so pop() returns them in chronological order
+
         for f in recovered_files.into_iter().rev() {
             if let Some(step_str) = f.id.strip_prefix("step_") {
                 if let Some(step_num) = step_str.split('_').next() {
                     if let Ok(num) = step_num.parse::<u64>() {
-                        if num > max_step {
-                            max_step = num;
-                        }
+                        if num > max_step { max_step = num; }
                     }
                 }
             }
             queued_outputs.push(Output {
                 q_o: MachineState::Running,
                 a_o: Action {
-                    file_id: f.id,
-                    author: f.author,
-                    payload: f.payload,
-                    citations: f.citations,
-                    stake: f.stake,
+                    file_id: f.id, author: f.author, payload: f.payload,
+                    citations: f.citations, stake: f.stake,
                 }
             });
         }
 
         SpeculativeSwarmAgent {
-            client: Arc::new(ResilientLLMClient::new(api_url, model_name, timeout_secs)),
+            clients,
             current_step: max_step,
             total_steps: target_steps,
             swarm_size,
@@ -63,6 +63,14 @@ impl SpeculativeSwarmAgent {
             known_files: HashSet::new(),
             initial_problem_statement,
         }
+    }
+
+    /// Legacy single-model constructor
+    pub fn new(api_url: &str, model_name: &str, target_steps: u64, swarm_size: usize, timeout_secs: u64, sentinel: WalSentinel, recovered_files: Vec<File>, initial_problem_statement: String) -> Self {
+        Self::new_heterogeneous(
+            vec![(api_url, model_name)],
+            target_steps, swarm_size, timeout_secs, sentinel, recovered_files, initial_problem_statement,
+        )
     }
 }
 
@@ -226,14 +234,46 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         }
 
         let economic_operative = std::fs::read_to_string("/home/zephryj/projects/turingosv3/skills/economic_operative.md").unwrap_or_default();
-        
+
         let mut tombstones_str = String::new();
         if !parent_id.is_empty() {
             if let Some(graves) = input.s_i.tombstones.get(&parent_id) {
                 tombstones_str = graves.clone();
             }
         }
-        
+
+        // Build Frontier Market Ticker — prices ARE information (Hayek 1945)
+        // Shows frontier nodes ranked by depth-weighted score, with depth as experience signal
+        let frontier_market = {
+            let reverse_citations = &input.s_i.visible_tape.reverse_citations;
+            let mut frontier_with_depth: Vec<(&File, usize)> = input.s_i.visible_tape.files.values()
+                .filter(|f| !f.payload.contains("failed") && f.stake > 0)
+                .filter(|f| reverse_citations.get(&f.id).map_or(true, |c| c.is_empty()))
+                .map(|f| {
+                    let mut depth = 0;
+                    let mut cur = &f.id;
+                    while let Some(file) = input.s_i.visible_tape.files.get(cur) {
+                        if file.citations.is_empty() { break; }
+                        depth += 1;
+                        cur = &file.citations[0];
+                    }
+                    (f, depth)
+                })
+                .collect();
+            frontier_with_depth.sort_by(|a, b| b.1.cmp(&a.1).then(b.0.intrinsic_reward.partial_cmp(&a.0.intrinsic_reward).unwrap_or(std::cmp::Ordering::Equal)));
+
+            let mut ticker = String::from("\n=== FRONTIER MARKET (Top investment opportunities) ===\n");
+            if frontier_with_depth.is_empty() {
+                ticker.push_str("Market is empty. Be the first miner to IPO!\n");
+            } else {
+                for (i, (node, depth)) in frontier_with_depth.iter().take(5).enumerate() {
+                    ticker.push_str(&format!("Rank {}: [Node: {}] | Reward: {:.2} | Proof Depth: {}\n", i + 1, node.id, node.intrinsic_reward, depth));
+                }
+            }
+            ticker.push_str("=== To invest in a node: [State: INVEST] [Tool: Wallet | Action: Stake | Node: <ID> | Amount: <FLOAT>] ===\n");
+            ticker
+        };
+
         let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
 
@@ -251,15 +291,17 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 }
 
                 let p = format!(
-                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic AND the wallet payment You MUST replace <FLOAT> with a real decimal number (see economic rules above):\n[Tactic: your single lean 4 tactic here] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\n\nWARNING: If your account balance reaches 0, you DIE. A new agent will be awakened to replace you. Stake wisely — survival is the first priority.",
+                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nYou have TWO choices each step:\n\nOPTION A (Mine): Produce a Lean 4 tactic and stake on your own work.\n[Tactic: your lean 4 tactic] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\n\nOPTION B (Invest): Study the FRONTIER MARKET above and invest in a promising node.\n[State: INVEST] [Tool: Wallet | Action: Stake | Node: <node_id> | Amount: <FLOAT>]\n\nYou are FREE to choose either path based on your judgment. Mining creates new proof progress. Investing amplifies promising branches without compiler risk.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou may use <think>...</think> tags to reason freely.\n\nWARNING: If your account balance reaches 0, you DIE. A new agent will be awakened to replace you. Stake wisely — survival is the first priority.",
                     last_state,
                     economic_operative,
+                    frontier_market,
                     input.s_i.market_ticker,
                     tombstones_str,
                     balance
                 );
 
-                let c = self.client.clone();
+                // Heterogeneous model assignment: round-robin across available clients
+                let c = self.clients[new_id % self.clients.len()].clone();
                 let total_agents = self.swarm_size;
                 set.spawn(async move {
                     run_agent(new_id, total_agents, c, p).await

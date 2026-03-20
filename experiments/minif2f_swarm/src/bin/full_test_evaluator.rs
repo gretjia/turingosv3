@@ -165,11 +165,28 @@ fn main() {
     info!("Starting Batch Evaluator with N={} LLMs per theorem", swarm_size);
 
     let api_url = std::env::var("LLAMA_API_URL").unwrap_or_else(|_| "https://api.siliconflow.cn/v1/chat/completions".to_string());
-    let model_name = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "deepseek-ai/DeepSeek-V3".to_string());
+    let primary_model = std::env::var("LLAMA_MODEL").unwrap_or_else(|_| "doubao-1-5-pro-32k-250115".to_string());
+    let smart_model = std::env::var("SMART_MODEL").unwrap_or_else(|_| primary_model.clone());
     let timeout_secs = 600;
-    
+
+    // Heterogeneous model configuration: round-robin across models
+    // Agent 0 → primary, Agent 1 → primary, Agent 2 → primary, Agent 3 → smart, Agent 4 → smart
+    let models: Vec<(&str, &str)> = if smart_model != primary_model {
+        info!("Heterogeneous swarm: primary={}, smart={}", primary_model, smart_model);
+        vec![
+            (&api_url, primary_model.as_str()),
+            (&api_url, primary_model.as_str()),
+            (&api_url, primary_model.as_str()),
+            (&api_url, smart_model.as_str()),
+            (&api_url, smart_model.as_str()),
+        ]
+    } else {
+        info!("Homogeneous swarm: model={}", primary_model);
+        vec![(&api_url, primary_model.as_str())]
+    };
+
     // Max steps the swarm is allowed to take to prove ONE theorem
-    let max_steps_per_theorem = 100; 
+    let max_steps_per_theorem = 100;
 
     // Target the MacStudio local path for Lean4 dataset
     let test_dir = Path::new("/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test");
@@ -209,7 +226,7 @@ fn main() {
         let _guard = rt.enter();
 
         let sentinel = minif2f_swarm::wal::WalSentinel::new(format!("/tmp/{}_N{}.wal", file_name, swarm_size));
-        let agent = SpeculativeSwarmAgent::new(&api_url, &model_name, max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![], content.clone());
+        let agent = SpeculativeSwarmAgent::new_heterogeneous(models.clone(), max_steps_per_theorem, swarm_size, timeout_secs, sentinel, vec![], content.clone());
 
         let (proved, final_balances) = evaluate_theorem(
             &file_name, &content, agent, max_steps_per_theorem, swarm_size,

@@ -1,40 +1,50 @@
 # TuringOS v3 — Handover State
 **Updated**: 2026-03-20
-**Session Summary**: 建立架构师洞察保存体系 — 口头设计原则的压缩归档机制
+**Session Summary**: Gemini Lean 4 全面审计 — OMEGA 检测修复 + 8 项安全/正确性加固
 
 ## Current State
-- 核心 swarm 运行环境稳定（Volcengine doubao-1-5-pro-32k）
-- Hayekian 自由市场 PoS 经济系统已实现（fb26dfb）
-- 多模型异构 swarm 支持已上线（DeepSeek + doubao，tri-model）
-- LLM 温度上限修复已提交（627aee2，clamp 到 1.8）
-- `experiments/zeta_regularization/` 有未提交的 harness.rs + swarm.rs 改动
+- Mac Studio 上的 minif2f_swarm 进程已停止（手动 kill，WAL 数据已保存在 /tmp/*.wal）
+- **OMEGA 检测已修复** — Err 分支现在能正确识别完成的证明（bdece74 + c58924e）
+- Lean4 Membrane 安全加固完成 — sorry 防火墙、RCE 黑名单、Identity Theft 13 关键字
+- Sandbox 进程泄露已修复 — process_group(0) + SIGKILL
+- Boltzmann 路由 +0.01 floor 防零 reward 退化
+- `experiments/zeta_regularization/` 仍有未提交的 harness.rs + swarm.rs 改动（前次会话遗留）
 
 ## Changes This Session
-- **新建** `handover/architect-insights/` 目录 — 架构师口头洞察浓缩归档系统
-  - `2026-03-20_agent-skill-dna.md` — Agent skill = DNA，需传承而非随机重置
-  - `2026-03-20_hayekian-free-market.md` — 价格信号替代中央调度
-  - `2026-03-20_price-is-experience.md` — 质押价格 = 历史经验的压缩编码
-- **升级** `/architect-ingest` skill — 新增 Branch B 口头洞察捕获模式
-- **升级** `/handover-update` skill — 追加 Architect Insights 必填 section
-- **更新** `CLAUDE.md` — 追加规则 22-23（洞察归档 + 强制捕获）
-- **新建** Memory 条目 — `project_architect_insights.md` + `feedback_capture_insights.md`
+- `536b3ed` — 架构师洞察保存体系 + handover 更新
+- `bdece74` — **P0 修复**: OMEGA 检测 Err 分支 + sorry-redundancy 双重验证
+- `c58924e` — **Gemini 全面审计 8 项修复**:
+  - C1: RCE 软防御（Lean 4 危险关键字黑名单）
+  - C2: sorry/sorryAx 防火墙（word-boundary 检测）
+  - C3: sandbox 子进程 process_group kill（防 OOM）
+  - C4: Identity Theft 扩展到 13 关键字，仅扫描 LLM 增量
+  - H1: Boltzmann score +0.01 floor
+  - H3: Head 幽灵节点修复（tape.contains_key 检查）
+  - M2: Anti-Zombie period-2 循环检测
+  - M3: Tactic 提取 .trim() 容错
+- **停止 Mac Studio minif2f_swarm 进程**，分析 731 节点 × 17 WAL 的 Tape 数据
+- **发现**：MiniF2F 全量测试 0/15 OMEGA — 根因是 Err 分支丢失 OMEGA 信号（已修复）
+- **发现**：March 16 scaling_law_results (45%) 与 paper_draft (100%) 数据矛盾
+- **发现**：244 题 90.1% 来自 mock_results.txt，全量测试从未完成
 
 ## Key Decisions
-- 洞察归档格式：原话 → 浓缩(≤50字) → 架构含义 → 行动项，每条独立文件
-- `/architect-ingest` 双分支设计：Branch A 处理完整指令文档，Branch B 处理口头洞察
-- 识别信号：架构师使用类比、哲学引用、或本质性重新解读时触发捕获
+- OMEGA Err 分支必须二次验证（Gemini 指出多 goal 假阳性风险）
+- C4 Identity Theft 仅扫描 LLM 增量（Gemini 终审发现全 payload 扫描会误杀 MiniF2F 前置 def）
+- 容器化隔离（nsjail/bwrap）延迟到后续独立任务
+- 硬编码缩进（H2）延迟——需根本性重构
 
 ## Next Steps
-1. 重启 swarm 并监控市场行为（zephrymac-studio tmux session）
-2. 实现 Agent DNA 数据结构与继承机制（基于 agent-skill-dna 洞察）
-3. 设计基于历史成功率的动态质押公式（基于 price-is-experience 洞察）
-4. 处理 `experiments/zeta_regularization/` 未提交改动
+1. **重启 minif2f_swarm 测试**（Mac Studio）— 验证 OMEGA 修复后 pass rate 提升
+2. 处理 March 16 数据矛盾 — 确认哪组 scaling law 数字是真实的
+3. 运行 244 题全量测试（替代 mock_results.txt）
+4. 实现异构 R1 + V3.2 混合 swarm（zeta 实验唯一未试的关键杠杆）
+5. 处理 cross-audit V1 (wallet.rs DAG 违规) 和 V2 (kernel.rs 双重奖励)
 
 ## Warnings
-- `experiments/zeta_regularization/src/harness.rs` 和 `swarm.rs` 有未提交改动，下次会话注意不要覆盖
-- `get_volc_ep.py` 和 `handover/directives/2026-03-19_big-bang-multiverse-entropy.md` 是 untracked 文件
+- `experiments/zeta_regularization/src/harness.rs` 和 `swarm.rs` 有未提交改动
+- `get_volc_ep.py` 和 `handover/directives/2026-03-19_big-bang-multiverse-entropy.md` 是 untracked
+- Mac Studio WAL 数据在 `/tmp/*.wal`，重启后会丢失——如需保留应备份
+- 本地有 2 个未推送 commit（bdece74, c58924e），需 git push
 
 ## Architect Insights (本次会话)
-- Agent Skill DNA: 幸存Agent的skill组合必须像DNA一样传承给后代 → 已归档到 handover/architect-insights/2026-03-20_agent-skill-dna.md
-- Hayekian Free Market: 用价格信号做资源分配，禁止中央调度器 → 已归档到 handover/architect-insights/2026-03-20_hayekian-free-market.md
-- Price = Experience: 质押价格是Agent历史经验的压缩编码 → 已归档到 handover/architect-insights/2026-03-20_price-is-experience.md
+本次会话无新架构洞察（聚焦于工程审计和 bug 修复）

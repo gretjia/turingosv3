@@ -1,39 +1,40 @@
-# TuringOS v3 Progress & State
+# TuringOS v3 — Handover State
+**Updated**: 2026-03-20
+**Session Summary**: 建立架构师洞察保存体系 — 口头设计原则的压缩归档机制
 
-## Current Core Mission
-- We are running **TuringOS v3**, focusing on the **MiniF2F Lean 4 Formal Proof Swarm**.
-- The ultimate goal is to solve formal mathematics problems by employing a massive, concurrent swarm of LLM agents (up to N=100) exploring proof trees in a custom execution engine.
+## Current State
+- 核心 swarm 运行环境稳定（Volcengine doubao-1-5-pro-32k）
+- Hayekian 自由市场 PoS 经济系统已实现（fb26dfb）
+- 多模型异构 swarm 支持已上线（DeepSeek + doubao，tri-model）
+- LLM 温度上限修复已提交（627aee2，clamp 到 1.8）
+- `experiments/zeta_regularization/` 有未提交的 harness.rs + swarm.rs 改动
 
-## The Turing Capitalism Architecture
-The system has fully migrated to a **Proof-of-Stake** and **Austrian Economics** model:
-- **Free-Floating Stakes:** Agents decide their own cost to execute a node (`1.0` for low confidence, `1000.0` for high confidence). Capital generates topological gravity.
-- **The Graveyard Protocol (`src/bus.rs`):** Agents that generate code causing a `Compiler/Sandbox Error` are immediately liquidated (capital burned). Their failure and the explicit Lean 4 compiler error are etched into a public `Graveyard` on the node, forcing future Agents to learn via In-Context Reflection.
-- **The Market Ticker (`src/kernel.rs`):** The Kernel generates a dynamic top-3 node leaderboard based on `market_price`. This breaks the information silo and is injected into every prompt.
-- **Venture Capital:** Agents facing dead ends can choose to act as VC investors, staking their funds on top leaderboard nodes rather than risking compilation errors, shifting computing power naturally to the most promising branches without centralized orchestration.
+## Changes This Session
+- **新建** `handover/architect-insights/` 目录 — 架构师口头洞察浓缩归档系统
+  - `2026-03-20_agent-skill-dna.md` — Agent skill = DNA，需传承而非随机重置
+  - `2026-03-20_hayekian-free-market.md` — 价格信号替代中央调度
+  - `2026-03-20_price-is-experience.md` — 质押价格 = 历史经验的压缩编码
+- **升级** `/architect-ingest` skill — 新增 Branch B 口头洞察捕获模式
+- **升级** `/handover-update` skill — 追加 Architect Insights 必填 section
+- **更新** `CLAUDE.md` — 追加规则 22-23（洞察归档 + 强制捕获）
+- **新建** Memory 条目 — `project_architect_insights.md` + `feedback_capture_insights.md`
 
-## Execution Environment & Hardware
-- **Infrastructure:** Tests are primarily executed on `zephrymac-studio` using `tmux` sessions (e.g., `minif2f-sota-run`) to maintain persistence.
-- **API Provider:** Due to extreme HTTP 401/429 backpressure and GPU slot exhaustion on SiliconFlow at high concurrency (N=30+), the workload has been completely migrated to **Volcengine Ark (火山引擎)**.
-- **Active Model:** We are currently utilizing `doubao-1-5-pro-32k-250115` as the primary reasoning engine for the Swarm, as it natively supports high-throughput concurrent requests without truncating massive `<think>` blocks.
+## Key Decisions
+- 洞察归档格式：原话 → 浓缩(≤50字) → 架构含义 → 行动项，每条独立文件
+- `/architect-ingest` 双分支设计：Branch A 处理完整指令文档，Branch B 处理口头洞察
+- 识别信号：架构师使用类比、哲学引用、或本质性重新解读时触发捕获
 
-## Latest Incidents & Resolutions (March 17-19, 2026)
-1. **The Deflationary Deadlock:** A hardcoded `500` coin tax previously caused the entire Swarm to bankrupt itself rapidly, grinding execution to a halt around step 30. Fixed via the aforementioned Austrian Economics patch (floating stakes + VC).
-2. **Volcengine Migration Crisis:** The initial migration failed due to a missing `ep-` ID configuration. After extensive research, we verified that the Volcengine v3 Chat Completions API accepts direct model tags (`doubao-1-5-pro-32k-250115`). The remote `.env` on `zephrymac-studio` has been fully reconstructed with the correct API URL and API Key (`6ef79179-f1f6-484d-8258-585a9ff61b32`).
-3. **Node.js Memory Exhaustion:** The local Gemini CLI Agent experienced an OOM (JavaScript heap out of memory) crash. This was the final straw that triggered the migration to Claude Code.
-4. **Claude Code Harness Migration (March 19):** Migrated from Gemini CLI Agent to **Claude Code** with a complete three-layer governance system:
-   - **CLAUDE.md** — Project constitution (Layer 1 eternal invariants + Layer 2 evolvable parameters)
-   - **Hooks** — `block-destructive.sh` (PreToolUse), `post-edit-validate.sh` (auto cargo check), `stop-guard.sh` (Stop)
-   - **Skills** — `/dev-cycle`, `/validate`, `/swarm-launch`, `/handover-update`, `/architect-ingest`
-   - **Agents** — `kernel-auditor` (Opus read-only audit), `swarm-monitor` (Sonnet runtime), `handover-writer` (Sonnet handover)
-   - **VIA_NEGATIVA.md** — Registry of 5 proven-false paths
-   - **`.claudeignore`** — Context isolation (target/, WAL, logs, .elan/)
+## Next Steps
+1. 重启 swarm 并监控市场行为（zephrymac-studio tmux session）
+2. 实现 Agent DNA 数据结构与继承机制（基于 agent-skill-dna 洞察）
+3. 设计基于历史成功率的动态质押公式（基于 price-is-experience 洞察）
+4. 处理 `experiments/zeta_regularization/` 未提交改动
 
-## Immediate Next Steps (Actionable for New Agents)
-1.  **Restart the Swarm:** SSH into `zephrymac-studio`, connect to the `minif2f-sota-run` tmux session, ensure the `.env` is loaded, and start the `full_test_evaluator`. Command:
-    ```bash
-    cd ~/projects/turingosv3/experiments/minif2f_swarm
-    export $(cat ~/projects/turingosv3/.env | xargs)
-    cargo run --release --bin full_test_evaluator
-    ```
-2.  **Monitor the Graveyard:** Observe the terminal logs. You must verify that `[MARKET CASUALTY]` events are firing and successfully preventing early-stage bankruptcy loops via the In-Context Reflection mechanism.
-3.  **Monitor VC Activity:** Check if the prompt injections of the `=== 📈 GLOBAL MARKET LEADERBOARD ===` are successfully inducing `ToolSignal::InvestOnly` actions from the LLMs.
+## Warnings
+- `experiments/zeta_regularization/src/harness.rs` 和 `swarm.rs` 有未提交改动，下次会话注意不要覆盖
+- `get_volc_ep.py` 和 `handover/directives/2026-03-19_big-bang-multiverse-entropy.md` 是 untracked 文件
+
+## Architect Insights (本次会话)
+- Agent Skill DNA: 幸存Agent的skill组合必须像DNA一样传承给后代 → 已归档到 handover/architect-insights/2026-03-20_agent-skill-dna.md
+- Hayekian Free Market: 用价格信号做资源分配，禁止中央调度器 → 已归档到 handover/architect-insights/2026-03-20_hayekian-free-market.md
+- Price = Experience: 质押价格是Agent历史经验的压缩编码 → 已归档到 handover/architect-insights/2026-03-20_price-is-experience.md

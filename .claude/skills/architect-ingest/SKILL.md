@@ -66,3 +66,47 @@ Rating: NO IMPACT / UPDATE REQUIRED / VIOLATION
 
 ### 5. Execute (only after confirmation)
 Apply changes only after receiving explicit user authorization.
+
+---
+
+## Branch B: 口头洞察捕获模式
+
+When the input is a verbal architect insight (not a full directive document) — a philosophical principle, design analogy, or non-obvious architectural constraint:
+
+### 1. 提取原话
+Extract the architect's exact words as a quote.
+
+### 2. 压缩本质
+Condense to one sentence (≤50 characters) capturing the core principle.
+
+### 3. 写入归档
+Create `handover/architect-insights/YYYY-MM-DD_<topic-slug>.md` using this template:
+
+```markdown
+---
+date: YYYY-MM-DD
+status: proposed | implemented | deferred
+related_commits: []
+---
+
+## 原话
+> [exact architect quote]
+
+## 浓缩
+[one-sentence essence, ≤50 chars]
+
+## 架构含义
+- Layer 1/2 impact analysis
+- Constraints or extensions to existing mechanisms
+
+## 行动项
+- [ ] Concrete implementation steps (if any)
+```
+
+### 4. 更新 Memory 引用
+If the insight introduces a new category not yet referenced in memory, update the memory index.
+
+### 5. 呈现确认
+Show the condensed insight to the user for confirmation before finalizing.
+
+**识别信号**: 架构师使用类比、哲学引用、或对现有机制提出本质性重新解读时，触发此分支。

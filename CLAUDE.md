@@ -61,6 +61,8 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 16. `handover/ai-direct/LATEST.md` — 当前状态真相源
 17. `handover/bible.md` — 哲学基石，只读
 18. `handover/` — 架构审计存档
+22. `handover/architect-insights/` — 架构师口头洞察浓缩归档（每条≤50字本质）
+23. 架构师分享非显而易见的设计原则时，必须通过 `/architect-ingest` 归档
 
 ### User Profile (用户画像)
 

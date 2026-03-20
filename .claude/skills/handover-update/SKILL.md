@@ -47,6 +47,17 @@ Update `handover/ai-direct/LATEST.md` with:
 - [Anything the next session MUST be aware of]
 ```
 
+## Architect Insights (本次会话) — 必填 Section
+
+Before presenting the draft, check `handover/architect-insights/` for files created during this session. Include in the handover:
+
+```markdown
+## Architect Insights (本次会话)
+- [洞察主题]: 一句话浓缩 → 已归档到 handover/architect-insights/YYYY-MM-DD_xxx.md
+- ...
+（如无新洞察，标注「本次会话无新架构洞察」）
+```
+
 ### 3. Present for Review
 Show the draft to the user. Do NOT write without confirmation.
 

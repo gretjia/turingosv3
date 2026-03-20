@@ -29,8 +29,16 @@ impl AgentSupervisor {
         }
     }
 
-    pub fn apply_cognitive_divergence(&self) -> f32 {
-        0.2 + (0.6 * (self.agent_id as f32 / self.total_agents.max(1) as f32))
+    /// Thermodynamic Annealing: LLM generation temperature as a function of
+    /// agent identity AND exploration progress.
+    /// - Early (progress≈0): wide spread [0.1, 1.5] → maximum entropy, diverse exploration
+    /// - Late  (progress≈1): narrow spread [0.3, 0.6] → exploitation around known paths
+    pub fn apply_cognitive_divergence(&self, progress: f32) -> f32 {
+        let progress = progress.clamp(0.0, 1.0);
+        let t_min = 0.1 + 0.2 * progress;   // 0.1 → 0.3
+        let t_max = 1.5 - 0.9 * progress;   // 1.5 → 0.6
+        let agent_fraction = self.agent_id as f32 / self.total_agents.max(1) as f32;
+        t_min + (t_max - t_min) * agent_fraction
     }
 
     pub fn handle_rejection(&mut self, err: &HarnessError) -> WatchdogState {

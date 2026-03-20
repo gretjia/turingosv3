@@ -14,8 +14,12 @@ impl Graveyard {
     
     pub fn record_death(&mut self, node_id: &str, reason: &str) {
         let entry = self.tombstones.entry(node_id.to_string()).or_insert_with(VecDeque::new);
-        entry.push_back(reason.to_string());
-        if entry.len() > 3 {
+        // Dedup: don't store identical errors, preserve unique failure diversity
+        if !entry.iter().any(|existing| existing == reason) {
+            entry.push_back(reason.to_string());
+        }
+        // Keep up to 10 unique errors (was 3, too few for N=15 swarm)
+        if entry.len() > 10 {
             entry.pop_front();
         }
     }

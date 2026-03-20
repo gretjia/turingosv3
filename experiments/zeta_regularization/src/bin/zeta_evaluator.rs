@@ -29,7 +29,7 @@ fn main() {
     let api_url = std::env::var("ZETA_API_URL")
         .unwrap_or_else(|_| "https://api.siliconflow.cn/v1/chat/completions".to_string());
     let model_name = std::env::var("ZETA_MODEL")
-        .unwrap_or_else(|_| "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B".to_string());
+        .unwrap_or_else(|_| "Pro/deepseek-ai/DeepSeek-V3.2".to_string());
     let timeout_secs: u64 = std::env::var("ZETA_TIMEOUT")
         .unwrap_or_else(|_| "600".to_string())
         .parse()
@@ -197,7 +197,8 @@ fn main() {
                 }
             }
             Err(e) => {
-                warn!("[Step {}] REJECTED: {}", kernel_steps, e);
+                let payload_preview: String = action.payload.chars().take(200).collect();
+                warn!("[Step {}] REJECTED: {} | Payload: {}", kernel_steps, e, payload_preview.replace('\n', " "));
             }
         }
     }

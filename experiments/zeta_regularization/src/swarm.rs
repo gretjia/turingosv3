@@ -71,17 +71,18 @@ async fn run_agent(
     total_agents: usize,
     client: Arc<ResilientLLMClient>,
     prompt: String,
+    progress: f32,
 ) -> Option<(usize, String)> {
     // Millisecond jitter — true concurrent launch, no artificial stagger
     use rand::Rng;
     let jitter_ms = rand::thread_rng().gen_range(0..300);
     sleep(Duration::from_millis(jitter_ms)).await;
-    
+
     let mut supervisor = crate::harness::AgentSupervisor::new(i, total_agents);
     let mut current_prompt = prompt;
-    
+
     loop {
-        let temp = supervisor.apply_cognitive_divergence();
+        let temp = supervisor.apply_cognitive_divergence(progress);
         let result = client.resilient_generate(&current_prompt, i, temp).await;
         
         let harness_err = match result {
@@ -163,8 +164,11 @@ impl AIBlackBox for SpeculativeSwarmAgent {
         let selected_head = if all_nodes.is_empty() {
             None
         } else {
-            // Temperature T: larger T = more exploration/backtracking, smaller T = more greedy
-            let temperature = 0.5; 
+            // Thermodynamic Annealing: Boltzmann router temperature
+            // Early: T=2.0 → uniform exploration across all nodes
+            // Late:  T=0.3 → greedy exploitation of highest-price nodes
+            let progress = self.current_step as f64 / self.total_steps.max(1) as f64;
+            let temperature = 2.0 - 1.7 * progress; // 2.0 → 0.3
             
             let prices: Vec<f64> = all_nodes.iter().map(|n| n.price).collect();
             let max_price = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
@@ -213,6 +217,12 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             if let Some(graves) = input.s_i.tombstones.get(&parent_id) {
                 tombstones_str = graves.clone();
             }
+        } else {
+            // When Tape is empty, failures are recorded against "root".
+            // Inject root tombstones so LLM can learn from prior rejections.
+            if let Some(graves) = input.s_i.tombstones.get("root") {
+                tombstones_str = graves.clone();
+            }
         }
         
         let answers = self.rt.block_on(async {
@@ -232,7 +242,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 }
 
                 let p = format!(
-                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next single logical Lean 4 Tactic to advance this proof.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic AND the wallet payment You MUST replace <FLOAT> with a real decimal number (see economic rules above):\n[Tactic: your single lean 4 tactic here] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]",
+                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nProvide the next Lean 4 tactic block to advance this proof. You may write MULTIPLE tactic lines (separated by newlines) as a single submission.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou are permitted to go mad and deduce freely! You may use <think>...</think> tags. You may write 10,000 words to deduce, hypothesize, and self-correct. The OS will not interfere with your intelligence divergence. Release all your computing power to solve this problem!\n\nKERNEL SPACE PHASE-TRANSITION (CRITICAL):\nHowever, at the very end of your thought process, you MUST output your final decision by providing BOTH the tactic block AND the wallet payment. You MUST replace <FLOAT> with a real decimal number (see economic rules above).\nFor a single tactic: [Tactic: simp] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\nFor multi-line tactics: [Tactic: have h := some_lemma 1\\n  simp at h\\n  convert h using 1\\n  norm_num] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]",
                     last_state,
                     economic_operative,
                     input.s_i.market_ticker,
@@ -242,8 +252,9 @@ impl AIBlackBox for SpeculativeSwarmAgent {
 
                 let c = self.client.clone();
                 let total_agents = self.swarm_size;
+                let agent_progress = self.current_step as f32 / self.total_steps.max(1) as f32;
                 set.spawn(async move {
-                    run_agent(new_id, total_agents, c, p).await
+                    run_agent(new_id, total_agents, c, p, agent_progress).await
                 });
                 spawned += 1;
             }
@@ -270,6 +281,8 @@ impl AIBlackBox for SpeculativeSwarmAgent {
 
                         if tactic.starts_with("[Tactic:") && tactic.ends_with("]") {
                             tactic = tactic[8..tactic.len()-1].trim().to_string();
+                            // Support multi-line tactics: LLM uses literal \n to separate lines
+                            tactic = tactic.replace("\\n", "\n");
                         }
 
                         let tactic_payload = if tool_call.is_empty() {

@@ -373,12 +373,13 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 return (vec![], String::new());
             }
 
-            // Phase 2: Drain — collect ALL surviving branches (true multiverse)
-            // Search results from free tool requests are accumulated here
+            // Phase 2: Drain — collect surviving branches with per-step timeout
+            // If agents don't return within 5 min, move on with what we have
             let mut pending_search_results = String::new();
             let mut results: Vec<(usize, String)> = Vec::new();
+            let drain_deadline = tokio::time::Instant::now() + Duration::from_secs(300);
 
-            while let Some(join_result) = set.join_next().await {
+            while let Ok(Some(join_result)) = tokio::time::timeout_at(drain_deadline, set.join_next()).await {
                 match join_result {
                     Ok(Some((agent_id, pure_state))) => {
                         // Free actions: search and observe — don't push to Tape
@@ -436,6 +437,11 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                         }
                     }
                 }
+            }
+
+            if !set.is_empty() {
+                log::warn!(">>> [DRAIN TIMEOUT] {} agents still pending after 5 min. Proceeding with {} results.", set.len(), results.len());
+                set.abort_all();
             }
 
             (results, pending_search_results)

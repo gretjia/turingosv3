@@ -6,7 +6,7 @@ set -euo pipefail
 
 cd /home/zephryj/projects/turingosv3
 
-CORE_FILES="src/kernel.rs src/bus.rs src/sdk/tools/wallet.rs experiments/minif2f_swarm/src/swarm.rs"
+CORE_FILES="src/kernel.rs src/bus.rs src/sdk/tools/wallet.rs experiments/minif2f_swarm/src/swarm.rs experiments/zeta_regularization/src/swarm.rs experiments/zeta_regularization/src/bin/zeta_evaluator.rs handover/ALIGNMENT.md"
 
 DIRTY_FILES=""
 for f in $CORE_FILES; do

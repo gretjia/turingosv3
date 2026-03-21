@@ -27,18 +27,26 @@ fn main() {
     info!("=== ζ(-1) = -1/12 Regularization Theorem Test ===");
     info!("Swarm N={}, Max Steps={}", SWARM_SIZE, MAX_KERNEL_STEPS);
 
-    let api_url = "https://api.siliconflow.cn/v1/chat/completions";
+    let sf_url = "https://api.siliconflow.cn/v1/chat/completions";
+    let ds_url = "https://api.deepseek.com/chat/completions";
 
-    // Dual API keys for separate rate limits
-    let key_primary = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
-    let key_secondary = std::env::var("SILICONFLOW_API_KEY_SECONDARY").unwrap_or_else(|_| key_primary.clone());
+    // Three independent API lines — zero shared concurrency limits
+    let key_sf_primary = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
+    let key_sf_secondary = std::env::var("SILICONFLOW_API_KEY_SECONDARY").unwrap_or_else(|_| key_sf_primary.clone());
+    let key_deepseek = std::env::var("DEEPSEEK_API_KEY").unwrap_or_else(|_| key_sf_primary.clone());
 
-    // Heterogeneous model pool: R1 (deep reasoning) + V3.2 (fast iteration)
-    let client_r1 = Arc::new(ResilientLLMClient::with_key(api_url, "Pro/deepseek-ai/DeepSeek-R1", &key_primary));
-    let client_v3 = Arc::new(ResilientLLMClient::with_key(api_url, "Pro/deepseek-ai/DeepSeek-V3.2", &key_secondary));
+    // Magna Carta heterogeneous pool — three species aligned with three roles:
+    // Miner (main workforce): R1-Distill-Qwen-72B — large params, broad Mathlib coverage
+    // Scholar (deep reasoning): DeepSeek-V3.2 reasoning via official API — may find exact lemma names
+    // Explorer (proven lemma finder): DeepSeek-R1 — found riemannZeta_neg_nat_eq_bernoulli' in Run 5
+    let client_miner = Arc::new(ResilientLLMClient::with_key(sf_url, "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", &key_sf_primary));
+    let client_scholar = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_deepseek));
+    let client_explorer = Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/deepseek-ai/DeepSeek-R1", &key_sf_secondary));
 
-    info!("Heterogeneous Swarm: R1 (key_primary) + V3.2 (key_secondary)");
-    info!("API: {}", api_url);
+    info!("=== Magna Carta Heterogeneous Swarm ===");
+    info!("Miner: R1-Distill-Qwen-32B (SF primary)");
+    info!("Scholar: deepseek-reasoner (DeepSeek official)");
+    info!("Explorer: DeepSeek-R1 (SF secondary)");
 
     // Independent WAL
     let wal_path = format!("/tmp/{}_N{}.wal", THEOREM_NAME, SWARM_SIZE);
@@ -48,9 +56,10 @@ fn main() {
     let recovered_files = rt.block_on(zeta_regularization::wal::recover_tape(&wal_path));
     info!("WAL recovered {} files from {}", recovered_files.len(), wal_path);
 
-    // Build heterogeneous swarm: round-robin R1, V3.2
+    // Build heterogeneous swarm: round-robin Miner, Scholar, Explorer
+    // Agent 0→Miner, 1→Scholar, 2→Explorer, 3→Miner, 4→Scholar, 5→Explorer, ...
     let mut agent = SpeculativeSwarmAgent::new_multi(
-        vec![client_r1, client_v3],
+        vec![client_miner, client_scholar, client_explorer],
         MAX_KERNEL_STEPS,
         SWARM_SIZE,
         sentinel,

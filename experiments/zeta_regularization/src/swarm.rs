@@ -276,6 +276,67 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             }
         }
 
+        // Epistemic Engine: process free tool requests from previous round's outputs
+        // Agents can request [Tool: MathlibOracle | Query: ...] or [Tool: PythonSandbox | Code: ...]
+        // Results are injected into the next prompt — zero cost, pure information
+        let mut free_tool_results = String::new();
+        for output in &self.queued_outputs {
+            let payload = &output.a_o.payload;
+            // MathlibOracle: grep Mathlib for identifier/lemma
+            if let Some(start) = payload.find("[Tool: MathlibOracle | Query: ") {
+                let rest = &payload[start + 30..];
+                if let Some(end) = rest.find(']') {
+                    let query = rest[..end].trim();
+                    // Sanitize: remove shell metacharacters
+                    let safe_query: String = query.chars()
+                        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '\'' || *c == '.' || *c == ' ')
+                        .collect();
+                    if !safe_query.is_empty() {
+                        let mathlib_path = "/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib";
+                        let alt_path = "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib";
+                        let search_path = if std::path::Path::new(mathlib_path).exists() { mathlib_path } else { alt_path };
+                        let result = std::process::Command::new("grep")
+                            .args(&["-r", "-l", "--include=*.lean", &safe_query, search_path])
+                            .output();
+                        if let Ok(out) = result {
+                            let stdout = String::from_utf8_lossy(&out.stdout);
+                            let lines: Vec<&str> = stdout.lines().take(10).collect();
+                            if !lines.is_empty() {
+                                free_tool_results.push_str(&format!(
+                                    "\n=== MathlibOracle Results for '{}' (FREE) ===\n{}\n===\n",
+                                    safe_query, lines.join("\n")
+                                ));
+                                info!(">>> [ORACLE] Free MathlibOracle query: '{}' → {} results", safe_query, lines.len());
+                            }
+                        }
+                    }
+                }
+            }
+            // PythonSandbox: execute Python code
+            if let Some(start) = payload.find("[Tool: PythonSandbox | Code: ") {
+                let rest = &payload[start + 29..];
+                if let Some(end) = rest.find(']') {
+                    let code = rest[..end].trim();
+                    if !code.is_empty() && code.len() < 500 {
+                        let result = std::process::Command::new("python3")
+                            .args(&["-c", code])
+                            .output();
+                        if let Ok(out) = result {
+                            let stdout = String::from_utf8_lossy(&out.stdout);
+                            let output_lines: String = stdout.lines().take(20).collect::<Vec<_>>().join("\n");
+                            if !output_lines.is_empty() {
+                                free_tool_results.push_str(&format!(
+                                    "\n=== PythonSandbox Result (FREE) ===\n{}\n===\n",
+                                    output_lines
+                                ));
+                                info!(">>> [SANDBOX] Free PythonSandbox executed: {} chars", code.len());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Build Frontier Market Ticker — prices ARE information (Hayek 1945)
         let frontier_market = {
             let reverse_citations = &input.s_i.visible_tape.reverse_citations;
@@ -303,7 +364,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                     ticker.push_str(&format!("Rank {}: [Node: {}] | Reward: {:.2} | Proof Depth: {}\n", i + 1, node.id, node.intrinsic_reward, depth));
                 }
             }
-            ticker.push_str("=== To invest in a node: [State: INVEST] [Tool: Wallet | Action: Stake | Node: <ID> | Amount: <FLOAT>] ===\n");
+            ticker.push_str("=== To invest in a node: [State: INVEST] [Tool: Wallet | Action: Invest | Node: <ID> | Amount: <FLOAT>] ===\n");
             ticker
         };
 
@@ -324,12 +385,13 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 }
 
                 let p = format!(
-                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nYou have TWO choices each step:\n\nOPTION A (Mine): Produce a Lean 4 tactic block and stake on your own work. You may write MULTIPLE tactic lines (separated by \\n) as a single submission.\n[Tactic: your lean 4 tactic] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\nFor multi-line: [Tactic: have h := some_lemma 1\\n  simp at h\\n  exact h] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\n\nOPTION B (Invest): Study the FRONTIER MARKET above and invest in a promising node.\n[State: INVEST] [Tool: Wallet | Action: Stake | Node: <node_id> | Amount: <FLOAT>]\n\nYou are FREE to choose either path based on your judgment.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou may use <think>...</think> tags to reason freely.\n\nWARNING: If your account balance reaches 0, you DIE. Stake wisely — survival is the first priority.",
+                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nYou have THREE choices each step:\n\nOPTION A (Mine): Produce a Lean 4 tactic block and invest on your own work. You may write MULTIPLE tactic lines (separated by \\n).\n[Tactic: your lean 4 tactic] [Tool: Wallet | Action: Invest | Node: self | Amount: <FLOAT>]\nFor multi-line: [Tactic: have h := some_lemma 1\\n  simp at h\\n  exact h] [Tool: Wallet | Action: Invest | Node: self | Amount: <FLOAT>]\n\nOPTION B (Invest): Study the FRONTIER MARKET above and invest in a promising node. Zero compiler risk.\n[State: INVEST] [Tool: Wallet | Action: Invest | Node: <node_id> | Amount: <FLOAT>]\n\nOPTION C (Research): Use FREE tools to gather information before committing capital.\n[Tool: MathlibOracle | Query: your search term]\n[Tool: PythonSandbox | Code: your python code]\nResearch costs NOTHING. Results appear in your next prompt.\n\nYou are FREE to choose any path. The market rewards good judgment.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou may use <think>...</think> tags to reason freely.\n\nWARNING: If your balance reaches 0, you DIE. Invest wisely — survival is the first priority.",
                     last_state,
                     economic_operative,
                     frontier_market,
                     input.s_i.market_ticker,
                     tombstones_str,
+                    free_tool_results,
                     balance
                 );
 

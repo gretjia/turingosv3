@@ -41,8 +41,16 @@ impl WalletTool {
     }
 
     fn parse_payment(&self, payload: &str) -> Option<(String, f64)> {
-        let tag = "[Tool: Wallet | Action: Stake | Node: ";
-        let start = payload.find(tag)?;
+        // Support both "Action: Invest" (preferred) and "Action: Stake" (backward compat)
+        let tag_invest = "[Tool: Wallet | Action: Invest | Node: ";
+        let tag_stake = "[Tool: Wallet | Action: Stake | Node: ";
+        let (tag, start) = if let Some(pos) = payload.find(tag_invest) {
+            (tag_invest, pos)
+        } else if let Some(pos) = payload.find(tag_stake) {
+            (tag_stake, pos)
+        } else {
+            return None;
+        };
         let rest = &payload[start + tag.len()..];
         let node_end = rest.find(" | Amount: ")?;
         let target_node = rest[..node_end].trim().to_string();
@@ -95,7 +103,7 @@ impl TuringTool for WalletTool {
         self.global_pool += amount;
 
         if target.to_lowercase() == "self" {
-            log::info!(">>> [SELF-STAKE] Agent {} stakes {:.2} on own output. Balance after: {:.2}",
+            log::info!(">>> [SELF-INVEST] Agent {} invests {:.2} on own output. Balance after: {:.2}",
                        author, amount, self.balances.get(author).unwrap_or(&0.0));
             self.pending_self_stakes.insert(author.to_string(), amount);
             let clean_payload = payload.split("[Tool: Wallet").next().unwrap_or(payload).trim().to_string();

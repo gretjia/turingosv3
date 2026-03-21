@@ -22,7 +22,7 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 1. **kernel.rs 零领域知识** — 不可包含任何 Lean/数学/领域字符串
 2. **仅 SKILL 可铸造 intrinsic_reward** — kernel 不可直接赋值
 3. **Tape 是 Append-Only DAG** — 不可删除已写入节点
-4. **质押必须 >= 1.0** — 零成本操作被禁止
+4. **质押必须 >= 1.0** — 零成本 Tape 写入操作被禁止（纯信息查询类免费工具不受此约束）
 
 ### Layer 2 — Evolvable Parameters (可演进参数)
 

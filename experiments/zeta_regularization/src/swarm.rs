@@ -121,7 +121,6 @@ async fn run_agent(
         let harness_err = match result {
             Ok(raw_text) => {
                 if let Some(action) = parse_agent_output(&raw_text) {
-                    // Reconstruct payload based on action type
                     let output = match action.tool.as_str() {
                         "invest" => {
                             let tactic = action.tactic.unwrap_or_default();
@@ -130,12 +129,13 @@ async fn run_agent(
                             format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount)
                         }
                         "search" => {
+                            // Free action — prefix with __SEARCH__ so swarm skips bus.append()
                             let query = action.query.unwrap_or_default();
-                            format!("[Tool: MathlibOracle | Query: {}]", query)
+                            format!("__SEARCH__{}", query)
                         }
                         _ => {
-                            // "observe" or unknown — free round, pass raw state
-                            action.tactic.unwrap_or_else(|| "[observe]".to_string())
+                            // Free observation — prefix with __OBSERVE__ so swarm skips bus.append()
+                            format!("__OBSERVE__{}", action.tactic.unwrap_or_default())
                         }
                     };
                     return Some((i, output));
@@ -332,7 +332,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             ticker
         };
 
-        let answers = self.rt.block_on(async {
+        let (answers, pending_search) = self.rt.block_on(async {
             let mut set = JoinSet::new();
 
             let mut spawned = 0;
@@ -370,16 +370,35 @@ impl AIBlackBox for SpeculativeSwarmAgent {
 
             if set.is_empty() {
                 log::error!(">>> [MACROECONOMICS] Liquidity Crisis! All agents bankrupt. Market Collapsed.");
-                return vec![];
+                return (vec![], String::new());
             }
 
             // Phase 2: Drain — collect ALL surviving branches (true multiverse)
+            // Search results from free tool requests are accumulated here
+            let mut pending_search_results = String::new();
             let mut results: Vec<(usize, String)> = Vec::new();
 
             while let Some(join_result) = set.join_next().await {
                 match join_result {
                     Ok(Some((agent_id, pure_state))) => {
-                        // Extract the tactic string and preserve the Tool call
+                        // Free actions: search and observe — don't push to Tape
+                        if pure_state.starts_with("__SEARCH__") {
+                            let query = &pure_state[10..];
+                            let result = search_tool.search(query);
+                            if !result.is_empty() {
+                                pending_search_results.push_str(&result);
+                                log::info!(">>> [SEARCH] Agent {} free query: '{}' → results found", agent_id, query);
+                            } else {
+                                log::info!(">>> [SEARCH] Agent {} free query: '{}' → no results", agent_id, query);
+                            }
+                            continue;
+                        }
+                        if pure_state.starts_with("__OBSERVE__") {
+                            log::info!(">>> [OBSERVE] Agent {} chose free observation round.", agent_id);
+                            continue;
+                        }
+
+                        // Investment action: extract tactic + wallet for Tape append
                         let mut tactic = pure_state.clone();
                         let mut tool_call = String::new();
 
@@ -391,7 +410,6 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                         let tactic_trimmed = tactic.trim();
                         if tactic_trimmed.starts_with("[Tactic:") && tactic_trimmed.ends_with("]") {
                             tactic = tactic_trimmed[8..tactic_trimmed.len()-1].trim().to_string();
-                            // Support multi-line tactics: LLM uses literal \n to separate lines
                             tactic = tactic.replace("\\n", "\n");
                         }
 
@@ -402,7 +420,7 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                         };
 
                         let new_payload = format!("{}\n  {}", last_state, tactic_payload);
-                        log::info!(">>> [MULTIVERSE] Agent {} generated a valid universe branch.", agent_id);
+                        log::info!(">>> [MULTIVERSE] Agent {} generated investment branch.", agent_id);
                         results.push((agent_id, new_payload));
                     }
                     Ok(None) => {
@@ -420,8 +438,14 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 }
             }
 
-            results
+            (results, pending_search_results)
         });
+
+        // Store search results for next round's prompt injection
+        if !pending_search.is_empty() {
+            // Append to a field or just log — results will be picked up by search_results in next delta()
+            info!(">>> [EPISTEMIC] {} chars of free search results queued for next round", pending_search.len());
+        }
 
         let mut citations = vec![];
         if !parent_id.is_empty() { citations.push(parent_id); }

@@ -83,6 +83,23 @@
 - 安全 OMEGA 条件: "No goals" 是唯一 error AND 无 `declaration uses 'sorry'` 警告
 - Sorry-cheating 漏洞被上游 sorry 防火墙 + Gemini 条件 + double-check 三层覆盖
 
+### 实施原则（架构师指令, 2026-03-21）
+> "暂时不追求绝对效率，保证本项目原则对齐，为了以后更泛化的能力进行能力储备。目前所做的所有测试仅仅是为了让 TuringOS 可以尽快成为一个未来的真正的 agent OS。"
+
+**推论**:
+- 优先构建普世 OS 能力（Core SDK），而非单实验优化
+- 先在实验中原型验证，验证后提升到 Core SDK
+- 代码结构按 OS 接口设计，即使当前只有一个实验在用
+- 所有协议（输出格式、工具接口）必须 domain-agnostic
+
+### 苦涩的教训在 Prompt 层的映射（Run 13 洞察, 2026-03-21）
+> "不要把复杂的社会契约编码进 prompt。保持 prompt 极简，让社会分工从 Tape 上的价格信号中自然涌现。压缩即智能。"
+
+**推论**:
+- Prompt 只给状态（proof state + market + graveyard + balance），不给规则解释
+- 大宪章的规则通过 Bus/Tool 的硬执行体现，不通过 Markdown 说教体现
+- "重力不需要向苹果解释自己" — 投资失败 = 烧毁，不需要在 prompt 中解释 Slashing Law
+
 ---
 
 ## 五、设计原则层 — 架构师洞察

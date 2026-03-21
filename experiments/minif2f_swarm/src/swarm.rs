@@ -1,5 +1,7 @@
 use turingosv3::kernel::{AIBlackBox, Input, Output, Action, MachineState, File};
-use turingosv3::sdk::membrane::distill_pure_state;
+use turingosv3::sdk::protocol::parse_agent_output;
+use turingosv3::sdk::prompt;
+use turingosv3::sdk::tools::search::SearchTool;
 use turingosv3::drivers::llm_http::ResilientLLMClient;
 use log::{info, error};
 use std::sync::Arc;
@@ -94,18 +96,21 @@ async fn run_agent(
         
         let harness_err = match result {
             Ok(raw_text) => {
-                let mut full_state = String::new();
-                if let Some(pure_state) = distill_pure_state(&raw_text) {
-                    full_state.push_str(&pure_state);
-                    
-                    // Recover Tool call if it exists since distill_pure_state strips everything else
-                    if let Some(tool_start) = raw_text.rfind("[Tool: Wallet") {
-                        if let Some(tool_end) = raw_text[tool_start..].find(']') {
-                            full_state.push_str(" ");
-                            full_state.push_str(&raw_text[tool_start..=tool_start+tool_end]);
+                if let Some(action) = parse_agent_output(&raw_text) {
+                    let output = match action.tool.as_str() {
+                        "invest" => {
+                            let tactic = action.tactic.unwrap_or_default();
+                            let amount = action.amount.unwrap_or(1.0);
+                            let node = action.node.unwrap_or_else(|| "self".to_string());
+                            format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount)
                         }
-                    }
-                    return Some((i, full_state));
+                        "search" => {
+                            let query = action.query.unwrap_or_default();
+                            format!("[Tool: MathlibOracle | Query: {}]", query)
+                        }
+                        _ => action.tactic.unwrap_or_else(|| "[observe]".to_string()),
+                    };
+                    return Some((i, output));
                 } else {
                     crate::harness::HarnessError::SemanticCollapse
                 }
@@ -233,17 +238,43 @@ impl AIBlackBox for SpeculativeSwarmAgent {
             last_state = self.initial_problem_statement.clone();
         }
 
-        let economic_operative = std::fs::read_to_string("/home/zephryj/projects/turingosv3/skills/economic_operative.md").unwrap_or_default();
+        // Load SKILL from Mac or Linux path
+        let economic_operative = std::fs::read_to_string("/Users/zephryj/projects/turingosv3/skills/economic_operative.md")
+            .or_else(|_| std::fs::read_to_string("/home/zephryj/projects/turingosv3/skills/economic_operative.md"))
+            .unwrap_or_default();
 
         let mut tombstones_str = String::new();
         if !parent_id.is_empty() {
             if let Some(graves) = input.s_i.tombstones.get(&parent_id) {
                 tombstones_str = graves.clone();
             }
+        } else {
+            if let Some(graves) = input.s_i.tombstones.get("root") {
+                tombstones_str = graves.clone();
+            }
         }
 
-        // Build Frontier Market Ticker — prices ARE information (Hayek 1945)
-        // Shows frontier nodes ranked by depth-weighted score, with depth as experience signal
+        // Process free search requests from previous round
+        let search_tool = SearchTool::new(vec![
+            "/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib".to_string(),
+            "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib".to_string(),
+        ]);
+        let mut search_results = String::new();
+        for output in &self.queued_outputs {
+            if let Some(action) = parse_agent_output(&output.a_o.payload) {
+                if action.tool == "search" {
+                    if let Some(query) = &action.query {
+                        let result = search_tool.search(query);
+                        if !result.is_empty() {
+                            search_results.push_str(&result);
+                            info!(">>> [SEARCH] Free query: '{}'", query);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build Frontier Market Ticker
         let frontier_market = {
             let reverse_citations = &input.s_i.visible_tape.reverse_citations;
             let mut frontier_with_depth: Vec<(&File, usize)> = input.s_i.visible_tape.files.values()
@@ -262,22 +293,16 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 .collect();
             frontier_with_depth.sort_by(|a, b| b.1.cmp(&a.1).then(b.0.intrinsic_reward.partial_cmp(&a.0.intrinsic_reward).unwrap_or(std::cmp::Ordering::Equal)));
 
-            let mut ticker = String::from("\n=== FRONTIER MARKET (Top investment opportunities) ===\n");
-            if frontier_with_depth.is_empty() {
-                ticker.push_str("Market is empty. Be the first miner to IPO!\n");
-            } else {
-                for (i, (node, depth)) in frontier_with_depth.iter().take(5).enumerate() {
-                    ticker.push_str(&format!("Rank {}: [Node: {}] | Reward: {:.2} | Proof Depth: {}\n", i + 1, node.id, node.intrinsic_reward, depth));
-                }
+            let mut ticker = String::from("\n=== FRONTIER MARKET ===\n");
+            for (i, (node, depth)) in frontier_with_depth.iter().take(5).enumerate() {
+                ticker.push_str(&format!("#{}: {} | R:{:.0} | D:{}\n", i + 1, node.id, node.intrinsic_reward, depth));
             }
-            ticker.push_str("=== To invest in a node: [State: INVEST] [Tool: Wallet | Action: Stake | Node: <ID> | Amount: <FLOAT>] ===\n");
             ticker
         };
 
         let answers = self.rt.block_on(async {
             let mut set = JoinSet::new();
 
-            // Phase 1: Spawn — one batch of agents, skip bankrupt ones
             let mut spawned = 0;
             for new_id in 0..100 {
                 if spawned >= self.swarm_size { break; }
@@ -286,18 +311,18 @@ impl AIBlackBox for SpeculativeSwarmAgent {
                 let balance = input.s_i.agent_balances.get(&agent_name).copied().unwrap_or(0.0);
 
                 if balance < 1.0 {
-                    log::warn!(">>> [LIQUIDATION] Agent {} is bankrupt (balance: {:.2}). Stripped of execution rights.", agent_name, balance);
+                    log::warn!(">>> [LIQUIDATION] Agent {} bankrupt ({:.2})", agent_name, balance);
                     continue;
                 }
 
-                let p = format!(
-                    "Current Lean 4 Proof State:\n{}\n\n{}\n{}\n{}\n{}\n[YOUR WALLET BALANCE: {:.2} TuringCoins]\n\nYou have TWO choices each step:\n\nOPTION A (Mine): Produce a Lean 4 tactic and stake on your own work.\n[Tactic: your lean 4 tactic] [Tool: Wallet | Action: Stake | Node: self | Amount: <FLOAT>]\n\nOPTION B (Invest): Study the FRONTIER MARKET above and invest in a promising node.\n[State: INVEST] [Tool: Wallet | Action: Stake | Node: <node_id> | Amount: <FLOAT>]\n\nYou are FREE to choose either path based on your judgment. Mining creates new proof progress. Investing amplifies promising branches without compiler risk.\n\nUSER SPACE THERMODYNAMIC SANDBOX:\nYou may use <think>...</think> tags to reason freely.\n\nWARNING: If your account balance reaches 0, you DIE. A new agent will be awakened to replace you. Stake wisely — survival is the first priority.",
-                    last_state,
-                    economic_operative,
-                    frontier_market,
-                    input.s_i.market_ticker,
-                    tombstones_str,
-                    balance
+                // Build minimal prompt via Core SDK
+                let p = prompt::build_agent_prompt(
+                    &format!("Current Lean 4 Proof State:\n{}", last_state),
+                    &economic_operative,
+                    &frontier_market,
+                    &format!("{}{}", tombstones_str, search_results),
+                    balance,
+                    prompt::lean4_tools(),
                 );
 
                 // Heterogeneous model assignment: round-robin across available clients

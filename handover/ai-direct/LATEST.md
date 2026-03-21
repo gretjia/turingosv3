@@ -1,55 +1,59 @@
 # TuringOS v3 — Handover State
-**Updated**: 2026-03-20
-**Session Summary**: ζ(-1)=-1/12 正则化实验 — 从零搭建到异构 R1+V3.2 swarm，8 轮迭代验证多 agent 涌现
+**Updated**: 2026-03-21
+**Session Summary**: 从 ζ(-1) 到 Number Theory — 两个 OMEGA，Core SDK 建设，大宪章实施，boot 自动化
 
 ## Current State
-- **zeta_regularization 实验项目** (`experiments/zeta_regularization/`) 完全独立于 minif2f
-- **Run 12 已完成**: 50 append / 50 reject (50% 通过率), 0 OMEGA, 4 tape 节点存活
-- **Mac Studio tmux**: `zeta-test` session 已结束, `minif2f-sota-run` 由另一个 agent 管理
-- **异构 swarm 验证成功**: R1 (8 agents, key_primary) + V3.2 (7 agents, key_secondary)
-- **Hayekian 价格引擎首次全速运转**: 8 次 Phase Transition, 最高价格 65,400
-- **定理未证明**: LLM 无法独立发现 `riemannZeta_neg_nat_eq_bernoulli'` (Mathlib 中存在)
+- **两个定理已证明**:
+  - ζ(-1) = -1/12 (Run 15, `apply?`, 51 min)
+  - Smallest n: 7|n ∧ square ∧ digit9 ∧ digitsum25 = **5929** (Run 2, 构造性证明, 26 min)
+- **Core SDK 已建成**: `protocol.rs`, `prompt.rs`, `search.rs` — 任何新项目可复用
+- **boot-experiment.sh**: 3 参数自动创建项目 + 编译 + 部署 + 启动
+- **所有测试已完成**: Mac 上无活跃 swarm 进程
+- **Branch `auto-numtheory-loop`**: 2 commits 未合并到 main (drain timeout fix + OMEGA docs)
 
-## Changes This Session
-- `08d0094` — zeta_regularization 独立实验项目 (Cargo.toml, evaluator, swarm, WAL, membrane)
-- `294b546` — Big Bang Multiverse sync + port to zeta
-- `557f433` — 热力学退火 + 多行 tactic + Graveyard dedup (3→10)
-- `122ef57` — 异构 swarm (R1+V3.2) + depth-weighted frontier + 双 API key 路由
-- `llm_http.rs` — `ResilientLLMClient::with_key()` 显式 key 构造 + `model_name()` accessor
-- `sandbox.rs` — **根因修复**: Lean 4 error 写到 stdout 非 stderr, 合并两流
-- `bus.rs` — Graveyard dedup (相同错误不重复) + `extract_wallet_balances()`
-- 另一个 agent 的变更已同步: `fb26dfb` frontier ticker, `1ae1d2c` pool redistribution, `a6bc24c` depth-weighted, `a5a89be` SelfHeal 修复
+## Changes This Session (主要 commits)
+- `176cd88` — Core SDK: protocol.rs (JSON <action> parser), prompt.rs (极简模板), search.rs (免费搜索)
+- `616f98e` — minif2f swarm 迁移到 Core SDK
+- `73ef88a` — search/observe routing 修复: 免费行为不再进入 bus.append()
+- `1f911d4` — **OMEGA #1**: ζ(-1) = -1/12 by Agent_2 (R1, `apply?`)
+- `49f55d3` — 形式化证明提交文档 (独立复现 + 对照组验证)
+- `4ab6950` — 大宪章实施: ALIGNMENT.md + 四引擎 + Guillotine + Invest 术语
+- `8f0dc7f` — boot-experiment.sh: 自动化实验启动脚本 + README 重写
+- `dcc76aa` — number_theory_min 实验项目
+- `23af73f` — drain timeout 修复 (5 min 截断慢 agent)
+- `413a59a` — **OMEGA #2**: n=5929 构造性证明 by Agent_1 (deepseek-reasoner)
 
 ## Key Decisions
-- **项目隔离**: 每个实验独立 Cargo 项目, 不共享 API 配置 (反教训: Run 1 混在 minif2f 里)
-- **不 hard-code 答案**: 删除了 lemma 名提示, 让 swarm 自己发现 (Run 7 vs Run 6 对比验证)
-- **热力学退火**: 物理温度参数 (顶层白盒), 非策略干预 (中间黑盒), 符合反奥利奥架构
-- **异构优于同构**: R1 知道精确 lemma 名, V3.2 知道定义展开路径, 互补覆盖
+- **极简 prompt**: Run 13 (复杂 prompt, 12%) vs Run 15 (极简, OMEGA) → "压缩即智能"
+- **撤销 Auto-Oracle**: Gemini 建议保留显式 search 工具, 不自动喂饭 (保护物种演化)
+- **JSON 协议 + legacy fallback**: `<action>{...}</action>` 优先, 兼容 `[Tactic:]+[Wallet:]`
+- **drain timeout**: collect-all 架构 + 5 min 截断 → 6x 加速
+- **大宪章**: 四引擎实施但 prompt 不解释规则 → 系统执行体现规则
 
-## 8 轮测试演化链
-| Run | 模型 | Append | 关键发现 |
-|-----|------|--------|---------|
-| 1 | R1-Distill-32B | 13 | sandbox error 空, N=3 |
-| 3 | R1-Distill-32B | 0 | sandbox 修复, 50% termination trap |
-| 5 | DeepSeek-R1 | 0 | R1 找到正确 lemma 名, coercion 墙 |
-| 6 | V3.2 | 0 | 18 种策略, coercion 墙 |
-| 7 | V3.2 (无提示) | 0 | 37 种策略, 幻觉 lemma 主导 |
-| 8 | V3.2 (退火) | 1 | 首次 append! 45 种策略 |
-| 12 | R1+V3.2 异构 | **50** | 50% 通过率, 价格 65,400 |
+## 15 轮 ζ(-1) 演化 + 2 轮 Number Theory
+| Run | 题目 | Append | OMEGA | 关键事件 |
+|-----|------|--------|-------|---------|
+| 1-3 | ζ(-1) | 0-13 | ❌ | sandbox stderr 修复 |
+| 5-8 | ζ(-1) | 0-1 | ❌ | 异构 swarm + 退火 + 首次 append |
+| 12-13 | ζ(-1) | 50/12 | ❌ | 大宪章 → prompt 过载 |
+| 14-15 | ζ(-1) | 0/3 | **✅** | search routing 修复 → OMEGA |
+| NT-1 | 5929 | 0 | ❌ | drain 阻塞 (30 min/step) |
+| **NT-2** | **5929** | **2** | **✅** | **drain timeout → 26 min OMEGA** |
 
 ## Next Steps
-1. **混合更多模型** (Qwen3.5 等) 扩大知识覆盖 — 突破 Mathlib API 名称盲区
-2. **尝试不同定理** 验证 swarm 架构的通用性 (不仅限于 ζ 函数)
-3. **分析 Run 12 DAG 拓扑** — 50 个节点的证明树结构是否有收敛趋势
-4. **minif2f 全量测试重跑** — OMEGA 检测修复后的真实 pass rate
+1. **合并 `auto-numtheory-loop` 到 main**
+2. **drain timeout 提升到 Core SDK** (目前只在 number_theory_min)
+3. **membrane blocklist 参数化** (native_decide 按题目配置)
+4. **更多定理测试** — 验证 SDK 架构的通用性
+5. **Speciation Engine (Phase 4)** — per-agent DNA 演化
 
 ## Warnings
-- `zeta/src/harness.rs` + `zeta/src/swarm.rs` 有未提交的 fb26dfb port + SelfHeal 修复
-- `.env` 中 `SILICONFLOW_API_KEY_SECONDARY` 和 `VOLCENGINE_API_KEY` 粘连 — tmux 启动时必须手动分割 (正确 key: `sk-vhmaluxrfdqqnpjududaptmvhjasrervmetppawlwwbbpwya`)
-- Mac 的 `.env` 没有 SECONDARY key — 必须在 tmux 命令中显式 export
-- 审计报告在 `experiments/zeta_regularization/audit/` (run1, run3, run6, run7, run8)
+- Branch `auto-numtheory-loop` 有 2 commits 未合并到 main
+- `native_decide` 在 membrane blocklist 中, 可能误杀合法 tactic (Number Theory Run 1 中 29% reject)
+- zeta 项目的 swarm.rs 没有 drain timeout (只有 number_theory_min 有)
+- Mac .env 没有 SILICONFLOW_API_KEY_SECONDARY — tmux 启动时必须手动 export
 
 ## Architect Insights (本次会话)
-- **退火的真正价值是温度梯度** — 低温 agent 的保守策略 (`simp only`) 存活为高温 agent 提供 DAG 立足点 → 已归档到 audit/run8_tape_analysis.md
-- **异构涌现需要共享 Tape** — R1 的 lemma 知识 + V3.2 的展开能力只有通过 Tape DAG 才能互相可见 → 已归档到 audit/run7_tape_analysis.md
-- **N 的增大不能突破单一模型的知识分布边界** — 苦涩的教训在 LLM swarm 中的映射 → 已归档到 audit/run7_tape_analysis.md
+- **压缩即智能**: 不要把社会契约编码进 prompt, 让社会分工从价格信号中涌现 → 已归档到 ALIGNMENT.md
+- **实施原则**: "暂时不追求效率, 保证原则对齐, 为泛化能力储备" → 已归档到 ALIGNMENT.md
+- **构造性推理 > 信息检索**: Number Theory OMEGA 是真正的数学推理 (n=5929 独立推导 + 最小性穷举), 不是 apply? 库搜索 → 审计报告已证实

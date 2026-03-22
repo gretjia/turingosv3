@@ -4,7 +4,8 @@ members = [
     "experiments/hanoi_1m",
     "experiments/minif2f_swarm",
     "experiments/zeta_regularization",
-    "experiments/number_theory_min"
+    "experiments/number_theory_min",
+    "experiments/zeta_sum_proof"
 ]
 
 [package]

@@ -1,19 +1,20 @@
 use log::{info, warn};
-use std::sync::Arc;
-use turingosv3::kernel::{AIBlackBox, File, Head, Input, Kernel, MachineState, SensorContext};
+use std::sync::{Arc, Mutex};
+use tokio::sync::{mpsc, watch};
+use turingosv3::kernel::{File, Kernel};
 use turingosv3::drivers::llm_http::ResilientLLMClient;
 use turingosv3::sdk::tools::wallet::WalletTool;
 use turingosv3::sdk::tool::{AntiZombiePruningTool, OverwhelmingGapArbitratorTool};
+use turingosv3::sdk::actor::{MinerTx, build_chain_from_snapshot, view_node};
+use turingosv3::sdk::protocol::parse_agent_output;
+use turingosv3::sdk::prompt;
+use turingosv3::sdk::tools::search::SearchTool;
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
 use zeta_sum_proof::math_membrane::MathStepMembrane;
-use zeta_sum_proof::swarm::SpeculativeSwarmAgent;
 
 const SWARM_SIZE: usize = 15;
-const MAX_KERNEL_STEPS: u64 = 100;
-const THEOREM_NAME: &str = "zeta_sum_regularization";
+const MAX_TRANSACTIONS: u64 = 200;
 
-/// Problem statement + hint formula
-/// Each agent sees this at every step, plus the current best proof chain
 const PROBLEM: &str = r#"PROVE: 1 + 2 + 3 + 4 + ... = -1/12 (in the sense of regularization)
 
 HINT FORMULA: M(m,N) = m * exp(-m/N) * cos(m/N)
@@ -27,42 +28,18 @@ RULES:
 - Your step must logically follow from the previous steps shown above
 - When the proof reaches -1/12, declare [COMPLETE]"#;
 
-fn main() {
+const SKILL: &str = "Balance < 1.0 = YOU DIE.\nBad step = investment BURNED.\nPrice your investment based on your confidence.\n";
+
+#[tokio::main]
+async fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
-    info!("=== ζ-Sum Regularization Proof: 1+2+3+... = -1/12 ===");
-    info!("Pure market validation — no Lean 4 intermediate checks");
-    info!("Swarm N={}, Max Steps={}", SWARM_SIZE, MAX_KERNEL_STEPS);
+    info!("=== ζ-Sum Regularization Proof (Actor Model) ===");
+    info!("N={}, Max Transactions={}", SWARM_SIZE, MAX_TRANSACTIONS);
 
-    let sf_url = "https://api.siliconflow.cn/v1/chat/completions";
-    let ds_url = "https://api.deepseek.com/chat/completions";
-
-    let key_sf_primary = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
-    let key_sf_secondary = std::env::var("SILICONFLOW_API_KEY_SECONDARY").unwrap_or_else(|_| key_sf_primary.clone());
-    let key_deepseek = std::env::var("DEEPSEEK_API_KEY").unwrap_or_else(|_| key_sf_primary.clone());
-
-    let client_miner = Arc::new(ResilientLLMClient::with_key(sf_url, "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", &key_sf_primary));
-    let client_scholar = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_deepseek));
-    let client_explorer = Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/deepseek-ai/DeepSeek-R1", &key_sf_secondary));
-
-    info!("Miner: R1-Distill-Qwen-32B | Scholar: deepseek-reasoner | Explorer: DeepSeek-R1");
-
-    let wal_path = format!("/tmp/{}_N{}.wal", THEOREM_NAME, SWARM_SIZE);
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let _guard = rt.enter();
-    let sentinel = zeta_sum_proof::wal::WalSentinel::new(wal_path.clone());
-    let recovered_files = rt.block_on(zeta_sum_proof::wal::recover_tape(&wal_path));
-    info!("WAL recovered {} files from {}", recovered_files.len(), wal_path);
-
-    let mut agent = SpeculativeSwarmAgent::new_multi(
-        vec![client_miner, client_scholar, client_explorer],
-        MAX_KERNEL_STEPS, SWARM_SIZE, sentinel, recovered_files, PROBLEM.to_string(),
-    );
-
+    // --- Initialize Bus + Tools ---
     let kernel = Kernel::new();
     let mut bus = TuringBus::new(kernel);
-
-    // Tool stack: NO Lean 4 sandbox — MathStepMembrane instead
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(1)));
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
     bus.mount_tool(Box::new(OverwhelmingGapArbitratorTool::new(1.5)));
@@ -72,105 +49,189 @@ fn main() {
     let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
 
-    info!(">>> TuringOS v3 Booted (Market-Only Mode). N={}, Max Steps={}. <<<", SWARM_SIZE, MAX_KERNEL_STEPS);
+    // --- Create Channels ---
+    let (tx_state, rx_state) = watch::channel(bus.get_immutable_snapshot());
+    let (tx_mempool, mut rx_mempool) = mpsc::channel::<MinerTx>(1000);
 
-    let mut q_state = MachineState::Running;
-    let mut current_head = Head { paths: std::collections::HashSet::new() };
-    let mut kernel_steps: u64 = 0;
+    // --- Build Clients (3 species) ---
+    let sf_url = "https://api.siliconflow.cn/v1/chat/completions";
+    let ds_url = "https://api.deepseek.com/chat/completions";
+    let key_sf = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
+    let key_sf2 = std::env::var("SILICONFLOW_API_KEY_SECONDARY").unwrap_or_else(|_| key_sf.clone());
+    let key_ds = std::env::var("DEEPSEEK_API_KEY").unwrap_or_else(|_| key_sf.clone());
 
-    loop {
-        if q_state == MachineState::Halt || kernel_steps >= MAX_KERNEL_STEPS {
-            info!("==== EVALUATION COMPLETE (steps={}) ====", kernel_steps);
-            bus.kernel.hayekian_map_reduce();
+    let clients: Vec<Arc<ResilientLLMClient>> = vec![
+        Arc::new(ResilientLLMClient::with_key(sf_url, "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", &key_sf)),
+        Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_ds)),
+        Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/deepseek-ai/DeepSeek-R1", &key_sf2)),
+    ];
+    info!("Miner: R1-Distill-32B | Scholar: deepseek-reasoner | Explorer: R1");
 
-            let mut proved = false;
-            for (_, file) in &bus.kernel.tape.files {
-                if file.payload.contains("[OMEGA]") { proved = true; break; }
-            }
+    // --- Search Tool (for free queries) ---
+    let search_tool = Arc::new(SearchTool::new(vec![
+        "/Users/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib".to_string(),
+        "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib".to_string(),
+    ]));
 
-            // Trace golden path for proof chain
-            info!("--- PROOF CHAIN (Golden Path) ---");
-            if let Some(omega_node) = bus.kernel.tape.files.values().find(|f| f.payload.contains("[OMEGA]")) {
-                let path = bus.kernel.trace_golden_path(&omega_node.id);
-                for (i, node_id) in path.iter().rev().enumerate() {
-                    if let Some(node) = bus.kernel.tape.files.get(node_id) {
-                        let step = node.payload.lines().last().unwrap_or(&node.payload).trim();
-                        info!("Step {}: [{}] Price:{:.0} | {}", i + 1, node_id, node.price, step);
-                    }
+    // --- Spawn N Agent Loops ---
+    for i in 0..SWARM_SIZE {
+        let client = clients[i % clients.len()].clone();
+        let mut rx = rx_state.clone();
+        let tx = tx_mempool.clone();
+        let problem = PROBLEM.to_string();
+        let skill = SKILL.to_string();
+        let search = search_tool.clone();
+        let private_ctx = Arc::new(Mutex::new(String::new()));
+
+        info!(">>> [SPAWN] Agent {} → {}", i, client.model_name());
+
+        tokio::spawn(async move {
+            let agent_name = format!("Agent_{}", i);
+            loop {
+                // 1. Read snapshot (lock-free)
+                let snapshot = rx.borrow().clone();
+
+                // 2. Check bankruptcy
+                let balance = snapshot.balances.get(&agent_name).copied().unwrap_or(0.0);
+                if balance < 1.0 {
+                    // Wait for universe change (maybe rebirth)
+                    if rx.changed().await.is_err() { break; }
+                    continue;
                 }
+
+                // 3. Build prompt
+                let (chain, parent_id) = build_chain_from_snapshot(&snapshot, &problem);
+                let private = private_ctx.lock().unwrap().clone();
+                let graveyard = snapshot.tombstones.values()
+                    .take(3)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                let p = prompt::build_agent_prompt(
+                    &chain,
+                    &skill,
+                    &snapshot.market_ticker,
+                    &format!("{}\n{}", graveyard, private),
+                    balance,
+                    "invest: {\"tool\":\"invest\",\"tactic\":\"your step\",\"amount\":PRICE}\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
+                );
+
+                // 4. Invoke LLM
+                let temp = 0.2 + 0.6 * (i as f32 / SWARM_SIZE.max(1) as f32);
+                match client.resilient_generate(&p, i, temp).await {
+                    Ok(raw) => {
+                        if let Some(action) = parse_agent_output(&raw) {
+                            match action.tool.as_str() {
+                                "invest" => {
+                                    let tactic = action.tactic.unwrap_or_default();
+                                    let amount = action.amount.unwrap_or(1.0);
+                                    let node = action.node.unwrap_or_else(|| "self".to_string());
+                                    let payload = format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount);
+                                    let _ = tx.send(MinerTx {
+                                        agent_id: agent_name.clone(),
+                                        model_name: client.model_name().to_string(),
+                                        payload,
+                                        parent_id: parent_id.clone(),
+                                        action_type: "invest".to_string(),
+                                    }).await;
+                                }
+                                "search" => {
+                                    let q = action.query.unwrap_or_default();
+                                    let result = search.search(&q);
+                                    *private_ctx.lock().unwrap() = result;
+                                    info!(">>> [SEARCH] {} free query: '{}'", agent_name, q);
+                                }
+                                "view_node" => {
+                                    let id = action.query.unwrap_or_default();
+                                    let snap = rx.borrow().clone();
+                                    let result = view_node(&snap, &id);
+                                    *private_ctx.lock().unwrap() = result;
+                                    info!(">>> [VIEW] {} views node: '{}'", agent_name, id);
+                                }
+                                _ => {
+                                    info!(">>> [OBSERVE] {} free observation.", agent_name);
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => { /* harness: retry on next snapshot */ }
+                }
+
+                // 5. Wait for universe update
+                if rx.changed().await.is_err() { break; }
             }
+        });
+    }
+    drop(tx_mempool); // reactor keeps the receiver
 
-            info!("--- FULL TAPE DUMP ---");
-            for (id, file) in &bus.kernel.tape.files {
-                info!("ID: {} | Parent: {:?} | Price: {:.2} | Payload: {}",
-                    id, file.citations, file.price,
-                    file.payload.chars().take(150).collect::<String>().replace('\n', " "));
-            }
-            info!("-----------------------");
+    info!(">>> TuringOS v3 Actor Model Booted. {} agents running independently. <<<", SWARM_SIZE);
 
-            if proved {
-                info!("OMEGA: Proof chain COMPLETE! Submit to terminal oracle (Lean 4) for final verification.");
-            } else {
-                info!("NOT proved within {} steps.", kernel_steps);
-            }
-            break;
-        }
+    // --- Reactor Loop (single-threaded, serial, consistent) ---
+    let mut tx_count: u64 = 0;
+    while let Some(tx) = rx_mempool.recv().await {
+        tx_count += 1;
 
-        kernel_steps += 1;
-
-        let mut balances = std::collections::HashMap::new();
-        for i in 0..100 {
-            let aid = format!("Agent_{}", i);
-            balances.insert(aid.clone(), bus.get_agent_balance(&aid));
-        }
-
-        let mut tombstones = std::collections::HashMap::new();
-        for id in bus.kernel.tape.files.keys() {
-            let g = bus.get_tombstones(id);
-            if !g.is_empty() { tombstones.insert(id.clone(), g); }
-        }
-        let rg = bus.get_tombstones("root");
-        if !rg.is_empty() { tombstones.insert("root".to_string(), rg); }
-
-        let input = Input {
-            q_i: q_state.clone(),
-            s_i: SensorContext {
-                visible_tape: bus.kernel.tape.clone(),
-                current_head: current_head.clone(),
-                agent_balances: balances,
-                market_ticker: bus.kernel.get_market_ticker(3),
-                tombstones,
-            },
-        };
-
-        let output = AIBlackBox::delta(&mut agent, &input);
-        let action = output.a_o;
+        // Build file from MinerTx
         let file = File {
-            id: action.file_id.clone(), author: action.author,
-            payload: action.payload.clone(), citations: action.citations.clone(),
-            stake: action.stake, intrinsic_reward: 0.0, price: 0.0,
+            id: format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", "")),
+            author: tx.agent_id.clone(),
+            payload: tx.payload.clone(),
+            citations: tx.parent_id.iter().cloned().collect(),
+            stake: 1,
+            intrinsic_reward: 0.0,
+            price: 0.0,
         };
 
         match bus.append(file) {
             Ok(_) => {
-                info!("[Step {}] File Appended: {}", kernel_steps, action.file_id);
-                current_head.paths.insert(action.file_id.clone());
-                for cit in &action.citations { current_head.paths.remove(cit); }
-                q_state = output.q_o;
+                info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
                 bus.tick_map_reduce();
-                if let Some(f) = bus.kernel.tape.files.get(&action.file_id) {
-                    if f.price > 0.0 { info!("    => Price: {:.2}", f.price); }
-                }
-                if action.payload.contains("[OMEGA]") {
-                    info!("OMEGA detected at step {}!", kernel_steps);
-                    bus.halt_and_settle(&action.file_id);
-                    q_state = MachineState::Halt;
+
+                if tx.payload.contains("[OMEGA]") {
+                    let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
+                    info!("OMEGA at Tx {}!", tx_count);
+                    bus.halt_and_settle(&file_id);
+                    break;
                 }
             }
             Err(e) => {
-                let p: String = action.payload.chars().take(150).collect();
-                warn!("[Step {}] REJECTED: {} | Payload: {}", kernel_steps, e, p.replace('\n', " "));
+                let preview: String = tx.payload.chars().take(100).collect();
+                warn!("[Tx {}] {} REJECTED: {} | {}", tx_count, tx.agent_id, e, preview.replace('\n', " "));
             }
         }
+
+        // Broadcast new snapshot
+        let _ = tx_state.send(bus.get_immutable_snapshot());
+
+        if tx_count >= MAX_TRANSACTIONS {
+            info!("Max transactions ({}) reached.", MAX_TRANSACTIONS);
+            break;
+        }
+    }
+
+    // --- Final Output ---
+    info!("==== EVALUATION COMPLETE ({} transactions) ====", tx_count);
+    bus.kernel.hayekian_map_reduce();
+
+    // Trace golden path
+    if let Some(omega) = bus.kernel.tape.files.values().find(|f| f.payload.contains("[OMEGA]")) {
+        info!("--- PROOF CHAIN (Golden Path) ---");
+        let path = bus.kernel.trace_golden_path(&omega.id);
+        for (i, nid) in path.iter().rev().enumerate() {
+            if let Some(n) = bus.kernel.tape.files.get(nid) {
+                let step = n.payload.lines().last().unwrap_or(&n.payload).trim();
+                info!("Step {}: [{}] P:{:.0} | {}", i+1, nid, n.price, step);
+            }
+        }
+        info!("OMEGA: Proof chain COMPLETE!");
+    } else {
+        info!("NOT proved within {} transactions.", tx_count);
+    }
+
+    info!("--- TAPE ({} nodes) ---", bus.kernel.tape.files.len());
+    for (id, f) in &bus.kernel.tape.files {
+        info!("{} | P:{:.0} | {}", id, f.price,
+            f.payload.chars().take(100).collect::<String>().replace('\n', " "));
     }
 }

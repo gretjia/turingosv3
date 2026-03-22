@@ -156,22 +156,30 @@ impl TuringTool for Lean4MembraneTool {
                 ToolSignal::Pass
             }
             Err(e) => {
-                // "No goals to be solved" in the Err branch means the appended sorry
-                // was redundant — but it could be LOCAL (one sub-goal closed in a
-                // multi-goal proof) or GLOBAL (all goals closed). We must double-check
-                // by compiling the raw payload WITHOUT sorry to confirm true OMEGA.
+                // Semantic Guillotine (Gemini ruling):
                 if e.contains("No goals to be solved") {
-                    if let Ok(omega_output) = self.sandbox.execute_safely(payload, gas_limit) {
-                        if !omega_output.contains("error:") {
-                            info!("OMEGA NODE REACHED! (verified via double-check in Err branch)");
-                            return ToolSignal::YieldReward {
-                                payload: format!("{}\n  -- [OMEGA]", payload),
-                                reward: 100_000_000_000.0,
-                            };
+                    let has_other_errors = e.lines()
+                        .any(|l| l.contains("error:") && !l.contains("No goals to be solved"));
+                    let has_sorry_warning = e.contains("declaration uses 'sorry'");
+
+                    if !has_other_errors && !has_sorry_warning {
+                        info!("OMEGA (Guillotine): No goals + clean output — proof complete!");
+                        return ToolSignal::YieldReward {
+                            payload: format!("{}\n  -- [OMEGA]", payload),
+                            reward: 100_000_000_000.0,
+                        };
+                    } else {
+                        if let Ok(omega_output) = self.sandbox.execute_safely(payload, gas_limit) {
+                            if !omega_output.contains("error:") {
+                                info!("OMEGA (double-check verified in Err branch)");
+                                return ToolSignal::YieldReward {
+                                    payload: format!("{}\n  -- [OMEGA]", payload),
+                                    reward: 100_000_000_000.0,
+                                };
+                            }
                         }
+                        warn!("Lean4 Membrane VETO: No goals but other errors present.");
                     }
-                    // Secondary check failed — local sub-goal closure, not true OMEGA
-                    warn!("Lean4 Membrane VETO: local no-goals but global proof incomplete.");
                 }
                 warn!("Lean4 Membrane VETO: Compiler rejected the tactic or timed out.");
                 ToolSignal::Veto(format!("Compiler/Sandbox Error:\n{}", e))

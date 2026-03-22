@@ -106,6 +106,30 @@ impl TuringBus {
         balances
     }
 
+    /// Freeze the current universe state into an immutable snapshot.
+    /// Agents read this snapshot lock-free — past spacetime is absolute.
+    pub fn get_immutable_snapshot(&self) -> crate::sdk::snapshot::UniverseSnapshot {
+        let mut balances = std::collections::HashMap::new();
+        for i in 0..100 {
+            let aid = format!("Agent_{}", i);
+            balances.insert(aid.clone(), self.get_agent_balance(&aid));
+        }
+        let mut tombstones = std::collections::HashMap::new();
+        for id in self.kernel.tape.files.keys() {
+            let g = self.get_tombstones(id);
+            if !g.is_empty() { tombstones.insert(id.clone(), g); }
+        }
+        let rg = self.get_tombstones("root");
+        if !rg.is_empty() { tombstones.insert("root".to_string(), rg); }
+
+        crate::sdk::snapshot::UniverseSnapshot {
+            tape: self.kernel.tape.clone(),
+            balances,
+            market_ticker: self.kernel.get_market_ticker(3),
+            tombstones,
+        }
+    }
+
     pub fn halt_and_settle(&mut self, omega_id: &str) {
         let golden_path = self.kernel.trace_golden_path(omega_id);
         for tool in &mut self.tools {

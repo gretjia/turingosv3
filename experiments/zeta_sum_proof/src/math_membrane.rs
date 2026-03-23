@@ -26,10 +26,10 @@ impl TuringTool for MathStepMembrane {
             payload.trim()
         };
 
-        // Empty step → VETO (investment burned)
-        if step.is_empty() {
-            warn!(">>> [MEMBRANE] Empty step rejected.");
-            return ToolSignal::Veto("Empty mathematical step.".into());
+        // Empty or trivially short step → VETO (filters prompt template leaks like "your step")
+        if step.len() < 20 {
+            warn!(">>> [MEMBRANE] Step too short ({} chars): '{}'", step.len(), step);
+            return ToolSignal::Veto(format!("Step too short ({} chars). Write a real mathematical reasoning step.", step.len()));
         }
 
         // [COMPLETE] → OMEGA signal (terminal oracle will verify)

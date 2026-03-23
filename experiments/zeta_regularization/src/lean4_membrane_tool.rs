@@ -7,15 +7,32 @@ pub struct Lean4MembraneTool {
     pub problem_statement: String,
     pub theorem_name: String,
     pub sandbox: Box<dyn SandboxEngine>,
+    /// Configurable forbidden tactics — different problem domains need different physics rules.
+    /// "sorry" and "sorryAx" are always forbidden (hardcoded, non-negotiable).
+    /// For real analysis: add "native_decide" (no shortcut proofs).
+    /// For number theory: allow "decide" (legitimate exhaustive search).
+    pub forbidden_tactics: Vec<String>,
 }
 
 impl Lean4MembraneTool {
     pub fn new(problem_statement: String, theorem_name: String, sandbox: Box<dyn SandboxEngine>) -> Self {
-        Self { 
-            problem_statement,
-            theorem_name,
-            sandbox,
-        }
+        // Default forbidden list: RCE defense + native_decide
+        let forbidden_tactics = vec![
+            "#eval", "#check", "#reduce", "#exec",
+            "native_decide", "IO.Process", "IO.FS",
+            "System.FilePath", "run_tac", "unsafe",
+        ].into_iter().map(String::from).collect();
+        Self { problem_statement, theorem_name, sandbox, forbidden_tactics }
+    }
+
+    /// Create with custom forbidden tactics list (architect directive: configurable membrane)
+    pub fn with_config(
+        problem_statement: String,
+        theorem_name: String,
+        sandbox: Box<dyn SandboxEngine>,
+        forbidden_tactics: Vec<String>,
+    ) -> Self {
+        Self { problem_statement, theorem_name, sandbox, forbidden_tactics }
     }
 
     /// Extract theorem name from a Lean 4 statement
@@ -101,17 +118,12 @@ impl TuringTool for Lean4MembraneTool {
             }
         }
 
-        // 2b. RCE Soft Defense: block dangerous Lean 4 metaprogramming keywords
+        // 2b. Configurable Physics Membrane: block forbidden tactics per problem domain
         {
-            let dangerous_keywords = [
-                "#eval", "#check", "#reduce", "#exec",
-                "native_decide", "IO.Process", "IO.FS",
-                "System.FilePath", "run_tac", "unsafe",
-            ];
-            for kw in &dangerous_keywords {
-                if payload.contains(kw) {
-                    warn!(">>> [SHIELD] Dangerous Lean 4 keyword '{}' detected!", kw);
-                    return ToolSignal::Veto(format!("Forbidden: dangerous keyword '{}' in payload", kw));
+            for kw in &self.forbidden_tactics {
+                if payload.contains(kw.as_str()) {
+                    warn!(">>> [SHIELD] Forbidden tactic '{}' detected!", kw);
+                    return ToolSignal::Veto(format!("Physics Violation: Tactic '{}' is locked in this universe.", kw));
                 }
             }
         }

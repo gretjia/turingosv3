@@ -296,7 +296,6 @@ scp "$TURINGOS_ROOT/Cargo.toml" "$MAC_HOST:$MAC_ROOT/Cargo.toml"
 # --- Step 10: Launch tmux ---
 echo "[10/10] Launching tmux session '$PROJECT_NAME'..."
 ssh "$MAC_HOST" "tmux kill-session -t $PROJECT_NAME 2>/dev/null; \
-    echo '' > /tmp/${THEOREM_NAME}_N15.wal && \
     tmux new-session -d -s $PROJECT_NAME \
     'cd $MAC_ROOT/experiments/$PROJECT_NAME && \
     export SILICONFLOW_API_KEY=\$SILICONFLOW_API_KEY && \

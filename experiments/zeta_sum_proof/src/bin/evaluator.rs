@@ -1,10 +1,10 @@
-use log::{info, warn};
+use log::{info, warn, error};
 use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, watch};
 use turingosv3::kernel::{File, Kernel};
 use turingosv3::drivers::llm_http::ResilientLLMClient;
 use turingosv3::sdk::tools::wallet::WalletTool;
-use turingosv3::sdk::tool::{AntiZombiePruningTool, OverwhelmingGapArbitratorTool};
+use turingosv3::sdk::tool::AntiZombiePruningTool;
 use turingosv3::sdk::actor::{MinerTx, build_chain_from_snapshot, view_node};
 use turingosv3::sdk::protocol::parse_agent_output;
 use turingosv3::sdk::prompt;
@@ -28,7 +28,11 @@ RULES:
 - Your step must logically follow from the previous steps shown above
 - When the proof reaches -1/12, declare [COMPLETE]"#;
 
-const SKILL: &str = "Balance < 1.0 = YOU DIE.\nBad step = investment BURNED.\nPrice your investment based on your confidence.\n";
+const SKILL: &str = "\
+[LAW 1] INFORMATION IS FREE: ViewNode and Search cost ZERO. ALWAYS research before investing.\n\
+[LAW 2] ONLY INVESTMENT IS RISK: The ONLY action that burns coins is Invest.\n\
+[LAW 3] KELLY CRITERION: NEVER go all-in! Start small (10-100). Save large bets for high-confidence steps.\n\
+Balance < 1.0 = PERMANENT DEATH. Bad step = investment BURNED.\n";
 
 #[tokio::main]
 async fn main() {
@@ -42,7 +46,7 @@ async fn main() {
     let mut bus = TuringBus::new(kernel);
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(1)));
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
-    bus.mount_tool(Box::new(OverwhelmingGapArbitratorTool::new(1.5)));
+    // Superfluid clearing: Arbitrator removed. Heartbeat(1) ensures MapReduce every append.
     bus.mount_tool(Box::new(WalletTool::new()));
     bus.mount_tool(Box::new(MathStepMembrane::new()));
 
@@ -61,11 +65,11 @@ async fn main() {
     let key_ds = std::env::var("DEEPSEEK_API_KEY").unwrap_or_else(|_| key_sf.clone());
 
     let clients: Vec<Arc<ResilientLLMClient>> = vec![
-        Arc::new(ResilientLLMClient::with_key(sf_url, "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", &key_sf)),
+        Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-chat", &key_ds)),
         Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_ds)),
         Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/deepseek-ai/DeepSeek-R1", &key_sf2)),
     ];
-    info!("Miner: R1-Distill-32B | Scholar: deepseek-reasoner | Explorer: R1");
+    info!("Worker: DeepSeek-V3.2 (deepseek-chat) | Scholar: deepseek-reasoner | Explorer: R1");
 
     // --- Search Tool (for free queries) ---
     let search_tool = Arc::new(SearchTool::new(vec![
@@ -165,57 +169,109 @@ async fn main() {
     }
     drop(tx_mempool); // reactor keeps the receiver
 
+    let agent_names: Vec<String> = (0..SWARM_SIZE).map(|i| format!("Agent_{}", i)).collect();
+
     info!(">>> TuringOS v3 Actor Model Booted. {} agents running independently. <<<", SWARM_SIZE);
 
     // --- Reactor Loop (single-threaded, serial, consistent) ---
+    // Superfluid reactor with 30s timeout for deadlock detection + generation rebirth
     let mut tx_count: u64 = 0;
-    while let Some(tx) = rx_mempool.recv().await {
-        tx_count += 1;
+    let mut generation: u32 = 1;
+    let mut consecutive_timeouts: u32 = 0;
 
-        // Build file from MinerTx
-        let file = File {
-            id: format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", "")),
-            author: tx.agent_id.clone(),
-            payload: tx.payload.clone(),
-            citations: tx.parent_id.iter().cloned().collect(),
-            stake: 1,
-            intrinsic_reward: 0.0,
-            price: 0.0,
-        };
+    loop {
+        match tokio::time::timeout(
+            tokio::time::Duration::from_secs(30),
+            rx_mempool.recv()
+        ).await {
+            Ok(Some(tx)) => {
+                consecutive_timeouts = 0;
+                tx_count += 1;
 
-        match bus.append(file) {
-            Ok(_) => {
-                info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
-                bus.tick_map_reduce();
+                let file = File {
+                    id: format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", "")),
+                    author: tx.agent_id.clone(),
+                    payload: tx.payload.clone(),
+                    citations: tx.parent_id.iter().cloned().collect(),
+                    stake: 1,
+                    intrinsic_reward: 0.0,
+                    price: 0.0,
+                };
 
-                if tx.payload.contains("[OMEGA]") {
-                    let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
-                    info!("OMEGA at Tx {}!", tx_count);
-                    bus.halt_and_settle(&file_id);
+                match bus.append(file) {
+                    Ok(_) => {
+                        info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
+                        bus.tick_map_reduce();
+
+                        if tx.payload.contains("[OMEGA]") || tx.payload.contains("[COMPLETE]") {
+                            let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
+                            info!("OMEGA at Tx {}!", tx_count);
+                            bus.halt_and_settle(&file_id);
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        let preview: String = tx.payload.chars().take(100).collect();
+                        warn!("[Tx {}] {} REJECTED: {} | {}", tx_count, tx.agent_id, e, preview.replace('\n', " "));
+                    }
+                }
+
+                let _ = tx_state.send(bus.get_immutable_snapshot());
+
+                if tx_count >= MAX_TRANSACTIONS {
+                    info!("Max transactions ({}) reached.", MAX_TRANSACTIONS);
                     break;
                 }
             }
-            Err(e) => {
-                let preview: String = tx.payload.chars().take(100).collect();
-                warn!("[Tx {}] {} REJECTED: {} | {}", tx_count, tx.agent_id, e, preview.replace('\n', " "));
+            Ok(None) => {
+                info!("All senders dropped. Universe terminated.");
+                break;
             }
-        }
+            Err(_) => {
+                // Timeout — check for market collapse (all agents bankrupt)
+                consecutive_timeouts += 1;
 
-        // Broadcast new snapshot
-        let _ = tx_state.send(bus.get_immutable_snapshot());
+                let solvent_count = agent_names.iter()
+                    .filter(|name| bus.get_agent_balance(name) >= 1.0)
+                    .count();
 
-        if tx_count >= MAX_TRANSACTIONS {
-            info!("Max transactions ({}) reached.", MAX_TRANSACTIONS);
-            break;
+                if solvent_count == 0 || consecutive_timeouts >= 2 {
+                    error!("==== [MACROECONOMICS] MARKET COLLAPSE! Generation {} perished. Solvent: {}/{} ====",
+                        generation, solvent_count, SWARM_SIZE);
+
+                    // Record deaths in graveyard
+                    for name in &agent_names {
+                        let bal = bus.get_agent_balance(name);
+                        if bal < 1.0 {
+                            bus.graveyard.record_death("root",
+                                &format!("Gen {} bankrupt: {} (bal: {:.2})", generation, name, bal));
+                        }
+                    }
+
+                    // Generation rebirth: Chapter 11 reorganization
+                    generation += 1;
+                    info!(">>> [REBIRTH] Spawning Generation {} with fresh capital!", generation);
+                    for name in &agent_names {
+                        bus.fund_agent(name, 10000.0);
+                    }
+
+                    // Broadcast new snapshot — wakes all blocked agents instantly
+                    let _ = tx_state.send(bus.get_immutable_snapshot());
+                    consecutive_timeouts = 0;
+                } else {
+                    info!("[TIMEOUT] 30s idle. Solvent: {}/{}. Waiting...", solvent_count, SWARM_SIZE);
+                }
+            }
         }
     }
 
     // --- Final Output ---
-    info!("==== EVALUATION COMPLETE ({} transactions) ====", tx_count);
+    info!("==== EVALUATION COMPLETE ({} tx, {} generations) ====", tx_count, generation);
     bus.kernel.hayekian_map_reduce();
 
-    // Trace golden path
-    if let Some(omega) = bus.kernel.tape.files.values().find(|f| f.payload.contains("[OMEGA]")) {
+    if let Some(omega) = bus.kernel.tape.files.values()
+        .find(|f| f.payload.contains("[OMEGA]") || f.payload.contains("[COMPLETE]"))
+    {
         info!("--- PROOF CHAIN (Golden Path) ---");
         let path = bus.kernel.trace_golden_path(&omega.id);
         for (i, nid) in path.iter().rev().enumerate() {

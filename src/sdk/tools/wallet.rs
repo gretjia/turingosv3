@@ -40,6 +40,14 @@ impl WalletTool {
         self.participants.clear();
     }
 
+    /// Inject capital into an agent's balance (for generation rebirth).
+    /// Does NOT touch intrinsic_reward — this is pure monetary policy.
+    pub fn fund_agent(&mut self, agent_id: &str, amount: f64) {
+        *self.balances.entry(agent_id.to_string()).or_insert(0.0) += amount;
+        log::info!(">>> [CENTRAL BANK] Agent {} funded with {:.2}. New balance: {:.2}",
+            agent_id, amount, self.balances.get(agent_id).unwrap_or(&0.0));
+    }
+
     fn parse_payment(&self, payload: &str) -> Option<(String, f64)> {
         // Support both "Action: Invest" (preferred) and "Action: Stake" (backward compat)
         let tag_invest = "[Tool: Wallet | Action: Invest | Node: ";
@@ -92,7 +100,14 @@ impl TuringTool for WalletTool {
 
         let balance = *self.balances.get(author).unwrap_or(&0.0);
         if balance < amount {
-            return ToolSignal::Veto(format!("Bankrupt: Insufficient funds. Balance: {:.2}", balance));
+            if balance < 1.0 {
+                return ToolSignal::Veto(format!("Bankrupt: Liquidated. Balance: {:.2}", balance));
+            } else {
+                return ToolSignal::Veto(format!(
+                    "Margin Call: Insufficient liquidity. Balance: {:.2}, Requested: {:.2}. Reduce your stake!",
+                    balance, amount
+                ));
+            }
         }
 
         // Record participation — this agent is working, not free-riding

@@ -80,6 +80,20 @@ impl TuringBus {
         self.graveyard.get_tombstones(node_id)
     }
 
+    /// Inject capital into a specific agent (generation rebirth / Chapter 11 reorganization).
+    /// Delegates to WalletTool — bus is pure router.
+    pub fn fund_agent(&mut self, agent_id: &str, amount: f64) {
+        use crate::sdk::tools::wallet::WalletTool;
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    wallet.fund_agent(agent_id, amount);
+                }
+                break;
+            }
+        }
+    }
+
     /// Redistribute global_pool among surviving agents between theorems
     pub fn redistribute_pool(&mut self) {
         use crate::sdk::tools::wallet::WalletTool;

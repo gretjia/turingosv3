@@ -11,6 +11,7 @@
 ///   coexist without blocking each other.
 
 use crate::sdk::snapshot::UniverseSnapshot;
+use rand::distributions::{WeightedIndex, Distribution};
 
 /// A transaction submitted by an agent to the reactor
 #[derive(Debug, Clone)]
@@ -27,29 +28,69 @@ pub struct MinerTx {
     pub action_type: String,
 }
 
-/// Build a formatted proof chain from the highest-priced node's ancestor path.
+/// Boltzmann softmax selection over frontier nodes.
+/// Temperature T controls exploration: T→0 = greedy, T→∞ = uniform random.
+/// Returns the selected node's ID, or None if no frontier exists.
+pub fn boltzmann_select_parent(snapshot: &UniverseSnapshot, temperature: f64) -> Option<String> {
+    let reverse_citations = &snapshot.tape.reverse_citations;
+    let frontier: Vec<_> = snapshot.tape.files.values()
+        .filter(|f| f.stake > 0)
+        .filter(|f| reverse_citations.get(&f.id).map_or(true, |c| c.is_empty()))
+        .collect();
+
+    if frontier.is_empty() { return None; }
+    if frontier.len() == 1 { return Some(frontier[0].id.clone()); }
+
+    // Max trick: subtract max price to prevent exp() overflow
+    let max_price = frontier.iter().map(|n| n.price).fold(f64::NEG_INFINITY, f64::max);
+    let t = temperature.max(0.01); // floor to prevent division by zero
+
+    let weights: Vec<f64> = frontier.iter()
+        .map(|n| ((n.price - max_price) / t).exp().max(1e-9))
+        .collect();
+
+    let dist = WeightedIndex::new(&weights).ok()?;
+    let mut rng = rand::thread_rng();
+    let selected = &frontier[dist.sample(&mut rng)];
+
+    log::info!(">>> [BOLTZMANN T={:.2}] Selected {} (P:{:.0}) from {} frontier nodes",
+        t, selected.id, selected.price, frontier.len());
+    Some(selected.id.clone())
+}
+
+/// Build a formatted proof chain from a Boltzmann-selected frontier node's ancestor path.
 /// Returns (chain_string, selected_parent_id).
 pub fn build_chain_from_snapshot(
     snapshot: &UniverseSnapshot,
     problem: &str,
 ) -> (String, Option<String>) {
+    build_chain_from_snapshot_with_temperature(snapshot, problem, 0.5)
+}
+
+/// Build chain with explicit Boltzmann temperature parameter.
+pub fn build_chain_from_snapshot_with_temperature(
+    snapshot: &UniverseSnapshot,
+    problem: &str,
+    temperature: f64,
+) -> (String, Option<String>) {
     if snapshot.tape.files.is_empty() {
         return (problem.to_string(), None);
     }
 
-    // Find the highest-priced node
-    let best_node = snapshot.tape.files.values()
-        .filter(|f| f.stake > 0)
-        .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal));
+    // Boltzmann softmax selection replaces greedy best_node
+    let selected_id = match boltzmann_select_parent(snapshot, temperature) {
+        Some(id) => id,
+        None => return (problem.to_string(), None),
+    };
 
-    let best_node = match best_node {
+    let selected_node = match snapshot.tape.files.get(&selected_id) {
         Some(n) => n,
         None => return (problem.to_string(), None),
     };
 
     // Trace ancestor chain back to root
     let mut chain = Vec::new();
-    let mut cur_id = best_node.id.clone();
+    let mut cur_id = selected_node.id.clone();
     while let Some(node) = snapshot.tape.files.get(&cur_id) {
         let step = node.payload.lines().last().unwrap_or(&node.payload).trim().to_string();
         chain.push((cur_id.clone(), step, node.price));
@@ -58,7 +99,7 @@ pub fn build_chain_from_snapshot(
     }
     chain.reverse();
 
-    let parent_id = best_node.id.clone();
+    let parent_id = selected_node.id.clone();
 
     let mut chain_str = format!("{}\n\n=== CURRENT BEST PROOF CHAIN ===\n", problem);
     for (i, (_id, step, price)) in chain.iter().enumerate() {

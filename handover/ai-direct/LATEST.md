@@ -1,48 +1,45 @@
 # TuringOS v3 — Handover State
-**Updated**: 2026-03-22
-**Session Summary**: Actor Model 重构 + zeta_sum_proof 启动 — 首次无验证器纯市场推理 swarm
+**Updated**: 2026-03-23
+**Session Summary**: Run 1 四大猛药实施 — Boltzmann 路由 + 世代交替 + 超流体清算 + DeepSeek V3.2
 
 ## Current State
-- **zeta_sum_proof 正在运行** (Mac tmux `zeta-sum`, log: `/tmp/zeta_sum_run1.log`)
-  - Actor Model: 15 agents 独立循环，无 drain，无阻塞
-  - 5 分钟内 18 append + 5 ViewNode + 2 observe — 吞吐量远超旧架构
-  - 纯市场验证（MathStepMembrane，无 Lean 4 中间检查）
-- **Core SDK 已扩展**: `snapshot.rs` + `actor.rs` 加入 SDK
-- **三个 OMEGA 已达成**: ζ(-1), n=5929, (zeta_sum_proof 运行中)
-- **boot-experiment.sh**: 全自动实验启动脚本可用
+- **zeta_sum_proof Run 1 已结束** — 51 append / 0 OMEGA / 全体破产停滞 (分析完毕)
+- **四大猛药已 commit** (`e00adeb`), 等待 Run 2 实战验证
+- **Core SDK 增强**: Boltzmann softmax 路由 (`actor.rs`), `fund_agent` 经济注入 (`bus.rs` + `wallet.rs`)
+- **三个 OMEGA 已达成**: ζ(-1), n=5929, (zeta_sum_proof 待 Run 2)
+- **Kernel Audit**: 两轮审计 (Plan + Code) 全部 CLEAN，Layer 1 不变量完整
 
 ## Changes This Session
-- `c0caaa1` — zeta_sum_proof 项目 boot (MathStepMembrane + Order Book + chain prompt)
-- `7b14db5` — 无锁 Actor Model plan & spec 归档
-- `f11c171` — **Actor Model 实施**: snapshot.rs, actor.rs, evaluator async reactor
-- `f11c171` — Guillotine 传播到 minif2f membrane
-- `f11c171` — ALIGNMENT.md 加入无锁 + 无认知溢价原则
-- 架构师指令归档: `2026-03-21_lockfree-austrian-naked-swarm.md`
+- `e00adeb` — **四大猛药 + DeepSeek V3.2**:
+  - P1: `actor.rs` Boltzmann softmax 前沿选点 (T=0.5)，替代贪婪 best_node
+  - P0: `evaluator.rs` 30s 超时 reactor + 世代交替 rebirth (Chapter 11)
+  - P3: 移除 OverwhelmingGapArbitrator，Heartbeat(1) 实现逐笔清算
+  - P2: `wallet.rs` 区分 Bankrupt vs Margin Call 语义
+  - P4-P6: Kelly Criterion 风险管理注入 SKILL prompt
+  - Worker LLM: R1-Distill-32B → deepseek-chat (DeepSeek V3.2)
+- 架构师指令归档: `directives/2026-03-23_run1-postmortem-four-remedies.md`
 
 ## Key Decisions
-- **Actor Model 替代 batch-synchronous**: watch/mpsc 消息传递，无锁，无 drain
-- **纯市场验证 (无 Lean 4)**: 测试 Hayekian 价格发现能否替代编译器仲裁
-- **MathStepMembrane 极简**: 只检查非空 + [COMPLETE]，市场处理质量
-- **Order Book (Gemini 建议)**: 3 条竞争链 (consensus + alt + recent)
-- **私有 Agent 上下文**: search/view 结果仅注入请求者，不泄漏
-- **无认知溢价**: 系统不为思考时间买单 (奥地利学派主观价值论)
-- **终局 Oracle**: [COMPLETE] 触发后用 Lean 4 做追溯验证
+- **Boltzmann T=0.5**: 概率性前沿选点，打破星形拓扑，允许深度链涌现
+- **世代交替非救济**: 破产 agent 不获救济金，而是物理死亡 → Graveyard 记录 → 新世代重生 (10000 coins)
+- **超流体清算**: 每笔 append 即触发 MapReduce (O(V+E) 成本可忽略)，废除 1.5x 阈值"涨停板"
+- **DeepSeek V3.2 替代 R1-Distill-32B**: Run 1 中 R1-Distill 仅 6% 贡献，V3.2 更快更便宜
+- **Kelly Criterion 思想钢印**: 禁止梭哈，强调信息免费 (ViewNode/Search = 0 cost)
+- **Wallet 语义分离**: 真破产 (balance < 1.0) vs 杠杆超标 (balance >= 1.0 但不够本次下注)
 
 ## Next Steps
-1. **监控 zeta_sum_proof Run 1** — 分析 tape，验证市场能否产生正确推理链
-2. **终局 Oracle 实现** — [COMPLETE] 后提取链 → Lean 4 最终验证
+1. **启动 zeta_sum_proof Run 2** — 验证四大猛药效果
+2. **终局 Oracle 实现** — [COMPLETE] 后提取链 → Lean 4 追溯验证
 3. **裸核盲测** — Mock Membrane (图迷宫)，验证 OS 独立于大模型能力
-4. **Speciation Engine** — per-agent DNA (Phase 4 deferred)
-5. **drain timeout 传播到 zeta_regularization** (Actor Model 已解决此问题)
+4. **Speciation Engine** — per-agent DNA / 拉马克表观遗传 (Phase 4 deferred)
+5. **hanoi_1m 测试修复** — `run_turing_os` import 已失效 (预存 bug)
 
 ## Warnings
-- **zeta_sum_proof 正在 Mac 上运行** — tmux `zeta-sum`, 不要 kill
-- Cargo.lock 有未提交变更 (zeta_sum_proof 依赖新增)
+- **Run 1 tmux session 可能仍在 Mac 上** — 确认后可 kill
 - Actor Model 目前只在 zeta_sum_proof 中使用，minif2f/zeta_regularization 仍用旧 swarm
 - zeta_sum_proof 的 swarm.rs 未被新 evaluator 使用（可删但保留作参考）
-- 所有 agent 默认构建在最贵节点上（无 Boltzmann 路由 — 首次测试简化）
+- `fund_agent` 新增于 bus.rs — 其他实验如需 rebirth 可直接调用
+- OverwhelmingGapArbitrator 仅从 zeta_sum_proof 移除，核心 SDK 保留
 
 ## Architect Insights (本次会话)
-- **无锁物理学**: Append-Only DAG = 无锁。Agent 读快照，写子节点。不需要锁。 → 已归档到 `directives/2026-03-21_lockfree-austrian-naked-swarm.md`
-- **无认知溢价**: 系统不为思考时间买单，价值由结果边际效用决定 → 已归档到 ALIGNMENT.md
-- **裸核盲测**: 剥离 Lean，用 Mock Membrane 验证 OS 泛化能力 → 已归档到 directives
+- **四大猛药架构指令**: 贪婪独裁→Boltzmann概率云 / 流动性陷阱→世代交替 / 阈值大坝→超流体清算 / 语义污染→精准判决 → 已归档到 `directives/2026-03-23_run1-postmortem-four-remedies.md`

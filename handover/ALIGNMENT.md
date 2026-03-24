@@ -17,9 +17,9 @@
 
 ### Layer 2 — 可演进参数
 5. 并发度 N（当前 15）
-6. Boltzmann 温度（热力学退火: 2.0→0.3）
+6. Boltzmann 温度 T=0.5（softmax 前沿选点）
 7. Anti-Zombie 阈值 = 3 次连续重复
-8. 模型配置（当前: R1-Distill-32B + deepseek-reasoner + R1 三物种）
+8. 模型配置（当前: DeepSeek V3.2 (deepseek-chat) + deepseek-reasoner + R1 三物种）
 
 ### 破坏性操作红线（必须人工确认）
 9. 修改 kernel.rs 纯数学逻辑

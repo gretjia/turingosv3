@@ -50,7 +50,8 @@ async fn main() {
     info!("N={}, Max Transactions={}", SWARM_SIZE, MAX_TRANSACTIONS);
 
     // --- Initialize Bus + Tools ---
-    let kernel = Kernel::new();
+    let mut kernel = Kernel::new();
+    kernel.bounty_escrow = 100_000.0; // TuringSwap: finite genesis budget, no fiat printing
     let mut bus = TuringBus::new(kernel);
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(1)));
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
@@ -310,7 +311,7 @@ async fn main() {
 
     // --- Final Output ---
     info!("==== EVALUATION COMPLETE ({} tx, {} generations) ====", tx_count, generation);
-    bus.kernel.hayekian_map_reduce();
+    bus.kernel.refresh_prices();
 
     if let Some(omega) = bus.kernel.tape.files.values()
         .find(|f| f.payload.contains("[OMEGA]") || f.payload.contains("[COMPLETE]"))

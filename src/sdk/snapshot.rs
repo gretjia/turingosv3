@@ -17,4 +17,7 @@ pub struct UniverseSnapshot {
     pub market_ticker: String,
     /// Graveyard tombstones per node (failure records)
     pub tombstones: HashMap<String, String>,
+    /// Generation counter — increments on rebirth. Agents use this to detect
+    /// world resets and purge stale private context (phantom context prevention).
+    pub generation: u32,
 }

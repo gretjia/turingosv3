@@ -141,6 +141,7 @@ impl TuringBus {
             balances,
             market_ticker: self.kernel.get_market_ticker(3),
             tombstones,
+            generation: 0, // Evaluator overrides this with actual generation count
         }
     }
 

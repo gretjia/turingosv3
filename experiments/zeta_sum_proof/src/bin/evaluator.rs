@@ -1,5 +1,6 @@
 use log::{info, warn, error};
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::{mpsc, watch};
 use turingosv3::kernel::{File, Kernel};
 use turingosv3::drivers::llm_http::ResilientLLMClient;
@@ -34,6 +35,13 @@ const SKILL: &str = "\
 [LAW 3] KELLY CRITERION: NEVER go all-in! Start small (10-100). Save large bets for high-confidence steps.\n\
 Balance < 1.0 = PERMANENT DEATH. Bad step = investment BURNED.\n";
 
+fn epoch_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
 #[tokio::main]
 async fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
@@ -54,7 +62,9 @@ async fn main() {
     bus.init_problem(&agent_ids);
 
     // --- Create Channels ---
-    let (tx_state, rx_state) = watch::channel(bus.get_immutable_snapshot());
+    let mut init_snap = bus.get_immutable_snapshot();
+    init_snap.generation = 1;
+    let (tx_state, rx_state) = watch::channel(init_snap);
     let (tx_mempool, mut rx_mempool) = mpsc::channel::<MinerTx>(1000);
 
     // --- Build Clients (3 species) ---
@@ -77,6 +87,11 @@ async fn main() {
         "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib".to_string(),
     ]));
 
+    // --- Free Action Heartbeat (shared atomic timestamp for liveness detection) ---
+    // Agents update this on any action (Search/View/Observe). Reactor reads it to
+    // distinguish "agents actively researching" from "true deadlock".
+    let free_action_epoch = Arc::new(AtomicU64::new(epoch_secs()));
+
     // --- Spawn N Agent Loops ---
     for i in 0..SWARM_SIZE {
         let client = clients[i % clients.len()].clone();
@@ -86,14 +101,22 @@ async fn main() {
         let skill = SKILL.to_string();
         let search = search_tool.clone();
         let private_ctx = Arc::new(Mutex::new(String::new()));
+        let heartbeat = free_action_epoch.clone();
 
         info!(">>> [SPAWN] Agent {} → {}", i, client.model_name());
 
         tokio::spawn(async move {
             let agent_name = format!("Agent_{}", i);
+            let mut local_generation: u32 = 1;
             loop {
                 // 1. Read snapshot (lock-free)
                 let snapshot = rx.borrow().clone();
+
+                // 1b. Detect generation change → purge phantom context
+                if snapshot.generation != local_generation {
+                    *private_ctx.lock().unwrap() = String::new();
+                    local_generation = snapshot.generation;
+                }
 
                 // 2. Check bankruptcy
                 let balance = snapshot.balances.get(&agent_name).copied().unwrap_or(0.0);
@@ -144,6 +167,7 @@ async fn main() {
                                     let q = action.query.unwrap_or_default();
                                     let result = search.search(&q);
                                     *private_ctx.lock().unwrap() = result;
+                                    heartbeat.store(epoch_secs(), Ordering::Relaxed);
                                     info!(">>> [SEARCH] {} free query: '{}'", agent_name, q);
                                 }
                                 "view_node" => {
@@ -151,9 +175,11 @@ async fn main() {
                                     let snap = rx.borrow().clone();
                                     let result = view_node(&snap, &id);
                                     *private_ctx.lock().unwrap() = result;
+                                    heartbeat.store(epoch_secs(), Ordering::Relaxed);
                                     info!(">>> [VIEW] {} views node: '{}'", agent_name, id);
                                 }
                                 _ => {
+                                    heartbeat.store(epoch_secs(), Ordering::Relaxed);
                                     info!(">>> [OBSERVE] {} free observation.", agent_name);
                                 }
                             }
@@ -174,10 +200,10 @@ async fn main() {
     info!(">>> TuringOS v3 Actor Model Booted. {} agents running independently. <<<", SWARM_SIZE);
 
     // --- Reactor Loop (single-threaded, serial, consistent) ---
-    // Superfluid reactor with 30s timeout for deadlock detection + generation rebirth
+    // Dual-condition rebirth: only when truly dead (solvent==0 OR absolute stagnation)
     let mut tx_count: u64 = 0;
     let mut generation: u32 = 1;
-    let mut consecutive_timeouts: u32 = 0;
+    let mut last_invest_epoch = epoch_secs();
 
     loop {
         match tokio::time::timeout(
@@ -185,7 +211,7 @@ async fn main() {
             rx_mempool.recv()
         ).await {
             Ok(Some(tx)) => {
-                consecutive_timeouts = 0;
+                last_invest_epoch = epoch_secs();
                 tx_count += 1;
 
                 let file = File {
@@ -216,7 +242,9 @@ async fn main() {
                     }
                 }
 
-                let _ = tx_state.send(bus.get_immutable_snapshot());
+                let mut snap = bus.get_immutable_snapshot();
+                snap.generation = generation;
+                let _ = tx_state.send(snap);
 
                 if tx_count >= MAX_TRANSACTIONS {
                     info!("Max transactions ({}) reached.", MAX_TRANSACTIONS);
@@ -228,18 +256,25 @@ async fn main() {
                 break;
             }
             Err(_) => {
-                // Timeout — check for market collapse (all agents bankrupt)
-                consecutive_timeouts += 1;
-
+                // Timeout — dual-condition rebirth check
+                let now = epoch_secs();
                 let solvent_count = agent_names.iter()
                     .filter(|name| bus.get_agent_balance(name) >= 1.0)
                     .count();
+                let last_free = free_action_epoch.load(Ordering::Relaxed);
+                let secs_since_invest = now.saturating_sub(last_invest_epoch);
+                let secs_since_free = now.saturating_sub(last_free);
 
-                if solvent_count == 0 || consecutive_timeouts >= 2 {
-                    error!("==== [MACROECONOMICS] MARKET COLLAPSE! Generation {} perished. Solvent: {}/{} ====",
-                        generation, solvent_count, SWARM_SIZE);
+                // Condition 1: True global bankruptcy
+                let all_bankrupt = solvent_count == 0;
+                // Condition 2: Absolute stagnation (no invest AND no free action for 60s)
+                let absolute_stagnation = secs_since_invest >= 60 && secs_since_free >= 60;
 
-                    // Record deaths in graveyard
+                if all_bankrupt || absolute_stagnation {
+                    let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };
+                    error!("==== [MACROECONOMICS] {}! Generation {} perished. Solvent: {}/{} ====",
+                        reason, generation, solvent_count, SWARM_SIZE);
+
                     for name in &agent_names {
                         let bal = bus.get_agent_balance(name);
                         if bal < 1.0 {
@@ -248,18 +283,26 @@ async fn main() {
                         }
                     }
 
-                    // Generation rebirth: Chapter 11 reorganization
                     generation += 1;
                     info!(">>> [REBIRTH] Spawning Generation {} with fresh capital!", generation);
                     for name in &agent_names {
                         bus.fund_agent(name, 10000.0);
                     }
 
-                    // Broadcast new snapshot — wakes all blocked agents instantly
-                    let _ = tx_state.send(bus.get_immutable_snapshot());
-                    consecutive_timeouts = 0;
+                    // Broadcast with generation tag — agents detect change and purge phantom context
+                    let mut snap = bus.get_immutable_snapshot();
+                    snap.generation = generation;
+                    let _ = tx_state.send(snap);
+                    last_invest_epoch = epoch_secs();
                 } else {
-                    info!("[TIMEOUT] 30s idle. Solvent: {}/{}. Waiting...", solvent_count, SWARM_SIZE);
+                    // Magna Carta Law 1: respect free reading rights
+                    if secs_since_free < 30 {
+                        info!("[MARKET WATCH] No invest for {}s. Agents actively reading (last free {}s ago). Respecting Law 1.",
+                            secs_since_invest, secs_since_free);
+                    } else {
+                        info!("[TIMEOUT] 30s idle. Solvent: {}/{}. Invest: {}s ago, Free: {}s ago.",
+                            solvent_count, SWARM_SIZE, secs_since_invest, secs_since_free);
+                    }
                 }
             }
         }
@@ -285,9 +328,47 @@ async fn main() {
         info!("NOT proved within {} transactions.", tx_count);
     }
 
+    // --- Dual-Track Tape Dump ---
+    // Summary Track: terminal-friendly truncated view
     info!("--- TAPE ({} nodes) ---", bus.kernel.tape.files.len());
     for (id, f) in &bus.kernel.tape.files {
-        info!("{} | P:{:.0} | {}", id, f.price,
-            f.payload.chars().take(100).collect::<String>().replace('\n', " "));
+        let char_count = f.payload.chars().count();
+        let summary: String = f.payload.chars().take(150).collect::<String>().replace('\n', " ");
+        let flag = if char_count > 150 { format!(" [+{}c]", char_count - 150) } else { String::new() };
+        info!("{} | P:{:.0} | {}{}", id, f.price, summary, flag);
+    }
+
+    // Immutable Track: full payload dump to file (publication-grade)
+    let dump_path = "/tmp/zeta_sum_tape_full.md";
+    if let Ok(mut f) = std::fs::File::create(dump_path) {
+        use std::io::Write;
+        let _ = writeln!(f, "# zeta_sum_proof — Full Tape Dump\n");
+        let _ = writeln!(f, "**Transactions**: {} | **Generations**: {} | **Nodes**: {}\n",
+            tx_count, generation, bus.kernel.tape.files.len());
+
+        // Golden Path (if OMEGA reached)
+        if let Some(omega) = bus.kernel.tape.files.values()
+            .find(|n| n.payload.contains("[OMEGA]") || n.payload.contains("[COMPLETE]"))
+        {
+            let _ = writeln!(f, "## Golden Path\n");
+            let path = bus.kernel.trace_golden_path(&omega.id);
+            for (i, nid) in path.iter().rev().enumerate() {
+                if let Some(n) = bus.kernel.tape.files.get(nid) {
+                    let _ = writeln!(f, "### Step {} — `{}` (Price: {:.0})\n", i + 1, nid, n.price);
+                    let _ = writeln!(f, "```\n{}\n```\n", n.payload);
+                }
+            }
+        }
+
+        // Full tape (all nodes, untruncated)
+        let _ = writeln!(f, "## All Nodes\n");
+        for nid in &bus.kernel.tape.time_arrow {
+            if let Some(n) = bus.kernel.tape.files.get(nid) {
+                let _ = writeln!(f, "### `{}` | Author: {} | Price: {:.0} | Citations: {:?}\n",
+                    nid, n.author, n.price, n.citations);
+                let _ = writeln!(f, "```\n{}\n```\n", n.payload);
+            }
+        }
+        info!(">>> [IMMUTABLE TRACK] Full tape exported to {}", dump_path);
     }
 }

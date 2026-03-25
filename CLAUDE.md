@@ -51,8 +51,8 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 | `src/kernel.rs` | 神圣微内核 (纯拓扑 + Hayekian map-reduce) |
 | `src/bus.rs` | TSP 事件总线 (SKILL 生命周期) |
 | `src/sdk/tools/wallet.rs` | WalletTool (PoS 经济中央银行) |
-| `experiments/minif2f_swarm/src/swarm.rs` | Boltzmann 路由器 |
-| `experiments/minif2f_swarm/src/lean4_membrane_tool.rs` | Lean 4 编译膜 |
+| `experiments/minif2f_swarm/` | MiniF2F 群体智能实验 (Boltzmann 路由 + Lean 4 膜) |
+| `experiments/zeta_regularization/` | Zeta 正则化实验 |
 | `handover/ai-direct/LATEST.md` | 会话状态单一真相源 |
 | `handover/bible.md` | 哲学基石 (禁止修改) |
 
@@ -61,11 +61,12 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 16. `handover/ai-direct/LATEST.md` — 当前状态真相源
 17. `handover/bible.md` — 哲学基石，只读
 18. `handover/` — 架构审计存档
-22. `handover/architect-insights/` — 架构师口头洞察浓缩归档（每条≤50字本质）
-23. 架构师分享非显而易见的设计原则时，必须通过 `/architect-ingest` 归档
+19. `handover/architect-insights/` — 架构师口头洞察浓缩归档（每条≤50字本质）
+20. 架构师分享非显而易见的设计原则时，必须通过 `/architect-ingest` 归档
+21. 审计等重输出通过 Agent 子进程执行，仅返回 verdict + 关键发现，防止主上下文膨胀
 
 ### User Profile (用户画像)
 
-19. 独狼研究员，零编程基础 vibe coder
-20. 优势是品味、架构直觉、哲学深度
-21. 沟通偏好：中文为主，技术术语可用英文
+22. 独狼研究员，零编程基础 vibe coder
+23. 优势是品味、架构直觉、哲学深度
+24. 沟通偏好：中文为主，技术术语可用英文

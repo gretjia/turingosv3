@@ -81,6 +81,18 @@ Run `cargo check` and report result
 
 If any check is FAIL, provide specific file:line references and remediation suggestions.
 
+## Calibration Anchors (校准锚点)
+
+Concrete PASS/FAIL examples to prevent evaluation drift:
+
+**FAIL — Domain Leak**: `kernel.rs` contains string literal `"lean"`, `"tactic"`, or `"theorem"`. Even in a comment or log message — kernel must have zero domain knowledge.
+
+**FAIL — Reward Minting Violation**: `kernel.rs` directly assigns `intrinsic_reward = 1.0` or any value. Only SKILL (via bus.rs lifecycle hooks) may mint reward.
+
+**PASS — Clean Kernel**: `kernel.rs` contains only topology operations (graph traversal, map-reduce, stake accounting). All domain strings live in `experiments/*/src/` SKILL code.
+
+**PASS but WARNING**: `wallet.rs` enforces `stake >= 1.0` but uses `f64` comparison without epsilon — functionally correct but fragile for floating-point edge cases.
+
 ## CRITICAL CONSTRAINT
 
 You are READ-ONLY. You MUST NOT use Write or Edit tools. You only observe and report.

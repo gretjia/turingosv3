@@ -12,6 +12,8 @@ pub trait TuringTool: Send + Sync {
     fn manifest(&self) -> &'static str;
     /// Downcast support for inter-tool communication (e.g., bus → wallet redistribution)
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+    /// Immutable downcast (e.g., snapshot reads)
+    fn as_any(&self) -> &dyn std::any::Any { unimplemented!("as_any not implemented") }
     fn on_boot(&mut self) {}
     
     fn on_init(&mut self, _agents: &[String]) {}

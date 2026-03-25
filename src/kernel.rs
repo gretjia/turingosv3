@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use crate::amm::UniswapPool;
 
 pub type Token = u64;
 pub type FileId = String;
@@ -79,6 +80,10 @@ pub trait AIBlackBox {
 pub struct Kernel {
     pub tape: Tape,
     pub gamma: f64,
+    /// TuringSwap: per-node AMM liquidity pools
+    pub amms: HashMap<FileId, UniswapPool>,
+    /// Bounty escrow: finite genesis budget, no fiat printing
+    pub bounty_escrow: f64,
 }
 
 impl Kernel {
@@ -86,6 +91,8 @@ impl Kernel {
         Self {
             tape: Tape::default(),
             gamma: 0.99,
+            amms: HashMap::new(),
+            bounty_escrow: 0.0,
         }
     }
 
@@ -156,32 +163,62 @@ impl Kernel {
         Ok(self.tape.files.get(&id).unwrap())
     }
 
-    /// O(V+E) Time-Arrow backpropagation.
-    /// Since Tape is Append-Only, time_arrow is a natural topological sort.
-    /// Iterating in reverse guarantees all children are settled before their parents.
-    pub fn hayekian_map_reduce(&mut self) {
-        // Step 1: Reset prices to intrinsic reward
-        for node in self.tape.files.values_mut() {
-            node.price = node.intrinsic_reward;
+    // ── TuringSwap AMM Operations ──────────────────────────────────────
+
+    /// Create an AMM pool for a newly appended node (IDO).
+    pub fn create_pool(&mut self, node_id: &str, initial_coin: f64) -> Result<(), String> {
+        if self.amms.contains_key(node_id) {
+            return Err(format!("Pool already exists for {}", node_id));
         }
+        let pool = UniswapPool::launch(node_id.to_string(), initial_coin)?;
+        self.amms.insert(node_id.to_string(), pool);
+        Ok(())
+    }
 
-        // Step 2: Single-pass reverse Time-Arrow propagation
-        for id in self.tape.time_arrow.iter().rev() {
-            let mut imputed_val = 0.0;
+    /// Quote: how many coins to buy `tokens` citation tokens from a node's pool?
+    pub fn quote_citation(&self, node_id: &str, tokens: f64) -> Result<f64, String> {
+        self.amms.get(node_id)
+            .ok_or_else(|| format!("Pool not found: {}", node_id))?
+            .get_amount_in(tokens)
+    }
 
-            if let Some(children) = self.tape.reverse_citations.get(id) {
-                for child_id in children {
-                    if let Some(child_file) = self.tape.files.get(child_id) {
-                        // V7: guard against division by zero (belt-and-suspenders)
-                        let citation_count = (child_file.citations.len() as f64).max(1.0);
-                        let weight = 1.0 / citation_count;
-                        imputed_val += self.gamma * weight * child_file.price;
-                    }
-                }
+    /// Execute citation purchase: pay coins, receive tokens.
+    pub fn buy_citation(&mut self, node_id: &str, coins_in: f64) -> Result<f64, String> {
+        self.amms.get_mut(node_id)
+            .ok_or_else(|| format!("Pool not found: {}", node_id))?
+            .swap_coin_for_token(coins_in)
+    }
+
+    /// Sell tokens back to a pool for coins (founder cash-out).
+    pub fn sell_tokens(&mut self, node_id: &str, tokens_in: f64) -> Result<f64, String> {
+        self.amms.get_mut(node_id)
+            .ok_or_else(|| format!("Pool not found: {}", node_id))?
+            .swap_token_for_coin(tokens_in)
+    }
+
+    /// OMEGA settlement: inject bounty escrow into Golden Path pools.
+    /// Only distributes to nodes that actually have pools.
+    pub fn liquidate_bounty(&mut self, golden_path: &[String]) {
+        if golden_path.is_empty() || self.bounty_escrow <= 0.0 { return; }
+        let valid_nodes: Vec<&String> = golden_path.iter()
+            .filter(|nid| self.amms.contains_key(*nid))
+            .collect();
+        if valid_nodes.is_empty() { return; }
+        let per_node = self.bounty_escrow / valid_nodes.len() as f64;
+        for nid in &valid_nodes {
+            if let Some(pool) = self.amms.get_mut(*nid) {
+                let _ = pool.inject_liquidity(per_node);
             }
+        }
+        self.bounty_escrow = 0.0;
+    }
 
-            if let Some(file) = self.tape.files.get_mut(id) {
-                file.price = file.intrinsic_reward + imputed_val;
+    /// Sync File.price from AMM pool state. Replaces hayekian_map_reduce.
+    /// Called periodically by the clock heartbeat (same topology slot).
+    pub fn refresh_prices(&mut self) {
+        for (nid, pool) in &self.amms {
+            if let Some(file) = self.tape.files.get_mut(nid) {
+                file.price = pool.coin_reserve;
             }
         }
     }

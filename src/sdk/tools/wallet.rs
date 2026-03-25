@@ -10,6 +10,8 @@ pub struct StakeRecord {
 
 pub struct WalletTool {
     pub balances: HashMap<String, f64>,
+    /// TuringSwap: agent token holdings (agent_id -> node_id -> token_amount)
+    pub portfolios: HashMap<String, HashMap<String, f64>>,
     pub stakes: Vec<StakeRecord>,
     pub global_pool: f64,
     pending_self_stakes: HashMap<String, f64>,
@@ -19,7 +21,7 @@ pub struct WalletTool {
 
 impl WalletTool {
     pub fn new() -> Self {
-        Self { balances: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new(), participants: HashSet::new() }
+        Self { balances: HashMap::new(), portfolios: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new(), participants: HashSet::new() }
     }
 
     /// Redistribute global_pool among PARTICIPANTS only (agents who staked this theorem).
@@ -74,6 +76,7 @@ impl WalletTool {
 impl TuringTool for WalletTool {
     fn manifest(&self) -> &'static str { "core.tool.crypto_wallet" }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
+    fn as_any(&self) -> &dyn std::any::Any { self }
 
     fn on_init(&mut self, agents: &[String]) {
         self.stakes.clear();

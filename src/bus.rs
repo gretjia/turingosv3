@@ -11,23 +11,21 @@ impl Graveyard {
     pub fn new() -> Self {
         Self { tombstones: HashMap::new() }
     }
-    
+
     pub fn record_death(&mut self, node_id: &str, reason: &str) {
         let entry = self.tombstones.entry(node_id.to_string()).or_insert_with(VecDeque::new);
-        // Dedup: don't store identical errors, preserve unique failure diversity
         if !entry.iter().any(|existing| existing == reason) {
             entry.push_back(reason.to_string());
         }
-        // Keep up to 10 unique errors (was 3, too few for N=15 swarm)
         if entry.len() > 10 {
             entry.pop_front();
         }
     }
-    
+
     pub fn get_tombstones(&self, node_id: &str) -> String {
         if let Some(graves) = self.tombstones.get(node_id) {
             if graves.is_empty() { return String::new(); }
-            let mut s = String::from("\n=== 🪦 GRAVEYARD: RECENT BANKRUPTCIES ON THIS NODE ===\n");
+            let mut s = String::from("\n=== GRAVEYARD: RECENT BANKRUPTCIES ON THIS NODE ===\n");
             for (i, reason) in graves.iter().enumerate() {
                 s.push_str(&format!("Failure {}: {}\n", i + 1, reason));
             }
@@ -62,8 +60,8 @@ impl TuringBus {
     }
 
     pub fn init_problem(&mut self, agents: &[String]) {
-        for tool in &mut self.tools { 
-            tool.on_init(agents); 
+        for tool in &mut self.tools {
+            tool.on_init(agents);
         }
     }
 
@@ -80,8 +78,7 @@ impl TuringBus {
         self.graveyard.get_tombstones(node_id)
     }
 
-    /// Inject capital into a specific agent (generation rebirth / Chapter 11 reorganization).
-    /// Delegates to WalletTool — bus is pure router.
+    /// Inject capital into a specific agent (generation rebirth).
     pub fn fund_agent(&mut self, agent_id: &str, amount: f64) {
         use crate::sdk::tools::wallet::WalletTool;
         for tool in &mut self.tools {
@@ -108,8 +105,8 @@ impl TuringBus {
     }
 
     /// Extract all agent balances for cross-theorem persistence
-    pub fn extract_wallet_balances(&self) -> std::collections::HashMap<String, f64> {
-        let mut balances = std::collections::HashMap::new();
+    pub fn extract_wallet_balances(&self) -> HashMap<String, f64> {
+        let mut balances = HashMap::new();
         for i in 0..100 {
             let agent_id = format!("Agent_{}", i);
             let balance = self.get_agent_balance(&agent_id);
@@ -120,15 +117,54 @@ impl TuringBus {
         balances
     }
 
+    // ── TuringSwap helper: deduct coins from agent via WalletTool ──
+
+    fn deduct_balance(&mut self, agent_id: &str, amount: f64) -> Result<(), String> {
+        use crate::sdk::tools::wallet::WalletTool;
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    let bal = *wallet.balances.get(agent_id).unwrap_or(&0.0);
+                    if bal < amount {
+                        return Err(format!(
+                            "Insufficient for citation: need {:.2}, have {:.2}", amount, bal
+                        ));
+                    }
+                    *wallet.balances.get_mut(agent_id).unwrap() -= amount;
+                    return Ok(());
+                }
+            }
+        }
+        Err("WalletTool not found".into())
+    }
+
+    // ── TuringSwap helper: add tokens to agent portfolio ──
+
+    fn add_portfolio_tokens(&mut self, agent_id: &str, node_id: &str, tokens: f64) {
+        use crate::sdk::tools::wallet::WalletTool;
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    *wallet.portfolios
+                        .entry(agent_id.to_string()).or_default()
+                        .entry(node_id.to_string()).or_insert(0.0) += tokens;
+                }
+                break;
+            }
+        }
+    }
+
     /// Freeze the current universe state into an immutable snapshot.
-    /// Agents read this snapshot lock-free — past spacetime is absolute.
     pub fn get_immutable_snapshot(&self) -> crate::sdk::snapshot::UniverseSnapshot {
-        let mut balances = std::collections::HashMap::new();
+        use crate::sdk::snapshot::PoolSnapshot;
+        use crate::sdk::tools::wallet::WalletTool;
+
+        let mut balances = HashMap::new();
         for i in 0..100 {
             let aid = format!("Agent_{}", i);
             balances.insert(aid.clone(), self.get_agent_balance(&aid));
         }
-        let mut tombstones = std::collections::HashMap::new();
+        let mut tombstones = HashMap::new();
         for id in self.kernel.tape.files.keys() {
             let g = self.get_tombstones(id);
             if !g.is_empty() { tombstones.insert(id.clone(), g); }
@@ -136,20 +172,94 @@ impl TuringBus {
         let rg = self.get_tombstones("root");
         if !rg.is_empty() { tombstones.insert("root".to_string(), rg); }
 
+        // AMM pool snapshots
+        let pool_states: HashMap<String, PoolSnapshot> = self.kernel.amms.iter()
+            .map(|(nid, pool)| {
+                (nid.clone(), PoolSnapshot {
+                    coin_reserve: pool.coin_reserve,
+                    token_reserve: pool.token_reserve,
+                    spot_price: pool.spot_price(),
+                    citation_cost_100: pool.get_amount_in(100.0).unwrap_or(f64::INFINITY),
+                })
+            })
+            .collect();
+
+        // Portfolio snapshot
+        let mut portfolios = HashMap::new();
+        for tool in &self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
+                    portfolios = wallet.portfolios.clone();
+                }
+                break;
+            }
+        }
+
         crate::sdk::snapshot::UniverseSnapshot {
             tape: self.kernel.tape.clone(),
             balances,
+            portfolios,
+            pool_states,
             market_ticker: self.kernel.get_market_ticker(3),
             tombstones,
             generation: 0, // Evaluator overrides this with actual generation count
+            bounty_remaining: self.kernel.bounty_escrow,
         }
     }
 
     pub fn halt_and_settle(&mut self, omega_id: &str) {
+        use crate::sdk::tools::wallet::WalletTool;
+
         let golden_path = self.kernel.trace_golden_path(omega_id);
+
+        // 1. Inject bounty escrow into Golden Path pools
+        self.kernel.liquidate_bounty(&golden_path);
+        log::info!(">>> [OMEGA SETTLEMENT] Bounty injected into {} GP pools", golden_path.len());
+
+        // 2. Cash out all agents holding GP tokens
+        // Collect portfolio data first to avoid borrow conflicts
+        let mut cashouts: Vec<(String, String, f64)> = Vec::new(); // (agent, node, tokens)
+        for tool in &self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
+                    for (agent_id, holdings) in &wallet.portfolios {
+                        for (nid, tokens) in holdings {
+                            if *tokens > 0.0 && golden_path.contains(nid) {
+                                cashouts.push((agent_id.clone(), nid.clone(), *tokens));
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        // Execute cashouts
+        for (agent_id, nid, tokens) in &cashouts {
+            if let Ok(coins) = self.kernel.sell_tokens(nid, *tokens) {
+                // Credit balance
+                for tool in &mut self.tools {
+                    if tool.manifest() == "core.tool.crypto_wallet" {
+                        if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                            *wallet.balances.entry(agent_id.clone()).or_insert(0.0) += coins;
+                            if let Some(holdings) = wallet.portfolios.get_mut(agent_id) {
+                                holdings.insert(nid.clone(), 0.0);
+                            }
+                        }
+                        break;
+                    }
+                }
+                log::info!(">>> [CASH OUT] {} sold {:.0} tokens of {} for {:.2} Coins",
+                    agent_id, tokens, nid, coins);
+            }
+        }
+
+        // 3. Legacy tool halt hooks
         for tool in &mut self.tools {
             tool.on_halt(&golden_path, &mut self.kernel.tape);
         }
+
+        self.kernel.refresh_prices();
     }
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
@@ -157,8 +267,8 @@ impl TuringBus {
         let mut is_invest_only = false;
         let mut invest_target = String::new();
         let mut invest_amount = 0.0;
-        
-        // 1. Pre-append hooks
+
+        // ── Phase 1: Tool pre-append hooks (balance check, deduction) ──
         for tool in &mut self.tools {
             match tool.on_pre_append(&file.author, &file.payload) {
                 ToolSignal::Pass => {}
@@ -183,64 +293,118 @@ impl TuringBus {
                     is_invest_only = true;
                     invest_target = target_node;
                     invest_amount = amount;
-                    break; // Break tool chain, bypass Lean4 membrane
+                    break;
                 }
             }
         }
 
+        // ── Phase 2: InvestOnly → AMM swap (replaces direct intrinsic_reward mutation) ──
         if is_invest_only {
-            // 🌟 Inject capital directly into historical node
-            if let Some(node) = self.kernel.tape.files.get_mut(&invest_target) {
-                node.intrinsic_reward += invest_amount;
-                log::info!(">>> [MARKET PUMP] Node {} received VC funding of {:.2}! Market Cap surging!", invest_target, invest_amount);
-                // Trigger global gravity recalculation
-                self.kernel.hayekian_map_reduce();
+            if self.kernel.amms.contains_key(&invest_target) {
+                // TuringSwap path: buy tokens via AMM
+                match self.kernel.buy_citation(&invest_target, invest_amount) {
+                    Ok(tokens) => {
+                        self.add_portfolio_tokens(&file.author, &invest_target, tokens);
+                        log::info!(">>> [MARKET PUMP] {} bought {:.1} tokens of {} for {:.2} Coins",
+                            file.author, tokens, invest_target, invest_amount);
+                    }
+                    Err(e) => {
+                        log::warn!(">>> [AMM ERROR] {}", e);
+                    }
+                }
             } else {
-                log::warn!(">>> [VC ERROR] Node {} does not exist. Investment burned.", invest_target);
+                // No pool exists — investment cannot proceed in TuringSwap regime.
+                // Do NOT mutate intrinsic_reward directly (violates Append-Only + SKILL-only minting).
+                log::warn!(">>> [INVEST REJECTED] Node {} has no AMM pool. Investment of {:.2} returned to {}.",
+                    invest_target, invest_amount, file.author);
+                // Refund the agent
+                use crate::sdk::tools::wallet::WalletTool;
+                for tool in &mut self.tools {
+                    if tool.manifest() == "core.tool.crypto_wallet" {
+                        if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                            *wallet.balances.entry(file.author.clone()).or_insert(0.0) += invest_amount;
+                        }
+                        break;
+                    }
+                }
             }
-            return Ok(()); // End turn, no new node created
+            self.kernel.refresh_prices();
+            return Ok(());
         }
 
-        // 2. Kernel append (with causality enforcement)
-        let node = match self.kernel.append_tape(file.clone(), final_reward) {
-            Ok(node) => node,
-            Err(reason) => {
-                log::warn!(">>> [KERNEL REJECT] {}", reason);
-                return Err(reason);
+        // ── Phase 3: AMM citation purchase (引用即买入) ──
+        let citation_token_amount = 100.0;
+        for parent_id in &file.citations {
+            if self.kernel.amms.contains_key(parent_id) {
+                match self.kernel.quote_citation(parent_id, citation_token_amount) {
+                    Ok(cost) => {
+                        match self.deduct_balance(&file.author, cost) {
+                            Ok(()) => {
+                                match self.kernel.buy_citation(parent_id, cost) {
+                                    Ok(tokens) => {
+                                        self.add_portfolio_tokens(&file.author, parent_id, tokens);
+                                        log::info!(">>> [CITATION BUY] {} bought {:.1} tokens of {} for {:.2}",
+                                            file.author, tokens, parent_id, cost);
+                                    }
+                                    Err(e) => log::warn!(">>> [AMM BUY ERROR] {}", e),
+                                }
+                            }
+                            Err(e) => {
+                                log::warn!(">>> [CITATION COST] {} cannot afford {:.2} for {}: {}",
+                                    file.author, cost, parent_id, e);
+                                // Not fatal — citation still happens, just no token purchase
+                            }
+                        }
+                    }
+                    Err(e) => log::warn!(">>> [QUOTE ERROR] {}: {}", parent_id, e),
+                }
             }
+        }
+
+        // ── Phase 4: Kernel append (unchanged — Append-Only DAG) ──
+        let new_node_id = {
+            let node = match self.kernel.append_tape(file.clone(), final_reward) {
+                Ok(node) => node,
+                Err(reason) => {
+                    log::warn!(">>> [KERNEL REJECT] {}", reason);
+                    return Err(reason);
+                }
+            };
+            node.id.clone()
+            // node ref dropped here — frees kernel borrow
         };
 
-        // 3. Post-append hooks
-        for tool in &mut self.tools {
-            tool.on_post_append(&file.author, node);
+        // ── Phase 5: AMM pool creation (IDO) + founder tokens ──
+        if final_reward > 0.0 {
+            match self.kernel.create_pool(&new_node_id, final_reward) {
+                Ok(()) => {
+                    self.add_portfolio_tokens(&file.author, &new_node_id, 1000.0);
+                    log::info!(">>> [IPO] {} launched pool for {} (IDO: {:.2}, Founder: 1000 tokens)",
+                        file.author, new_node_id, final_reward);
+                }
+                Err(e) => log::warn!(">>> [POOL ERROR] {}", e),
+            }
         }
 
+        // ── Phase 6: Tool post-append hooks + price refresh ──
+        let appended_node = self.kernel.tape.files.get(&new_node_id).unwrap();
+        for tool in &mut self.tools {
+            tool.on_post_append(&file.author, appended_node);
+        }
+
+        self.kernel.refresh_prices();
         self.clock += 1;
         Ok(())
     }
 
+    /// Clock-driven price refresh. Same topology slot as old hayekian_map_reduce.
+    pub fn tick_refresh_prices(&mut self) {
+        self.kernel.refresh_prices();
+    }
+
+    /// Legacy: tick_map_reduce redirects to refresh_prices for backward compat
     pub fn tick_map_reduce(&mut self) {
-        let current_volume = self.kernel.tape.files.len();
-        
-        // Find current max price in the market
-        let current_max_price = self.kernel.tape.files.values()
-            .map(|f| f.price)
-            .fold(0.0, f64::max);
-
-        let mut skip = false;
-        for tool in &mut self.tools {
-            if tool.should_skip_reduce(current_volume) {
-                skip = true;
-            }
-            if tool.should_skip_reduce_by_price(current_max_price) {
-                skip = true;
-            }
-        }
-
-        if !skip {
-            println!(">>> [Event Bus] Triggering REDUCE (Volume: {}, MaxPrice: {:.2}) <<<", current_volume, current_max_price);
-            self.kernel.hayekian_map_reduce();
-        }
+        self.tick_refresh_prices();
     }
 }
 
@@ -267,9 +431,9 @@ impl TuringTool for ThermodynamicHeartbeatTool {
     fn should_skip_reduce(&mut self, current_volume: usize) -> bool {
         if current_volume - self.last_mr_volume >= self.threshold {
             self.last_mr_volume = current_volume;
-            false // Do not skip
+            false
         } else {
-            true // Skip
+            true
         }
     }
 }
@@ -281,7 +445,7 @@ impl TuringTool for MembraneGuardTool {
         "Membrane Guard Skill"
     }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any { self }
-    
+
     fn on_pre_append(&mut self, _author: &str, payload: &str) -> ToolSignal {
         if payload.contains("paradox") {
             ToolSignal::Veto("Membrane rejected payload".into())

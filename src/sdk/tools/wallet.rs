@@ -10,8 +10,8 @@ pub struct StakeRecord {
 
 pub struct WalletTool {
     pub balances: HashMap<String, f64>,
-    /// TuringSwap: agent token holdings (agent_id -> node_id -> token_amount)
-    pub portfolios: HashMap<String, HashMap<String, f64>>,
+    /// Turing-Polymarket: agent YES/NO holdings (agent_id -> node_id -> (yes, no))
+    pub portfolios: HashMap<String, HashMap<String, (f64, f64)>>,
     pub stakes: Vec<StakeRecord>,
     pub global_pool: f64,
     pending_self_stakes: HashMap<String, f64>,
@@ -145,33 +145,13 @@ impl TuringTool for WalletTool {
         }
     }
 
-    fn on_halt(&mut self, golden_path: &[String], tape: &mut Tape) {
-        log::info!("==== [SMART CONTRACT] HALT REACHED! INITIATING SETTLEMENT ====");
-        let golden_set: HashSet<_> = golden_path.iter().cloned().collect();
-        
-        let mut golden_stakes_total = 0.0;
-        let mut agent_winning_amounts = HashMap::new();
-
-        for stake in &self.stakes {
-            if golden_set.contains(&stake.target_node) {
-                golden_stakes_total += stake.amount;
-                *agent_winning_amounts.entry(stake.agent_id.clone()).or_insert(0.0) += stake.amount;
-            }
-        }
-
-        if golden_stakes_total > 0.0 {
-            for (agent, amount) in agent_winning_amounts {
-                let share = (amount / golden_stakes_total) * self.global_pool;
-                *self.balances.entry(agent.clone()).or_insert(0.0) += share;
-                log::info!(">>> [PAYOUT] Agent {} won {:.2} Coins! (Pool Share: {:.2}%)", agent, share, (amount/golden_stakes_total)*100.0);
-            }
-        }
-
-        // V1 fix: Tape is Append-Only. No node deletion — ever.
-        // Dead branches are permanently archived as RLAIF training data.
+    fn on_halt(&mut self, _golden_path: &[String], tape: &mut Tape) {
+        // Polymarket regime: settlement is handled by bus.rs halt_and_settle()
+        // via binary market resolution + redemption. Legacy global_pool payout DISABLED
+        // to prevent double-payment (Codex audit #1 fix).
         log::info!(">>> [IMMUTABLE SPACETIME] Settlement complete. {} total nodes preserved.", tape.files.len());
-
         self.global_pool = 0.0;
+        self.stakes.clear();
     }
 
     fn query_state(&self, key: &str) -> Option<String> {

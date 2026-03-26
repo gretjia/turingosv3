@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use crate::amm::UniswapPool;
+use crate::prediction_market::BinaryMarket;
 
 pub type Token = u64;
 pub type FileId = String;
@@ -80,10 +80,8 @@ pub trait AIBlackBox {
 pub struct Kernel {
     pub tape: Tape,
     pub gamma: f64,
-    /// TuringSwap: per-node AMM liquidity pools
-    pub amms: HashMap<FileId, UniswapPool>,
-    /// Bounty escrow: finite genesis budget, no fiat printing
-    pub bounty_escrow: f64,
+    /// Turing-Polymarket: per-node binary prediction markets
+    pub prediction_markets: HashMap<FileId, BinaryMarket>,
 }
 
 impl Kernel {
@@ -91,8 +89,7 @@ impl Kernel {
         Self {
             tape: Tape::default(),
             gamma: 0.99,
-            amms: HashMap::new(),
-            bounty_escrow: 0.0,
+            prediction_markets: HashMap::new(),
         }
     }
 
@@ -163,62 +160,60 @@ impl Kernel {
         Ok(self.tape.files.get(&id).unwrap())
     }
 
-    // ── TuringSwap AMM Operations ──────────────────────────────────────
+    // ── Turing-Polymarket Operations ────────────────────────────────────
 
-    /// Create an AMM pool for a newly appended node (IDO).
-    pub fn create_pool(&mut self, node_id: &str, initial_coin: f64) -> Result<(), String> {
-        if self.amms.contains_key(node_id) {
-            return Err(format!("Pool already exists for {}", node_id));
+    /// Create a binary prediction market for a node (genesis ignition).
+    pub fn create_market(&mut self, node_id: &str, lp_coins: f64) -> Result<(), String> {
+        if self.prediction_markets.contains_key(node_id) {
+            return Err(format!("Market already exists for {}", node_id));
         }
-        let pool = UniswapPool::launch(node_id.to_string(), initial_coin)?;
-        self.amms.insert(node_id.to_string(), pool);
+        let market = BinaryMarket::create(node_id.to_string(), lp_coins)?;
+        self.prediction_markets.insert(node_id.to_string(), market);
         Ok(())
     }
 
-    /// Quote: how many coins to buy `tokens` citation tokens from a node's pool?
-    pub fn quote_citation(&self, node_id: &str, tokens: f64) -> Result<f64, String> {
-        self.amms.get(node_id)
-            .ok_or_else(|| format!("Pool not found: {}", node_id))?
-            .get_amount_in(tokens)
+    /// Buy YES shares on a node (bullish: believes node is on GP).
+    pub fn buy_yes(&mut self, node_id: &str, coins: f64) -> Result<f64, String> {
+        self.prediction_markets.get_mut(node_id)
+            .ok_or_else(|| format!("Market not found: {}", node_id))?
+            .buy_yes(coins)
     }
 
-    /// Execute citation purchase: pay coins, receive tokens.
-    pub fn buy_citation(&mut self, node_id: &str, coins_in: f64) -> Result<f64, String> {
-        self.amms.get_mut(node_id)
-            .ok_or_else(|| format!("Pool not found: {}", node_id))?
-            .swap_coin_for_token(coins_in)
+    /// Buy NO shares on a node (bearish: believes node is NOT on GP).
+    pub fn buy_no(&mut self, node_id: &str, coins: f64) -> Result<f64, String> {
+        self.prediction_markets.get_mut(node_id)
+            .ok_or_else(|| format!("Market not found: {}", node_id))?
+            .buy_no(coins)
     }
 
-    /// Sell tokens back to a pool for coins (founder cash-out).
-    pub fn sell_tokens(&mut self, node_id: &str, tokens_in: f64) -> Result<f64, String> {
-        self.amms.get_mut(node_id)
-            .ok_or_else(|| format!("Pool not found: {}", node_id))?
-            .swap_token_for_coin(tokens_in)
-    }
-
-    /// OMEGA settlement: inject bounty escrow into Golden Path pools.
-    /// Only distributes to nodes that actually have pools.
-    pub fn liquidate_bounty(&mut self, golden_path: &[String]) {
-        if golden_path.is_empty() || self.bounty_escrow <= 0.0 { return; }
-        let valid_nodes: Vec<&String> = golden_path.iter()
-            .filter(|nid| self.amms.contains_key(*nid))
-            .collect();
-        if valid_nodes.is_empty() { return; }
-        let per_node = self.bounty_escrow / valid_nodes.len() as f64;
-        for nid in &valid_nodes {
-            if let Some(pool) = self.amms.get_mut(*nid) {
-                let _ = pool.inject_liquidity(per_node);
-            }
+    /// Oracle resolution: mark a node's market as resolved.
+    pub fn resolve_market(&mut self, node_id: &str, yes_wins: bool) {
+        if let Some(market) = self.prediction_markets.get_mut(node_id) {
+            market.resolve(yes_wins);
         }
-        self.bounty_escrow = 0.0;
     }
 
-    /// Sync File.price from AMM pool state. Replaces hayekian_map_reduce.
+    /// Get YES price (Bayesian probability) for a node.
+    pub fn yes_price(&self, node_id: &str) -> f64 {
+        self.prediction_markets.get(node_id)
+            .map(|m| m.yes_price())
+            .unwrap_or(0.0)
+    }
+
+    /// Redeem winning shares after resolution.
+    pub fn redeem(&self, node_id: &str, yes_shares: f64, no_shares: f64) -> f64 {
+        self.prediction_markets.get(node_id)
+            .map(|m| m.redeem(yes_shares, no_shares))
+            .unwrap_or(0.0)
+    }
+
+    /// Sync File.price from prediction market probabilities.
+    /// Price = P_yes (Bayesian confidence that node is on GP).
     /// Called periodically by the clock heartbeat (same topology slot).
     pub fn refresh_prices(&mut self) {
-        for (nid, pool) in &self.amms {
+        for (nid, market) in &self.prediction_markets {
             if let Some(file) = self.tape.files.get_mut(nid) {
-                file.price = pool.coin_reserve;
+                file.price = market.yes_price();
             }
         }
     }

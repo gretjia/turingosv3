@@ -7,14 +7,18 @@
 use std::collections::HashMap;
 use crate::kernel::Tape;
 
-/// Frozen view of a single AMM pool
+/// Frozen view of a single binary prediction market
 #[derive(Clone, Default)]
-pub struct PoolSnapshot {
-    pub coin_reserve: f64,
-    pub token_reserve: f64,
-    pub spot_price: f64,
-    /// Cost in coins to buy 100 citation tokens (f64::INFINITY if impossible)
-    pub citation_cost_100: f64,
+pub struct MarketSnapshot {
+    /// Bayesian probability that this node is on the Golden Path
+    pub yes_price: f64,
+    /// 1 - yes_price
+    pub no_price: f64,
+    /// Pool reserves (for advanced agents)
+    pub yes_reserve: f64,
+    pub no_reserve: f64,
+    /// Whether market has been resolved
+    pub resolved: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -23,17 +27,14 @@ pub struct UniverseSnapshot {
     pub tape: Tape,
     /// All agent balances at snapshot time
     pub balances: HashMap<String, f64>,
-    /// TuringSwap: agent token portfolios (agent -> node -> tokens)
-    pub portfolios: HashMap<String, HashMap<String, f64>>,
-    /// TuringSwap: AMM pool states per node
-    pub pool_states: HashMap<String, PoolSnapshot>,
+    /// Turing-Polymarket: agent YES/NO holdings per node
+    pub portfolios: HashMap<String, HashMap<String, (f64, f64)>>,
+    /// Turing-Polymarket: binary market states per node
+    pub markets: HashMap<String, MarketSnapshot>,
     /// Top-N market price leaderboard (formatted string)
     pub market_ticker: String,
     /// Graveyard tombstones per node (failure records)
     pub tombstones: HashMap<String, String>,
-    /// Generation counter — increments on rebirth. Agents use this to detect
-    /// world resets and purge stale private context (phantom context prevention).
+    /// Generation counter — increments on rebirth
     pub generation: u32,
-    /// Remaining bounty escrow (finite genesis budget)
-    pub bounty_remaining: f64,
 }

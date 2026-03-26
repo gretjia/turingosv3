@@ -107,18 +107,26 @@ impl Kernel {
 
     pub fn get_market_ticker(&self, top_n: usize) -> String {
         let mut active_nodes: Vec<_> = self.tape.files.values().collect();
-        // Sort descending by market price
         active_nodes.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap_or(std::cmp::Ordering::Equal));
-        
-        let mut ticker = format!("\n=== 📈 GLOBAL MARKET LEADERBOARD (Top {}) ===\n", top_n);
+
+        let mut ticker = format!("\n=== PREDICTION MARKET (Top {}) ===\n", top_n);
         if active_nodes.is_empty() {
-            ticker.push_str("- Market is empty. Be the first to IPO!\n");
+            ticker.push_str("- No nodes yet. Be the first to create one!\n");
         } else {
             for (i, node) in active_nodes.iter().take(top_n).enumerate() {
-                ticker.push_str(&format!("Rank {}: [Node ID: {}] | Market Cap: {:.2} Coins\n", i + 1, node.id, node.price));
+                if let Some(market) = self.prediction_markets.get(&node.id) {
+                    if let Some(yes_wins) = market.resolved {
+                        let verdict = if yes_wins { "YES" } else { "NO" };
+                        ticker.push_str(&format!("#{}: [{}] RESOLVED: {}\n", i + 1, node.id, verdict));
+                    } else {
+                        ticker.push_str(&format!("#{}: [{}] P_yes: {:.1}%\n", i + 1, node.id, node.price * 100.0));
+                    }
+                } else {
+                    ticker.push_str(&format!("#{}: [{}] Price: {:.2}\n", i + 1, node.id, node.price));
+                }
             }
         }
-        ticker.push_str("============================================\n");
+        ticker.push_str("=================================\n");
         ticker
     }
 

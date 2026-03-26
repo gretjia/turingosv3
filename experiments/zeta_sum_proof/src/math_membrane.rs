@@ -33,12 +33,10 @@ impl TuringTool for MathStepMembrane {
         }
 
         // [COMPLETE] → OMEGA signal (terminal oracle will verify)
+        // Polymarket: zero mint. Only tag OMEGA marker. Agent's own stake is the only reward.
         if step.contains("[COMPLETE]") {
             info!(">>> [MEMBRANE] COMPLETE declared! Triggering terminal oracle.");
-            return ToolSignal::YieldReward {
-                payload: format!("{}\n  -- [OMEGA]", payload),
-                reward: 100_000_000_000.0,
-            };
+            return ToolSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
         }
 
         // Everything else passes — market handles quality

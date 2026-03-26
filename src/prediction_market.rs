@@ -38,9 +38,15 @@ impl BinaryMarket {
     /// P_yes = no_reserve / (yes_reserve + no_reserve)
     /// Intuition: scarce YES shares = high YES price = high confidence.
     pub fn yes_price(&self) -> f64 {
-        let total = self.yes_reserve + self.no_reserve;
-        if total == 0.0 { return 0.5; }
-        self.no_reserve / total
+        match self.resolved {
+            Some(true) => 1.0,   // Certainty: YES wins
+            Some(false) => 0.0,  // Certainty: NO wins
+            None => {
+                let total = self.yes_reserve + self.no_reserve;
+                if total == 0.0 { return 0.5; }
+                self.no_reserve / total
+            }
+        }
     }
 
     /// P_no = 1 - P_yes

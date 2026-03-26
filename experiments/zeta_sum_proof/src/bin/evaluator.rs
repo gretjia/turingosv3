@@ -31,8 +31,13 @@ RULES:
 
 const SKILL: &str = "\
 [LAW 1] INFORMATION IS FREE: ViewNode and Search cost ZERO. ALWAYS research before investing.\n\
-[LAW 2] ONLY INVESTMENT IS RISK: The ONLY action that burns coins is Invest.\n\
+[LAW 2] ONLY INVESTMENT IS RISK: The ONLY action that burns coins is Invest/Bet/Short.\n\
 [LAW 3] KELLY CRITERION: NEVER go all-in! Start small (10-100). Save large bets for high-confidence steps.\n\
+[LAW 4] POLYMARKET: Each node has a YES/NO prediction market.\n\
+  - Create nodes (invest) = you get YES shares automatically.\n\
+  - Bet YES on others' nodes (bet) = you believe that node leads to OMEGA.\n\
+  - Bet NO against others' nodes (short) = you believe that node is a dead end.\n\
+  - If right, you profit. If wrong, you lose your bet.\n\
 Balance < 1.0 = PERMANENT DEATH. Bad step = investment BURNED.\n";
 
 fn epoch_secs() -> u64 {
@@ -141,7 +146,7 @@ async fn main() {
                     &snapshot.market_ticker,
                     &format!("{}\n{}", graveyard, private),
                     balance,
-                    "invest: {\"tool\":\"invest\",\"tactic\":\"your step\",\"amount\":PRICE}\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
+                    "invest: {\"tool\":\"invest\",\"tactic\":\"your step\",\"amount\":PRICE}\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing node)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO against a node)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
                 );
 
                 // 4. Invoke LLM
@@ -162,6 +167,21 @@ async fn main() {
                                         parent_id: parent_id.clone(),
                                         action_type: "invest".to_string(),
                                     }).await;
+                                }
+                                "short" => {
+                                    let node_id = action.node.unwrap_or_default();
+                                    let amount = action.amount.unwrap_or(1.0);
+                                    if !node_id.is_empty() {
+                                        // SHORT: prefix tells WalletTool to set BetDirection::Short
+                                        let payload = format!("[Tool: Wallet | Action: Invest | Node: SHORT:{} | Amount: {:.2}]", node_id, amount);
+                                        let _ = tx.send(MinerTx {
+                                            agent_id: agent_name.clone(),
+                                            model_name: client.model_name().to_string(),
+                                            payload,
+                                            parent_id: None,
+                                            action_type: "short".to_string(),
+                                        }).await;
+                                    }
                                 }
                                 "search" => {
                                     let q = action.query.unwrap_or_default();

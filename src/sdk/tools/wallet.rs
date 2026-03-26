@@ -132,10 +132,17 @@ impl TuringTool for WalletTool {
                 reward: amount, 
             }
         } else {
-            // 纯金融 VC 投资行为：记录股权，等待 Halt 时的赢家通吃结算
-            self.stakes.push(StakeRecord { agent_id: author.to_string(), amount, target_node: target.clone() });
-            log::info!(">>> [FREE MARKET VC] Agent {} invested {:.2} Coins into Node {}!", author, amount, target);
-            ToolSignal::InvestOnly { target_node: target, amount }
+            // Polymarket: detect direction from SHORT: prefix (策略层解析)
+            use crate::sdk::tool::BetDirection;
+            let (real_target, direction) = if target.starts_with("SHORT:") {
+                (target["SHORT:".len()..].to_string(), BetDirection::Short)
+            } else {
+                (target.clone(), BetDirection::Long)
+            };
+            let side = if direction == BetDirection::Short { "SHORT" } else { "LONG" };
+            self.stakes.push(StakeRecord { agent_id: author.to_string(), amount, target_node: real_target.clone() });
+            log::info!(">>> [BET {}] Agent {} bet {:.2} Coins on Node {}!", side, author, amount, real_target);
+            ToolSignal::InvestOnly { target_node: real_target, amount, direction }
         }
     }
 

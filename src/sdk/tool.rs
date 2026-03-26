@@ -1,11 +1,14 @@
 use crate::kernel::{Tape, File as TapeNode};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BetDirection { Long, Short }
+
 pub enum ToolSignal {
     Pass,
     Modify(String),
     Veto(String),
     YieldReward { payload: String, reward: f64 },
-    InvestOnly { target_node: String, amount: f64 }, 
+    InvestOnly { target_node: String, amount: f64, direction: BetDirection },
 }
 
 pub trait TuringTool: Send + Sync {

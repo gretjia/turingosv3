@@ -42,6 +42,7 @@ pub struct TuringBus {
     pub tools: Vec<Box<dyn TuringTool>>,
     pub clock: usize,
     pub graveyard: Graveyard,
+    pub ticker_top_n: usize,
 }
 
 impl TuringBus {
@@ -51,6 +52,7 @@ impl TuringBus {
             tools: Vec::new(),
             clock: 0,
             graveyard: Graveyard::new(),
+            ticker_top_n: 5,
         }
     }
 
@@ -217,7 +219,7 @@ impl TuringBus {
             balances,
             portfolios,
             markets,
-            market_ticker: self.kernel.get_market_ticker(3),
+            market_ticker: self.kernel.get_market_ticker(self.ticker_top_n),
             tombstones,
             generation: 0,
         }
@@ -290,9 +292,11 @@ impl TuringBus {
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
         let mut final_reward = 0.0;
+        use crate::sdk::tool::BetDirection;
         let mut is_invest_only = false;
         let mut invest_target = String::new();
         let mut invest_amount = 0.0;
+        let mut invest_direction = BetDirection::Long;
 
         // ── Phase 1: Tool pre-append hooks (balance check, deduction) ──
         for tool in &mut self.tools {
@@ -315,24 +319,39 @@ impl TuringBus {
                     file.payload = payload;
                     final_reward += reward;
                 }
-                ToolSignal::InvestOnly { target_node, amount } => {
+                ToolSignal::InvestOnly { target_node, amount, direction } => {
                     is_invest_only = true;
                     invest_target = target_node;
                     invest_amount = amount;
+                    invest_direction = direction;
                     break;
                 }
             }
         }
 
-        // ── Phase 2: InvestOnly → buy YES on existing node's market ──
+        // ── Phase 2: InvestOnly → buy YES or NO on existing node's market ──
         if is_invest_only {
             if self.kernel.prediction_markets.contains_key(&invest_target) {
-                match self.kernel.buy_yes(&invest_target, invest_amount) {
-                    Ok(yes_shares) => {
-                        self.add_yes_shares(&file.author, &invest_target, yes_shares);
-                        let p = self.kernel.yes_price(&invest_target);
-                        log::info!(">>> [BUY YES] {} bought {:.1} YES on {} for {:.2} Coins (P_yes={:.1}%)",
-                            file.author, yes_shares, invest_target, invest_amount, p * 100.0);
+                let result = match invest_direction {
+                    BetDirection::Long => self.kernel.buy_yes(&invest_target, invest_amount),
+                    BetDirection::Short => self.kernel.buy_no(&invest_target, invest_amount),
+                };
+                match result {
+                    Ok(shares) => {
+                        match invest_direction {
+                            BetDirection::Long => {
+                                self.add_yes_shares(&file.author, &invest_target, shares);
+                                let p = self.kernel.yes_price(&invest_target);
+                                log::info!(">>> [BUY YES] {} bought {:.1} YES on {} for {:.2} (P_yes={:.1}%)",
+                                    file.author, shares, invest_target, invest_amount, p * 100.0);
+                            }
+                            BetDirection::Short => {
+                                self.add_no_shares(&file.author, &invest_target, shares);
+                                let p = self.kernel.yes_price(&invest_target);
+                                log::info!(">>> [BUY NO] {} bought {:.1} NO on {} for {:.2} (P_yes={:.1}%)",
+                                    file.author, shares, invest_target, invest_amount, p * 100.0);
+                            }
+                        }
                     }
                     Err(e) => log::warn!(">>> [BET ERROR] {}", e),
                 }

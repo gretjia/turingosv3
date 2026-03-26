@@ -43,14 +43,16 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 13. `cargo check` 必须通过才可提交
 14. `cargo test` 必须通过才可部署
 15. `.env` 中的 API Key 不可提交到 git
+16. **经济引擎变更时必须全仓库 grep** — 修改 kernel 定价/wallet/bus 结算/reward 信号时，必须扫描 `experiments/*/src/` 中所有 SKILL 实现的兼容性。Run 6 100B-mint 事件教训: 仅审计 `src/` 而遗漏 `experiments/` 导致 Hayekian 遗产在 Polymarket 体制下破坏零和守恒。
 
 ### Key File Map (关键文件地图)
 
 | 文件 | 角色 |
 |------|------|
-| `src/kernel.rs` | 神圣微内核 (纯拓扑 + Hayekian map-reduce) |
-| `src/bus.rs` | TSP 事件总线 (SKILL 生命周期) |
-| `src/sdk/tools/wallet.rs` | WalletTool (PoS 经济中央银行) |
+| `src/kernel.rs` | 神圣微内核 (纯拓扑 + Polymarket 二元清算) |
+| `src/prediction_market.rs` | BinaryMarket CPMM (YES/NO 恒定乘积) |
+| `src/bus.rs` | TSP 事件总线 (SKILL 生命周期 + Split-Ignition 编排) |
+| `src/sdk/tools/wallet.rs` | WalletTool (余额 + YES/NO 持仓组合) |
 | `experiments/minif2f_swarm/` | MiniF2F 群体智能实验 (Boltzmann 路由 + Lean 4 膜) |
 | `experiments/zeta_regularization/` | Zeta 正则化实验 |
 | `handover/ai-direct/LATEST.md` | 会话状态单一真相源 |

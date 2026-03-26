@@ -50,8 +50,7 @@ async fn main() {
     info!("N={}, Max Transactions={}", SWARM_SIZE, MAX_TRANSACTIONS);
 
     // --- Initialize Bus + Tools ---
-    let mut kernel = Kernel::new();
-    kernel.bounty_escrow = 100_000.0; // TuringSwap: finite genesis budget, no fiat printing
+    let kernel = Kernel::new(); // Polymarket: no bounty escrow, pure zero-sum
     let mut bus = TuringBus::new(kernel);
     bus.mount_tool(Box::new(ThermodynamicHeartbeatTool::new(1)));
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));

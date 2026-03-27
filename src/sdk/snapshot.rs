@@ -27,8 +27,8 @@ pub struct UniverseSnapshot {
     pub tape: Tape,
     /// All agent balances at snapshot time
     pub balances: HashMap<String, f64>,
-    /// Turing-Polymarket: agent YES/NO holdings per node
-    pub portfolios: HashMap<String, HashMap<String, (f64, f64)>>,
+    /// Turing-Polymarket: agent YES/NO/LP holdings per node
+    pub portfolios: HashMap<String, HashMap<String, (f64, f64, f64)>>,
     /// Turing-Polymarket: binary market states per node
     pub markets: HashMap<String, MarketSnapshot>,
     /// Top-N market price leaderboard (formatted string)

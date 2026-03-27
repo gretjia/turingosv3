@@ -10,8 +10,8 @@ pub struct StakeRecord {
 
 pub struct WalletTool {
     pub balances: HashMap<String, f64>,
-    /// Turing-Polymarket: agent YES/NO holdings (agent_id -> node_id -> (yes, no))
-    pub portfolios: HashMap<String, HashMap<String, (f64, f64)>>,
+    /// Turing-Polymarket: agent YES/NO/LP holdings (agent_id -> node_id -> (yes, no, lp))
+    pub portfolios: HashMap<String, HashMap<String, (f64, f64, f64)>>,
     pub stakes: Vec<StakeRecord>,
     pub global_pool: f64,
     pending_self_stakes: HashMap<String, f64>,
@@ -88,17 +88,24 @@ impl TuringTool for WalletTool {
     }
 
     fn on_pre_append(&mut self, author: &str, payload: &str) -> ToolSignal {
-        // Only enforce wallet calls for non-system agents.
         if author == "System" { return ToolSignal::Pass; }
+
+        // Magna Carta Law 1: append is FREE. Only invest costs money.
+        // If no wallet tag present → free topology append → Pass through.
+        // If wallet tag present but malformed → Veto (bad input).
+        let has_wallet_tag = payload.contains("[Tool: Wallet");
+        if !has_wallet_tag {
+            return ToolSignal::Pass; // Free append — zero cost topology
+        }
 
         let (target, amount) = match self.parse_payment(payload) {
             Some(cmd) => cmd,
-            None => return ToolSignal::Veto("Bankruptcy/Fraud: Missing Wallet Tool call.".into()),
+            None => return ToolSignal::Veto("Malformed Wallet tag. Check syntax.".into()),
         };
 
-        // 【奥地利学派的底线】：自由出价，但拒绝零元购（防粉尘攻击）
+        // Invest must be >= 1.0 (防粉尘攻击 on financial actions only)
         if amount < 1.0 {
-            return ToolSignal::Veto("Market Rule Violation: Stake must be >= 1.0. No free lunch.".into());
+            return ToolSignal::Veto("Invest amount must be >= 1.0.".into());
         }
 
         let balance = *self.balances.get(author).unwrap_or(&0.0);

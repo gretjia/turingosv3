@@ -215,6 +215,32 @@ impl Kernel {
             .unwrap_or(0.0)
     }
 
+    /// Compute LP withdrawal: what YES/NO does the LP get from the pool.
+    /// Does NOT mutate pool state — bus.rs handles the actual withdrawal.
+    pub fn compute_lp_withdrawal(&self, node_id: &str, lp_fraction: f64) -> (f64, f64) {
+        if let Some(m) = self.prediction_markets.get(node_id) {
+            if m.lp_total == 0.0 { return (0.0, 0.0); }
+            (m.yes_reserve * lp_fraction, m.no_reserve * lp_fraction)
+        } else {
+            (0.0, 0.0)
+        }
+    }
+
+    /// Actually deduct LP withdrawal from pool reserves.
+    pub fn execute_lp_withdrawal(&mut self, node_id: &str, lp_fraction: f64) -> (f64, f64) {
+        if let Some(m) = self.prediction_markets.get_mut(node_id) {
+            if m.lp_total == 0.0 { return (0.0, 0.0); }
+            let yes_out = m.yes_reserve * lp_fraction;
+            let no_out = m.no_reserve * lp_fraction;
+            m.yes_reserve -= yes_out;
+            m.no_reserve -= no_out;
+            m.lp_total -= lp_fraction.min(m.lp_total);
+            (yes_out, no_out)
+        } else {
+            (0.0, 0.0)
+        }
+    }
+
     /// Sync File.price from prediction market probabilities.
     /// Price = P_yes (Bayesian confidence that node is on GP).
     /// Called periodically by the clock heartbeat (same topology slot).

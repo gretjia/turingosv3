@@ -16,6 +16,8 @@ pub struct BinaryMarket {
     pub k: f64,
     /// None = open market, Some(true) = YES wins, Some(false) = NO wins
     pub resolved: Option<bool>,
+    /// Total LP shares outstanding (for proportional withdrawal)
+    pub lp_total: f64,
 }
 
 impl BinaryMarket {
@@ -30,6 +32,7 @@ impl BinaryMarket {
             yes_reserve: lp_coins,
             no_reserve: lp_coins,
             k: lp_coins * lp_coins,
+            lp_total: 1.0, // Creator gets 1.0 LP share (100%)
             resolved: None,
         })
     }

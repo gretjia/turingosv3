@@ -149,7 +149,7 @@ impl TuringBus {
                 if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
                     let pos = wallet.portfolios
                         .entry(agent_id.to_string()).or_default()
-                        .entry(node_id.to_string()).or_insert((0.0, 0.0));
+                        .entry(node_id.to_string()).or_insert((0.0, 0.0, 0.0));
                     pos.0 += shares;
                 }
                 break;
@@ -164,8 +164,23 @@ impl TuringBus {
                 if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
                     let pos = wallet.portfolios
                         .entry(agent_id.to_string()).or_default()
-                        .entry(node_id.to_string()).or_insert((0.0, 0.0));
+                        .entry(node_id.to_string()).or_insert((0.0, 0.0, 0.0));
                     pos.1 += shares;
+                }
+                break;
+            }
+        }
+    }
+
+    fn add_lp_shares(&mut self, agent_id: &str, node_id: &str, shares: f64) {
+        use crate::sdk::tools::wallet::WalletTool;
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    let pos = wallet.portfolios
+                        .entry(agent_id.to_string()).or_default()
+                        .entry(node_id.to_string()).or_insert((0.0, 0.0, 0.0));
+                    pos.2 += shares;
                 }
                 break;
             }
@@ -241,13 +256,56 @@ impl TuringBus {
             log::info!(">>> [ORACLE] Node {} resolved: {}", nid, verdict);
         }
 
-        // 2. Redeem: collect all agent positions, then settle
-        let mut redemptions: Vec<(String, String, f64, f64)> = Vec::new(); // (agent, node, yes, no)
+        // 2. LP Withdrawal: distribute pool contents to LP holders BEFORE redemption
+        let mut lp_withdrawals: Vec<(String, String, f64)> = Vec::new(); // (agent, node, lp_shares)
         for tool in &self.tools {
             if tool.manifest() == "core.tool.crypto_wallet" {
                 if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
                     for (agent_id, holdings) in &wallet.portfolios {
-                        for (nid, (yes_s, no_s)) in holdings {
+                        for (nid, (_yes, _no, lp)) in holdings {
+                            if *lp > 0.0 {
+                                lp_withdrawals.push((agent_id.clone(), nid.clone(), *lp));
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        for (agent_id, nid, lp_shares) in &lp_withdrawals {
+            if let Some(market) = self.kernel.prediction_markets.get(nid.as_str()) {
+                if market.lp_total > 0.0 {
+                    let fraction = lp_shares / market.lp_total;
+                    let (yes_out, no_out) = self.kernel.execute_lp_withdrawal(&nid, fraction);
+                    // Add withdrawn YES/NO to agent's holdings
+                    for tool in &mut self.tools {
+                        if tool.manifest() == "core.tool.crypto_wallet" {
+                            if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                                if let Some(holdings) = wallet.portfolios.get_mut(&*agent_id) {
+                                    if let Some(pos) = holdings.get_mut(&*nid) {
+                                        pos.0 += yes_out;
+                                        pos.1 += no_out;
+                                        pos.2 = 0.0; // LP withdrawn
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    log::info!(">>> [LP WITHDRAW] {} withdrew LP from {}: {:.2} YES + {:.2} NO",
+                        agent_id, nid, yes_out, no_out);
+                }
+            }
+        }
+
+        // 3. Redeem: collect all agent positions (now including LP-withdrawn YES/NO), then settle
+        let mut redemptions: Vec<(String, String, f64, f64)> = Vec::new();
+        for tool in &self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
+                    for (agent_id, holdings) in &wallet.portfolios {
+                        for (nid, (yes_s, no_s, _lp)) in holdings {
                             if *yes_s > 0.0 || *no_s > 0.0 {
                                 redemptions.push((agent_id.clone(), nid.clone(), *yes_s, *no_s));
                             }
@@ -267,9 +325,8 @@ impl TuringBus {
                         if payout > 0.0 {
                             *wallet.balances.entry(agent_id.clone()).or_insert(0.0) += payout;
                         }
-                        // Always clear — prevent double-redemption (Codex #2 fix)
                         if let Some(holdings) = wallet.portfolios.get_mut(agent_id) {
-                            holdings.insert(nid.clone(), (0.0, 0.0));
+                            holdings.insert(nid.clone(), (0.0, 0.0, 0.0));
                         }
                     }
                     break;
@@ -331,7 +388,52 @@ impl TuringBus {
 
         // ── Phase 2: InvestOnly → buy YES or NO on existing node's market ──
         if is_invest_only {
-            if self.kernel.prediction_markets.contains_key(&invest_target) {
+            // Codex #2: reject invest into non-existent nodes
+            if !self.kernel.tape.files.contains_key(&invest_target) {
+                log::warn!(">>> [INVEST REJECTED] Node {} not in tape. Refunding {}.", invest_target, file.author);
+                use crate::sdk::tools::wallet::WalletTool;
+                for tool in &mut self.tools {
+                    if tool.manifest() == "core.tool.crypto_wallet" {
+                        if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                            *wallet.balances.entry(file.author.clone()).or_insert(0.0) += invest_amount;
+                        }
+                        break;
+                    }
+                }
+                self.kernel.refresh_prices();
+                return Ok(());
+            }
+
+            // First invest on this node? Create market atomically (LP + swap)
+            if !self.kernel.prediction_markets.contains_key(&invest_target) {
+                let lp_amount = 1.0_f64.min(invest_amount);
+                match self.kernel.create_market(&invest_target, lp_amount) {
+                    Ok(()) => {
+                        self.add_lp_shares(&file.author, &invest_target, 1.0);
+                        log::info!(">>> [MARKET CREATED] {} ignited market for {} (LP: {:.2})",
+                            file.author, invest_target, lp_amount);
+                        let swap_amount = invest_amount - lp_amount;
+                        if swap_amount > 0.0 {
+                            let result = match invest_direction {
+                                BetDirection::Long => self.kernel.buy_yes(&invest_target, swap_amount),
+                                BetDirection::Short => self.kernel.buy_no(&invest_target, swap_amount),
+                            };
+                            if let Ok(shares) = result {
+                                match invest_direction {
+                                    BetDirection::Long => self.add_yes_shares(&file.author, &invest_target, shares),
+                                    BetDirection::Short => self.add_no_shares(&file.author, &invest_target, shares),
+                                }
+                                let p = self.kernel.yes_price(&invest_target);
+                                let side = if invest_direction == BetDirection::Long { "YES" } else { "NO" };
+                                log::info!(">>> [AUTO-{}] {} bought {:.1} on {} (P_yes={:.1}%)",
+                                    side, file.author, shares, invest_target, p * 100.0);
+                            }
+                        }
+                    }
+                    Err(e) => log::warn!(">>> [MARKET ERROR] {}", e),
+                }
+            } else if self.kernel.prediction_markets.contains_key(&invest_target) {
+                // Existing market: just swap
                 let result = match invest_direction {
                     BetDirection::Long => self.kernel.buy_yes(&invest_target, invest_amount),
                     BetDirection::Short => self.kernel.buy_no(&invest_target, invest_amount),
@@ -356,7 +458,7 @@ impl TuringBus {
                     Err(e) => log::warn!(">>> [BET ERROR] {}", e),
                 }
             } else {
-                // No market → refund
+                // No market and not in tape → refund (shouldn't reach here)
                 log::warn!(">>> [BET REJECTED] Node {} has no market. Refunding {:.2} to {}.",
                     invest_target, invest_amount, file.author);
                 use crate::sdk::tools::wallet::WalletTool;
@@ -393,9 +495,10 @@ impl TuringBus {
             let lp_amount = 1.0_f64.min(final_reward); // Protocol LP: 1 Coin (or full stake if < 1)
             let long_amount = (final_reward - lp_amount).max(0.0);
 
-            // Step 1: Neutral ignition — create market with minimal LP
+            // Step 1: Neutral ignition — create market with minimal LP + record LP ownership
             match self.kernel.create_market(&new_node_id, lp_amount) {
                 Ok(()) => {
+                    self.add_lp_shares(&file.author, &new_node_id, 1.0);
                     log::info!(">>> [IGNITION] Market created for {} (LP: {:.2})", new_node_id, lp_amount);
 
                     // Step 2: Directional auto-long — creator buys YES with remaining stake

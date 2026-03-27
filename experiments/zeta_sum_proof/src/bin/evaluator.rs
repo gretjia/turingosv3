@@ -30,15 +30,17 @@ RULES:
 - When the proof reaches -1/12, declare [COMPLETE]"#;
 
 const SKILL: &str = "\
-[LAW 1] INFORMATION IS FREE: ViewNode and Search cost ZERO. ALWAYS research before investing.\n\
-[LAW 2] ONLY INVESTMENT IS RISK: The ONLY action that burns coins is Invest/Bet/Short.\n\
-[LAW 3] KELLY CRITERION: NEVER go all-in! Start small (10-100). Save large bets for high-confidence steps.\n\
-[LAW 4] POLYMARKET: Each node has a YES/NO prediction market.\n\
-  - Create nodes (invest) = you get YES shares automatically.\n\
-  - Bet YES on others' nodes (bet) = you believe that node leads to OMEGA.\n\
-  - Bet NO against others' nodes (short) = you believe that node is a dead end.\n\
-  - If right, you profit. If wrong, you lose your bet.\n\
-Balance < 1.0 = PERMANENT DEATH. Bad step = investment BURNED.\n";
+[LAW 1] APPEND IS FREE: Creating nodes costs ZERO. Explore freely, build the truth graph at no risk.\n\
+[LAW 2] ONLY INVEST COSTS MONEY: Invest/Bet/Short are the ONLY actions that burn coins.\n\
+[LAW 3] KELLY CRITERION: Start small (10-50). Save large bets for high-confidence steps. Invest >= 2 for directional bet.\n\
+[LAW 4] POLYMARKET ECONOMICS:\n\
+  - append: FREE node creation. Explore ideas at zero risk.\n\
+  - invest: Buy YES on your own node = you believe it leads to OMEGA.\n\
+  - bet: Buy YES on someone else's node = you back their work.\n\
+  - short: Buy NO on any node = you believe it's a dead end. VERY PROFITABLE if you're right!\n\
+  - KEY: If you spot a wrong node with high YES price, shorting it is extremely profitable.\n\
+  - Your profit comes ONLY from finding mispriced probabilities.\n\
+Balance < 1.0 = can only append (free). Cannot invest/bet/short.\n";
 
 fn epoch_secs() -> u64 {
     std::time::SystemTime::now()
@@ -146,7 +148,7 @@ async fn main() {
                     &snapshot.market_ticker,
                     &format!("{}\n{}", graveyard, private),
                     balance,
-                    "invest: {\"tool\":\"invest\",\"tactic\":\"your step\",\"amount\":PRICE}\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing node)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO against a node)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
+                    "append: {\"tool\":\"append\",\"tactic\":\"your step\"} (FREE — creates node, no market)\ninvest: {\"tool\":\"invest\",\"tactic\":\"your step\",\"amount\":PRICE} (creates node + buys YES)\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing node)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO against a node)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
                 );
 
                 // 4. Invoke LLM
@@ -155,6 +157,19 @@ async fn main() {
                     Ok(raw) => {
                         if let Some(action) = parse_agent_output(&raw) {
                             match action.tool.as_str() {
+                                "append" => {
+                                    // FREE topology append — no wallet tag, no cost
+                                    let tactic = action.tactic.unwrap_or_default();
+                                    if !tactic.is_empty() {
+                                        let _ = tx.send(MinerTx {
+                                            agent_id: agent_name.clone(),
+                                            model_name: client.model_name().to_string(),
+                                            payload: tactic, // No wallet tag → WalletTool passes
+                                            parent_id: parent_id.clone(),
+                                            action_type: "append".to_string(),
+                                        }).await;
+                                    }
+                                }
                                 "invest" => {
                                     let tactic = action.tactic.unwrap_or_default();
                                     let amount = action.amount.unwrap_or(1.0);
@@ -231,7 +246,10 @@ async fn main() {
             rx_mempool.recv()
         ).await {
             Ok(Some(tx)) => {
-                last_invest_epoch = epoch_secs();
+                // Codex #3: only financial actions update liveness (free appends don't suppress rebirth)
+                if tx.action_type == "invest" || tx.action_type == "short" {
+                    last_invest_epoch = epoch_secs();
+                }
                 tx_count += 1;
 
                 let file = File {

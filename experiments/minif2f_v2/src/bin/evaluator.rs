@@ -125,12 +125,16 @@ async fn main() {
     info!("LEAN_PATH set to: {}", lean_path);
 
     let lean_cmd = std::env::var("LEAN_CMD").unwrap_or_else(|_| "lean".to_string());
-    let sandbox = LocalProcessSandbox::new(&lean_cmd, vec!["--stdin".to_string()]);
+
+    // Lean4Oracle: security checks only (sorry, forbidden, identity theft)
+    // OMEGA verification happens in the reactor loop below.
     bus.mount_tool(Box::new(Lean4Oracle::new(
         problem_statement.clone(),
         theorem_name.clone(),
-        Box::new(sandbox),
     )));
+
+    // Separate sandbox for OMEGA verification (evaluator-side, not tool-side)
+    let omega_sandbox = LocalProcessSandbox::new(&lean_cmd, vec!["--stdin".to_string()]);
 
     let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
@@ -335,14 +339,43 @@ async fn main() {
                         agent_rejections.lock().unwrap().remove(&tx.agent_id); // Clear rejection on success
                         bus.tick_map_reduce();
 
-                        // SECURITY: Check the APPENDED node payload (post-Lean4Oracle Modify),
-                        // NOT the raw MinerTx.payload. This prevents comment-injection attacks
-                        // where an agent writes "-- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]" in a Lean 4 comment.
-                        // Only Lean4Oracle can inject [OMEGA] via ToolSignal::Modify after
-                        // verifying "No goals to be solved" with the compiler.
-                        let is_omega = bus.kernel.tape.files.get(&file_id)
-                            .map(|n| n.payload.ends_with("-- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]"))
+                        // OMEGA Detection: Agent claims [COMPLETE] → compile FULL PROOF CHAIN.
+                        // Oracle (Engine 3) fires ONLY here. Intermediate appends are free (Law 1).
+                        let claims_complete = bus.kernel.tape.files.get(&file_id)
+                            .map(|n| n.payload.contains("[COMPLETE]"))
                             .unwrap_or(false);
+
+                        let mut is_omega = false;
+                        if claims_complete {
+                            info!(">>> [COMPLETE CLAIM] {} claims proof complete. Verifying...", tx.agent_id);
+
+                            // Build full proof chain: all ancestor tactics concatenated
+                            let path = bus.kernel.trace_golden_path(&file_id);
+                            let mut proof_tactics = Vec::new();
+                            for nid in path.iter().rev() {
+                                if let Some(node) = bus.kernel.tape.files.get(nid) {
+                                    let tactic = node.payload
+                                        .split("[Tool: Wallet").next().unwrap_or(&node.payload)
+                                        .replace("[COMPLETE]", "")
+                                        .trim().to_string();
+                                    if !tactic.is_empty() {
+                                        proof_tactics.push(format!("  {}", tactic));
+                                    }
+                                }
+                            }
+                            let chain = proof_tactics.join("\n");
+
+                            // Engine 3: Lean 4 compiles full chain WITHOUT sorry
+                            is_omega = minif2f_v2::lean4_oracle::verify_omega(
+                                &omega_sandbox, &problem_statement, &chain
+                            );
+
+                            if !is_omega {
+                                warn!(">>> [COMPLETE REJECTED] Chain does NOT compile.");
+                                bus.graveyard.record_death(&file_id, "OMEGA claim failed");
+                            }
+                        }
+
                         if is_omega {
                             info!("OMEGA at Tx {}! Theorem {} PROVED!", tx_count, problem_file);
 

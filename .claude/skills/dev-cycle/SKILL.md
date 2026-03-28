@@ -25,6 +25,16 @@ Execute the complete development workflow in 9 stages.
 - If audit found issues, revise the plan
 - Re-present to user if significant changes were made
 
+### 3.5. SPRINT CONTRACT (Anti-Context-Anxiety)
+Before coding, define a sprint scope:
+- **Max 5 files** per sprint. If the plan touches more, decompose into sequential sprints.
+- **Sprint boundary**: list the exact files and changes for this sprint. No scope creep.
+- **Reflection checkpoint**: after each sprint, pause and verify:
+  - Did I complete what I planned? (not less, not more)
+  - Am I rushing or cutting corners due to context pressure?
+  - Are there unresolved issues I'm sweeping under the rug?
+- If the session is getting long (many tool calls, multiple compactions), explicitly signal: "Context is getting heavy — recommend committing current work and starting a fresh session for remaining items."
+
 ### 4. CODE
 - Execute the approved code changes
 - The PostToolUse hook will automatically run `cargo check` on critical files
@@ -60,13 +70,26 @@ When changes affect the economic engine (kernel pricing, wallet, bus settlement,
 - Run `cargo test` (unit + integration tests)
 - Both must pass before proceeding
 
-### 8. EXTERNAL AUDIT
-- Skip for TuringOS (no external LLM audit requirement)
-- Log: "External audit skipped — not applicable"
+### 8. EXTERNAL AUDIT (MANDATORY)
+**Generator ≠ Evaluator. This stage cannot be skipped.**
+The same AI that wrote the code MUST NOT be the sole evaluator. External audit is mandatory.
 
-### 9. SUMMARY
+#### 8a. Internal Self-Audit
+- The generator (you) reviews your own changes — this is Stage 5, already done.
+
+#### 8b. External Audit (MANDATORY)
+- Route by domain:
+  - **Math/Lean 4 correctness**: `gemini -p` (Gemini for mathematical reasoning audit)
+  - **Code architecture/harness**: `codex exec` (Codex for code-level alignment audit)
+- External auditor receives: the PLAN/SPEC + actual code changes + constitutional rules
+- External findings are presented **VERBATIM** to the user — generator cannot summarize, downgrade, or dismiss them
+- If external audit finds violations, return to Stage 6 (FIX CODE)
+
+### 9. SUMMARY (FAIL-CLOSED)
 - Output a concise summary of all changes made
 - List files modified with brief descriptions
 - Note any Layer 2 parameter changes
+- **Violation check**: if ANY open violation exists (from Stage 5 or 8b), this stage BLOCKS. Cannot proceed to commit.
 - **Wait for user confirmation before committing**
 - Do NOT auto-commit or auto-push
+- If violations were found and fixed, log the violation → fix chain for the handover

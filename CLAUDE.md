@@ -90,3 +90,7 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 25. 独狼研究员，零编程基础 vibe coder
 26. 优势是品味、架构直觉、哲学深度
 27. 沟通偏好：中文为主，技术术语可用英文
+
+### Rule #23 — Generator ≠ Evaluator (生成者 ≠ 评估者)
+
+28. **外部审计强制执行** — 写代码的 AI 不可作为唯一审计者。dev-cycle Stage 8b 外部审计为 MANDATORY。数学审计交 Gemini，代码审计交 Codex。外部审计发现必须**原文呈现**给用户，生成者不可摘要、降级或否决外部发现。教训: 同一 AI 写代码并审计自己的代码，导致 `fund_agent` 印钞被 4 次内部审计标注"可接受"、Oracle 中间步骤拦截未被质疑、`decide` 暴力搜索未被发现、`Finset.range` 形式化缺陷未被识别。参考: Anthropic 工程文章 "tuning a standalone evaluator to be skeptical turns out to be far more tractable than making a generator critical of its own work"。

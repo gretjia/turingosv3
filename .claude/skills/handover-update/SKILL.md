@@ -58,10 +58,22 @@ Before presenting the draft, check `handover/architect-insights/` for files crea
 （如无新洞察，标注「本次会话无新架构洞察」）
 ```
 
-### 3. Present for Review
+### 3. Open Sprints Check
+Before presenting the draft, check if any sprint from Stage 3.5 (Sprint Contract) was left incomplete:
+- List any planned-but-unfinished changes
+- Include them in the "Next Steps" section with "[OPEN SPRINT]" prefix
+- If a sprint was abandoned mid-way, note the reason
+
+### 4. Violation Tracking
+Check if any constitutional violations were found and fixed during this session:
+- Log the violation → fix chain (what was found, by whom, how it was fixed)
+- Include in the "Changes This Session" section
+- If any violations remain OPEN, they MUST appear in "Warnings" section
+
+### 5. Present for Review
 Show the draft to the user. Do NOT write without confirmation.
 
-### 4. Commit Prompt
+### 6. Commit Prompt
 After user approves and the file is written:
 - Suggest: `git add handover/ai-direct/LATEST.md && git commit -m "docs: update handover state"`
 - Wait for user confirmation before committing

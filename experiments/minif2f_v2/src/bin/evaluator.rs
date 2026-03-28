@@ -97,10 +97,27 @@ async fn main() {
     let lean_path = std::env::var("LEAN_PATH").unwrap_or_else(|_| {
         let base = std::env::var("MINIF2F_LEAN4_DIR")
             .unwrap_or_else(|_| "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test".to_string());
-        // Navigate from Test/ up to the .lake build directory
         let data_root = std::path::Path::new(&base).parent().unwrap().parent().unwrap();
-        let lib_dir = data_root.join(".lake/packages/mathlib/.lake/build/lib/lean");
-        lib_dir.to_string_lossy().to_string()
+        let packages_dir = data_root.join(".lake/packages");
+        // Collect all package olean directories
+        let mut paths = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(&packages_dir) {
+            for entry in entries.flatten() {
+                let lib_dir = entry.path().join(".lake/build/lib/lean");
+                if lib_dir.exists() {
+                    paths.push(lib_dir.to_string_lossy().to_string());
+                }
+                // Also check direct build/lib (some packages use different layout)
+                let alt_dir = entry.path().join(".lake/build/lib");
+                if alt_dir.exists() && !lib_dir.exists() {
+                    paths.push(alt_dir.to_string_lossy().to_string());
+                }
+            }
+        }
+        // Also add the project's own build lib
+        let own_lib = data_root.join(".lake/build/lib/lean");
+        if own_lib.exists() { paths.push(own_lib.to_string_lossy().to_string()); }
+        paths.join(":")
     });
     std::env::set_var("LEAN_PATH", &lean_path);
     info!("LEAN_PATH set to: {}", lean_path);

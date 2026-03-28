@@ -127,6 +127,15 @@ async fn main() {
 
     let free_action_epoch = Arc::new(AtomicU64::new(epoch_secs()));
 
+    // --- Law 3 / Engine 4: Per-Agent Skill Paths ---
+    let skills_dir = std::env::var("AGENT_SKILLS_DIR")
+        .unwrap_or_else(|_| "/tmp/turingos_skills".to_string());
+    for i in 0..SWARM_SIZE {
+        let agent_dir = format!("{}/agent_{}", skills_dir, i);
+        let _ = std::fs::create_dir_all(&agent_dir);
+    }
+    info!(">>> [ENGINE 4] Per-agent skill paths initialized at {}/", skills_dir);
+
     // --- Spawn Agent Loops ---
     for i in 0..SWARM_SIZE {
         let client = clients[i % clients.len()].clone();
@@ -137,8 +146,9 @@ async fn main() {
         let search = search_tool.clone();
         let private_ctx = Arc::new(Mutex::new(String::new()));
         let heartbeat = free_action_epoch.clone();
+        let agent_skill_dir = format!("{}/agent_{}", skills_dir, i);
 
-        info!(">>> [SPAWN] Agent {} → {}", i, client.model_name());
+        info!(">>> [SPAWN] Agent {} → {} | $HOME: {}", i, client.model_name(), agent_skill_dir);
 
         tokio::spawn(async move {
             let agent_name = format!("Agent_{}", i);
@@ -151,10 +161,11 @@ async fn main() {
                 }
 
                 let balance = snapshot.balances.get(&agent_name).copied().unwrap_or(0.0);
-                if balance < 1.0 {
-                    // Bankrupt but can still free append — don't skip entirely
-                    // Just block financial actions in the prompt
-                }
+
+                // Law 3 / Engine 4: Load agent-specific learned skills
+                let agent_skill = std::fs::read_to_string(
+                    format!("{}/learned.md", agent_skill_dir)
+                ).unwrap_or_default();
 
                 let (chain, parent_id) = build_chain_from_snapshot(&snapshot, &problem);
                 let private = private_ctx.lock().unwrap().clone();
@@ -163,7 +174,7 @@ async fn main() {
 
                 let p = prompt::build_agent_prompt(
                     &chain,
-                    &skill,
+                    &format!("{}\n{}", skill, agent_skill), // Per-agent skill injection
                     &snapshot.market_ticker,
                     &format!("{}\n{}", graveyard, private),
                     balance,
@@ -273,15 +284,49 @@ async fn main() {
                     price: 0.0,
                 };
 
+                let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
                 match bus.append(file) {
                     Ok(_) => {
                         info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
                         bus.tick_map_reduce();
 
-                        if tx.payload.contains("[OMEGA]") || tx.payload.contains("[COMPLETE]") {
-                            let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
+                        // SECURITY: Check the APPENDED node payload (post-Lean4Oracle Modify),
+                        // NOT the raw MinerTx.payload. This prevents comment-injection attacks
+                        // where an agent writes "-- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]" in a Lean 4 comment.
+                        // Only Lean4Oracle can inject [OMEGA] via ToolSignal::Modify after
+                        // verifying "No goals to be solved" with the compiler.
+                        let is_omega = bus.kernel.tape.files.get(&file_id)
+                            .map(|n| n.payload.ends_with("-- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]"))
+                            .unwrap_or(false);
+                        if is_omega {
                             info!("OMEGA at Tx {}! Theorem {} PROVED!", tx_count, problem_file);
+
+                            // Snapshot balances before settlement
+                            let pre_balances: std::collections::HashMap<String, f64> = agent_names.iter()
+                                .map(|n| (n.clone(), bus.get_agent_balance(n)))
+                                .collect();
+
                             bus.halt_and_settle(&file_id);
+
+                            // Engine 4: Victory Reinforcement — profitable agents write experience
+                            for (idx, name) in agent_names.iter().enumerate() {
+                                let pre = pre_balances.get(name).copied().unwrap_or(0.0);
+                                let post = bus.get_agent_balance(name);
+                                let profit = post - pre;
+                                if profit > 0.0 {
+                                    let victory_path = format!("{}/agent_{}/learned.md", skills_dir, idx);
+                                    let victory = format!(
+                                        "# Victory — Profit {:.2} Coins\nSTRATEGY THAT WORKED: Won {:.2} from settlement.\n\n",
+                                        profit, profit
+                                    );
+                                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&victory_path) {
+                                        use std::io::Write;
+                                        let _ = write!(f, "{}", victory);
+                                    }
+                                    info!(">>> [VICTORY] {} wrote experience (+{:.2}) to skills", name, profit);
+                                }
+                            }
+
                             break;
                         }
                     }
@@ -318,12 +363,26 @@ async fn main() {
                 if all_bankrupt || absolute_stagnation {
                     let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };
                     error!("[REBIRTH] {}! Gen {} dead. Solvent: {}/{}", reason, generation, solvent_count, SWARM_SIZE);
-                    for name in &agent_names {
+
+                    // Engine 4: Autopsy Mutation — bankrupt agents write survival rules
+                    for (idx, name) in agent_names.iter().enumerate() {
                         let bal = bus.get_agent_balance(name);
                         if bal < 1.0 {
                             bus.graveyard.record_death("root", &format!("Gen {} bankrupt: {}", generation, name));
+                            // Write autopsy to agent's skill directory
+                            let autopsy_path = format!("{}/agent_{}/learned.md", skills_dir, idx);
+                            let autopsy = format!(
+                                "# Autopsy — Generation {} Death\nBANKRUPT at balance {:.2}.\nSURVIVAL RULE: {}\n\n",
+                                generation, bal, reason
+                            );
+                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&autopsy_path) {
+                                use std::io::Write;
+                                let _ = write!(f, "{}", autopsy);
+                            }
+                            info!(">>> [AUTOPSY] {} wrote survival rule to {}", name, autopsy_path);
                         }
                     }
+
                     generation += 1;
                     for name in &agent_names { bus.fund_agent(name, 10000.0); }
                     let mut snap = bus.get_immutable_snapshot();
@@ -345,7 +404,7 @@ async fn main() {
     bus.kernel.refresh_prices();
 
     if let Some(omega) = bus.kernel.tape.files.values()
-        .find(|f| f.payload.contains("[OMEGA]"))
+        .find(|f| f.payload.ends_with("-- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]"))
     {
         info!("--- PROOF (Golden Path) ---");
         let path = bus.kernel.trace_golden_path(&omega.id);

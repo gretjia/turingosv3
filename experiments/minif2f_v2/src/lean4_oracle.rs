@@ -130,14 +130,14 @@ impl TuringTool for Lean4Oracle {
                 if Self::is_omega(&output) {
                     info!(">>> [OMEGA] No goals to be solved! Proof complete.");
                     // Magna Carta: ZERO reward minting. Only tag OMEGA.
-                    return ToolSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                    return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));
                 }
                 // Valid intermediate step — pass through
                 // Also check without sorry for potential OMEGA
                 if let Ok(omega_out) = self.sandbox.execute_safely(payload, gas_limit) {
                     if !omega_out.contains("error:") || Self::is_omega(&omega_out) {
                         info!(">>> [OMEGA] Proof verified without sorry!");
-                        return ToolSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                        return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));
                     }
                 }
                 ToolSignal::Pass
@@ -151,13 +151,13 @@ impl TuringTool for Lean4Oracle {
 
                     if !has_other_errors && !has_sorry_warning {
                         info!(">>> [OMEGA] Guillotine: No goals + clean = proved!");
-                        return ToolSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                        return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));
                     } else {
                         // Double-check without sorry
                         if let Ok(omega_out) = self.sandbox.execute_safely(payload, gas_limit) {
                             if !omega_out.contains("error:") {
                                 info!(">>> [OMEGA] Double-check verified.");
-                                return ToolSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+                                return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));
                             }
                         }
                     }

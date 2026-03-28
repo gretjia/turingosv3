@@ -954,6 +954,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "minif2f_v2"
+version = "0.1.0"
+dependencies = [
+ "env_logger 0.10.2",
+ "log",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "tokio",
+ "turingosv3",
+]
+
+[[package]]
 name = "mio"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

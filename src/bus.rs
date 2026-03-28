@@ -370,6 +370,20 @@ impl TuringBus {
                         file.citations[0].clone()
                     };
                     self.graveyard.record_death(&parent_id, &reason);
+                    // Refund any wallet deduction that already happened (Law 2: no silent burn)
+                    if final_reward > 0.0 {
+                        use crate::sdk::tools::wallet::WalletTool;
+                        for t in &mut self.tools {
+                            if t.manifest() == "core.tool.crypto_wallet" {
+                                if let Some(wallet) = t.as_any_mut().downcast_mut::<WalletTool>() {
+                                    *wallet.balances.entry(file.author.clone()).or_insert(0.0) += final_reward;
+                                    wallet.global_pool -= final_reward;
+                                    log::info!(">>> [REFUND] {} refunded {:.2} after veto", file.author, final_reward);
+                                }
+                                break;
+                            }
+                        }
+                    }
                     return Err(reason);
                 }
                 ToolSignal::YieldReward { payload, reward } => {

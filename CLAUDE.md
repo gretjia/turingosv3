@@ -68,6 +68,18 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 23. 架构师分享非显而易见的设计原则时，必须通过 `/architect-ingest` 归档
 24. 审计等重输出通过 Agent 子进程执行，仅返回 verdict + 关键发现，防止主上下文膨胀
 
+### Hardware Topology (硬件拓扑)
+
+| 节点 | 角色 | SSH 别名 | 备注 |
+|------|------|---------|------|
+| **omega-vm** (当前机器) | GCP 主控, 代码仓库, Git | localhost | 16GB, 无 GPU |
+| **zephrymac-studio** | 架构师 Mac, Apple M4 32GB | `ssh zephrymac-studio` (ProxyJump hk-wg, port 2227) | Lean 4 应安装在此 |
+| **linux1-lx** | 深圳工作站, AMD AI Max 395 128GB | `ssh linux1-lx` (ProxyJump hk-wg, port 2226) | 高性能计算 |
+| **windows1-w1** | 深圳工作站, AMD AI Max 395 128GB | `ssh windows1-w1` (ProxyJump hk-wg, port 2228) | 数据存储 |
+
+网络路由: omega-vm → HK 公网跳板 (43.161.252.57) → WireGuard → 深圳局域网
+完整拓扑详见: `handover/network_topology_and_ssh.md`
+
 ### User Profile (用户画像)
 
 25. 独狼研究员，零编程基础 vibe coder

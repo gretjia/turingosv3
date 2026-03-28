@@ -55,7 +55,64 @@ Lean 4 返回 "No goals to be solved" — 编译器确认证明链完整。
 | Agent_4 (V3.2) | **独立验证** | tx_21: 独立发现同一策略 |
 | Agent_11 (Reasoner) | **OMEGA 声明者** | tx_48: 声明 [COMPLETE], 触发全链编译验证 |
 
-## 3. 作弊检测
+## 3. DAG 拓扑
+
+```
+ROOT
+├── tx_2_by_7 (Agent_7/Reasoner) ── rw [hS]
+├── tx_5_by_9 (Agent_9/Reasoner) ── rw [hS]
+│   └── tx_27_by_1 ── norm_num
+├── tx_16_by_14 (Agent_14) ── norm_num
+│   ├── tx_20_by_9 ── norm_num
+│   └── tx_31_by_13 ── rw [hS]; norm_num
+│       └── tx_38_by_0 ── rw [hS]; norm_num
+│           └── tx_48_by_11 ★ ── [COMPLETE] → OMEGA VERIFIED
+│
+└── tx_6_by_0 (Agent_0) ── rw [hS]
+    ├── tx_15_by_2 ★ ── rw [hS]; decide {21,49}; norm_num   ← 完整证明 (Agent_2)
+    │   └── tx_18_by_6 ── norm_num
+    │       └── tx_40_by_12 ── rw [hS]
+    │
+    └── tx_12_by_14 ── norm_num
+        ├── tx_22_by_2 ── rw [hS]
+        │
+        └── tx_17_by_13 ── rw [hS]; norm_num
+            ├── tx_19_by_8 ── decide
+            │   ├── tx_23_by_10 ── rw [hS]
+            │   │   ├── tx_41_by_3 ── rw [hS]; norm_num
+            │   │   └── tx_46_by_4 ── rw [hS]; norm_num
+            │   └── tx_25_by_13 ($) ── rfl                    ← 有投资 (BUY YES)
+            │       └── tx_33_by_5 ── rw [hS]
+            │
+            └── tx_21_by_4 ★ ── rw [hS]; decide {21,49}; norm_num  ← 完整证明 (Agent_4)
+                ├── tx_26_by_14 ── rw [hS]
+                ├── tx_28_by_9 ── done
+                │   └── tx_37_by_1 ── rfl
+                │       └── tx_39_by_8 ── norm_num
+                └── tx_29_by_6 ($) ── rw [hS]; norm_num       ← 有市场 (IGNITION)
+                    ├── tx_30_by_0 ── rw [hS]; norm_num
+                    ├── tx_32_by_12 ── rw [Finset.sum_filter]
+                    │   ├── tx_35_by_7 ── done
+                    │   └── tx_44_by_12 ── norm_num
+                    └── tx_34_by_2 ── done
+                        └── tx_36_by_12 ── rw [hS]
+                            ├── tx_42_by_10 ── rw [hS]; norm_num
+                            ├── tx_43_by_4 ── rw [hS]; norm_num
+                            └── tx_45_by_1 ── done
+                                └── tx_47_by_7 ── rfl
+
+★ = 完整证明策略 (rw + decide + norm_num)
+($) = 有预测市场 (投资/跟投)
+```
+
+**DAG 特征**:
+- **36 节点, 4 根, 最大深度 8 层**
+- **3 条独立完整证明路径** (tx_15, tx_21, tx_48 各自包含可编译的完整策略)
+- **OMEGA 路径**: ROOT → tx_16 → tx_31 → tx_38 → tx_48 (4 步, 其中 tx_48 声明 [COMPLETE])
+- **最密集子树**: tx_6 → tx_12 → tx_17 分支 (24 个后代, 主探索区域)
+- **经济活跃区**: tx_25 (BUY YES) 和 tx_29 (IGNITION) 都在 tx_17→tx_21 子树中
+
+## 4. 作弊检测
 
 ### 3.1 训练数据污染分析
 

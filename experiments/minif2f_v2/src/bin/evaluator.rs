@@ -94,7 +94,7 @@ async fn main() {
 
     // Lean 4 Oracle (Engine 3: Popperian Guillotine)
     let lean_cmd = std::env::var("LEAN_CMD").unwrap_or_else(|_| "lean".to_string());
-    let sandbox = LocalProcessSandbox::new(&lean_cmd, vec!["--run".to_string()]);
+    let sandbox = LocalProcessSandbox::new(&lean_cmd, vec!["--stdin".to_string()]);
     bus.mount_tool(Box::new(Lean4Oracle::new(
         problem_statement.clone(),
         theorem_name.clone(),

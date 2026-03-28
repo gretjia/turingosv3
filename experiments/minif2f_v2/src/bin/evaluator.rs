@@ -7,6 +7,7 @@
 /// - OMEGA: "No goals to be solved" → proof complete
 
 use log::{info, warn, error};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::{mpsc, watch};
@@ -32,13 +33,14 @@ const SKILL: &str = "\
 [LAW 4] POLYMARKET ECONOMICS:\n\
   - append: FREE tactic submission. Lean 4 compiler validates. No cost.\n\
   - invest: Buy YES on your own node = you believe your tactic is correct.\n\
-  - bet: Buy YES on someone else's node = you back their approach.\n\
-  - short: Buy NO on any node = you believe it's wrong. VERY PROFITABLE if right!\n\
-  - Your profit comes ONLY from finding mispriced probabilities.\n\
-[LAW 5] LEAN 4 IS ABSOLUTE TRUTH: The compiler decides. No negotiation.\n\
-  - If compiler says 'error' → your tactic is WRONG, period.\n\
-  - If compiler says 'No goals to be solved' → OMEGA (proof complete!).\n\
-  - Search Mathlib freely to find lemmas before writing tactics.\n\
+  - bet/short: Buy YES/NO on others' nodes.\n\
+[LAW 5] LEAN 4 IS ABSOLUTE TRUTH:\n\
+  - The compiler decides. 'error' = WRONG. 'No goals to be solved' = PROVED.\n\
+  - CRITICAL: ALWAYS search Mathlib FIRST to find the right lemma names!\n\
+  - Use: {\"tool\":\"search\",\"query\":\"Real.log div\"} to find available lemmas.\n\
+  - Common Lean 4 tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have.\n\
+  - Write ONE tactic per line. Use newlines, not spaces, between tactics.\n\
+  - If your tactic was rejected, READ THE ERROR and try a different approach.\n\
 Balance < 1.0 = can only append (free). Cannot invest/bet/short.\n";
 
 fn epoch_secs() -> u64 {
@@ -156,6 +158,9 @@ async fn main() {
 
     let free_action_epoch = Arc::new(AtomicU64::new(epoch_secs()));
 
+    // Per-agent last rejection feedback (reactor writes, agent reads)
+    let agent_rejections: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+
     // --- Law 3 / Engine 4: Per-Agent Skill Paths ---
     let skills_dir = std::env::var("AGENT_SKILLS_DIR")
         .unwrap_or_else(|_| "/tmp/turingos_skills".to_string());
@@ -176,6 +181,7 @@ async fn main() {
         let private_ctx = Arc::new(Mutex::new(String::new()));
         let heartbeat = free_action_epoch.clone();
         let agent_skill_dir = format!("{}/agent_{}", skills_dir, i);
+        let rejections = agent_rejections.clone();
 
         info!(">>> [SPAWN] Agent {} → {} | $HOME: {}", i, client.model_name(), agent_skill_dir);
 
@@ -201,11 +207,20 @@ async fn main() {
                 let graveyard = snapshot.tombstones.values()
                     .take(3).cloned().collect::<Vec<_>>().join("\n");
 
+                // Read last rejection for this agent (error feedback loop)
+                let last_rejection = rejections.lock().unwrap()
+                    .get(&agent_name).cloned().unwrap_or_default();
+                let feedback = if last_rejection.is_empty() {
+                    String::new()
+                } else {
+                    format!("\n=== YOUR LAST TACTIC WAS REJECTED BY LEAN 4 ===\n{}\n=== FIX THE ERROR. Try 'search' to find correct Mathlib lemmas. ===\n", last_rejection)
+                };
+
                 let p = prompt::build_agent_prompt(
                     &chain,
-                    &format!("{}\n{}", skill, agent_skill), // Per-agent skill injection
+                    &format!("{}\n{}", skill, agent_skill),
                     &snapshot.market_ticker,
-                    &format!("{}\n{}", graveyard, private),
+                    &format!("{}\n{}\n{}", graveyard, private, feedback),
                     balance,
                     "append: {\"tool\":\"append\",\"tactic\":\"your lean4 tactic\"} (FREE — Lean 4 validates)\ninvest: {\"tool\":\"invest\",\"tactic\":\"your lean4 tactic\",\"amount\":PRICE} (creates node + buys YES)\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE Mathlib search)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
                 );
@@ -317,6 +332,7 @@ async fn main() {
                 match bus.append(file) {
                     Ok(_) => {
                         info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
+                        agent_rejections.lock().unwrap().remove(&tx.agent_id); // Clear rejection on success
                         bus.tick_map_reduce();
 
                         // SECURITY: Check the APPENDED node payload (post-Lean4Oracle Modify),
@@ -362,6 +378,9 @@ async fn main() {
                     Err(e) => {
                         let preview: String = tx.payload.chars().take(100).collect();
                         warn!("[Tx {}] {} REJECTED: {} | {}", tx_count, tx.agent_id, e, preview.replace('\n', " "));
+                        // Feed rejection back to the specific agent for learning
+                        let rejection_msg: String = e.chars().take(300).collect();
+                        agent_rejections.lock().unwrap().insert(tx.agent_id.clone(), rejection_msg);
                     }
                 }
 
@@ -387,7 +406,8 @@ async fn main() {
                 let secs_since_free = now.saturating_sub(last_free);
 
                 let all_bankrupt = solvent_count == 0;
-                let absolute_stagnation = secs_since_invest >= 60 && secs_since_free >= 60;
+                // Lean 4 compilation + LLM reasoning = 60-300s per cycle. Use 300s timeout.
+                let absolute_stagnation = secs_since_invest >= 300 && secs_since_free >= 300;
 
                 if all_bankrupt || absolute_stagnation {
                     let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };

@@ -13,7 +13,6 @@ pub struct WalletTool {
     /// Turing-Polymarket: agent YES/NO/LP holdings (agent_id -> node_id -> (yes, no, lp))
     pub portfolios: HashMap<String, HashMap<String, (f64, f64, f64)>>,
     pub stakes: Vec<StakeRecord>,
-    pub global_pool: f64,
     pending_self_stakes: HashMap<String, f64>,
     /// Track agents who actually participated (staked) this theorem — no free riders
     participants: HashSet<String>,
@@ -21,7 +20,7 @@ pub struct WalletTool {
 
 impl WalletTool {
     pub fn new() -> Self {
-        Self { balances: HashMap::new(), portfolios: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new(), participants: HashSet::new() }
+        Self { balances: HashMap::new(), portfolios: HashMap::new(), stakes: Vec::new(), pending_self_stakes: HashMap::new(), participants: HashSet::new() }
     }
 
     // redistribute_pool: ABOLISHED (Magna Carta Law 2 — no central reallocation)
@@ -139,11 +138,8 @@ impl TuringTool for WalletTool {
     }
 
     fn on_halt(&mut self, _golden_path: &[String], tape: &mut Tape) {
-        // Polymarket regime: settlement is handled by bus.rs halt_and_settle()
-        // via binary market resolution + redemption. Legacy global_pool payout DISABLED
-        // to prevent double-payment (Codex audit #1 fix).
-        log::info!(">>> [IMMUTABLE SPACETIME] Settlement complete. {} total nodes preserved.", tape.files.len());
-        self.global_pool = 0.0;
+        // Polymarket: settlement handled by bus.rs halt_and_settle() (LP withdraw + redeem)
+        log::info!(">>> [SETTLEMENT] {} total nodes preserved.", tape.files.len());
         self.stakes.clear();
     }
 

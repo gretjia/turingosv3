@@ -106,9 +106,19 @@ async fn main() {
     // Lean 4 Oracle (Engine 3: Popperian Guillotine)
     // LEAN_PATH must include Mathlib olean directory for `import Mathlib` to work
     let lean_path = std::env::var("LEAN_PATH").unwrap_or_else(|_| {
-        let base = std::env::var("MINIF2F_LEAN4_DIR")
-            .unwrap_or_else(|_| "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test".to_string());
-        let data_root = std::path::Path::new(&base).parent().unwrap().parent().unwrap();
+        // MATHLIB_ROOT points to the minif2f_data_lean4 directory (contains .lake/packages)
+        let mathlib_root = std::env::var("MATHLIB_ROOT")
+            .unwrap_or_else(|_| {
+                let base = std::env::var("MINIF2F_LEAN4_DIR")
+                    .unwrap_or_else(|_| "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test".to_string());
+                // Navigate up from problem dir to find the data root with .lake
+                let mut path = std::path::PathBuf::from(&base);
+                while !path.join(".lake/packages").exists() {
+                    if !path.pop() { break; }
+                }
+                path.to_string_lossy().to_string()
+            });
+        let data_root = std::path::Path::new(&mathlib_root);
         let packages_dir = data_root.join(".lake/packages");
         // Collect all package olean directories
         let mut paths = Vec::new();

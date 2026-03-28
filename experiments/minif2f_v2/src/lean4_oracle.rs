@@ -180,8 +180,10 @@ impl TuringTool for Lean4Oracle {
                         }
                     }
                 }
-                warn!(">>> [ORACLE] Compiler rejected: {}", &e[..e.len().min(200)]);
-                ToolSignal::Veto(format!("Compiler Error:\n{}", &e[..e.len().min(500)]))
+                let truncated_200: String = e.chars().take(200).collect();
+                let truncated_500: String = e.chars().take(500).collect();
+                warn!(">>> [ORACLE] Compiler rejected: {}", truncated_200);
+                ToolSignal::Veto(format!("Compiler Error:\n{}", truncated_500))
             }
         }
     }

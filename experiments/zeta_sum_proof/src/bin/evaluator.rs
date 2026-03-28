@@ -223,7 +223,75 @@ async fn main() {
                     Err(_) => { /* harness: retry on next snapshot */ }
                 }
 
-                // 5. Wait for universe update
+                // 5. FORCED INVESTMENT ROUND — separate LLM call for financial decisions
+                // After the reasoning action, agent MUST make an investment decision.
+                // This stimulates the Polymarket economy on every round.
+                let snap_for_invest = rx.borrow().clone();
+                let invest_balance = snap_for_invest.balances.get(&agent_name).copied().unwrap_or(0.0);
+                if invest_balance >= 2.0 && !snap_for_invest.tape.files.is_empty() {
+                    // Build investment-focused prompt with current DAG state
+                    let node_list: String = snap_for_invest.tape.time_arrow.iter().rev().take(10)
+                        .filter_map(|nid| snap_for_invest.tape.files.get(nid))
+                        .map(|n| {
+                            let preview: String = n.payload.chars().take(80).collect();
+                            format!("[{}] P:{:.2} | {}", n.id, n.price, preview.replace('\n', " "))
+                        })
+                        .collect::<Vec<_>>().join("\n");
+
+                    let invest_prompt = format!(
+                        "You are an investor in a proof market. Your balance: {:.0} Coins.\n\
+                        Recent nodes (most recent first):\n{}\n\n\
+                        You MUST invest in ONE node. Choose the node you believe is most likely to be on the winning proof path.\n\
+                        - To back a node: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - To bet against a node: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - Minimum 2 Coins. Recommended: 5-20 Coins.\n\
+                        Choose wisely — your profit depends on the final Oracle verdict.",
+                        invest_balance, node_list
+                    );
+
+                    match client.resilient_generate(&invest_prompt, i, 0.3).await {
+                        Ok(raw) => {
+                            if let Some(action) = parse_agent_output(&raw) {
+                                match action.tool.as_str() {
+                                    "invest" => {
+                                        let node = action.node.unwrap_or_default();
+                                        let amount = action.amount.unwrap_or(2.0).max(2.0);
+                                        if !node.is_empty() && node != "self" {
+                                            let payload = format!("[Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", node, amount);
+                                            let _ = tx.send(MinerTx {
+                                                agent_id: agent_name.clone(),
+                                                model_name: client.model_name().to_string(),
+                                                payload,
+                                                parent_id: None,
+                                                action_type: "invest".to_string(),
+                                            }).await;
+                                            info!(">>> [FORCED INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
+                                        }
+                                    }
+                                    "short" => {
+                                        let node = action.node.unwrap_or_default();
+                                        let amount = action.amount.unwrap_or(2.0).max(2.0);
+                                        if !node.is_empty() {
+                                            let payload = format!("[Tool: Wallet | Action: Invest | Node: SHORT:{} | Amount: {:.2}]", node, amount);
+                                            let _ = tx.send(MinerTx {
+                                                agent_id: agent_name.clone(),
+                                                model_name: client.model_name().to_string(),
+                                                payload,
+                                                parent_id: None,
+                                                action_type: "short".to_string(),
+                                            }).await;
+                                            info!(">>> [FORCED SHORT] {} bet NO {:.0} on {}", agent_name, amount, node);
+                                        }
+                                    }
+                                    _ => {} // skip if agent outputs non-investment action
+                                }
+                            }
+                        }
+                        Err(_) => {}
+                    }
+                }
+
+                // 6. Wait for universe update
                 if rx.changed().await.is_err() { break; }
             }
         });

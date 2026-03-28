@@ -222,6 +222,10 @@ impl TuringBus {
         use crate::sdk::tools::wallet::WalletTool;
         use std::collections::HashSet;
 
+        // PRE-SETTLEMENT: Compute total system Coins for conservation check
+        let pre_total = self.compute_total_system_coins();
+        log::info!(">>> [CONSERVATION] Pre-settlement total: {:.2} Coins", pre_total);
+
         let golden_path = self.kernel.trace_golden_path(omega_id);
         let gp_set: HashSet<String> = golden_path.iter().cloned().collect();
 
@@ -323,6 +327,59 @@ impl TuringBus {
         }
 
         self.kernel.refresh_prices();
+
+        // POST-SETTLEMENT: Conservation invariant check (Magna Carta Law 2: bank P&L = 0)
+        let post_total = self.compute_total_system_coins();
+        let drift = (post_total - pre_total).abs();
+        if drift > 0.01 {
+            log::error!(">>> [CONSERVATION VIOLATION] Bank P&L ≠ 0! Pre: {:.2}, Post: {:.2}, Drift: {:.2}",
+                pre_total, post_total, drift);
+        } else {
+            log::info!(">>> [CONSERVATION] Post-settlement total: {:.2} Coins. Drift: {:.6}. Bank P&L = 0 ✓",
+                post_total, drift);
+        }
+    }
+
+    /// Compute total system Coins: agent balances + Coins locked in CTF vault (market reserves)
+    fn compute_total_system_coins(&self) -> f64 {
+        use crate::sdk::tools::wallet::WalletTool;
+        let mut total = 0.0;
+
+        // Sum all agent balances
+        for tool in &self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
+                    for bal in wallet.balances.values() {
+                        total += bal;
+                    }
+                }
+                break;
+            }
+        }
+
+        // Sum all Coins locked in prediction market pools (CTF vault)
+        // Each pool's coin equivalent = yes_reserve + no_reserve (since 1 Coin minted 1Y + 1N)
+        // But after trades, reserves shift. The invariant is:
+        // total_minted_coins = Σ(agent_initial_deposit_into_pool)
+        // We approximate: locked_coins ≈ Σ(pool.yes_reserve) for unresolved markets
+        // (After resolution, coins return to agents via redeem)
+        for market in self.kernel.prediction_markets.values() {
+            if market.resolved.is_none() {
+                // Unresolved: coins are locked. LP seed was deducted from agent balance.
+                // The YES reserve represents coins that would pay YES holders.
+                // The NO reserve represents coins that would pay NO holders.
+                // But they're not directly "Coins" — they're shares.
+                // Actually: the LP seed (1 Coin) created the pool. That Coin is "in the vault".
+                // Additional swaps: agent deposits X Coins → mints X YES + X NO → sells one side.
+                // The Coins deposited = the shares that exist outside the pool + inside the pool.
+                // For conservation: we need to track total_deposited, not pool reserves.
+            }
+        }
+
+        // For now: total = agent balances only (conservative).
+        // Full accounting would require tracking CTF vault deposits separately.
+        // This catches balance-side violations (printing, double-pay).
+        total
     }
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {

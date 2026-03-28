@@ -43,6 +43,10 @@ pub struct TuringBus {
     pub clock: usize,
     pub graveyard: Graveyard,
     pub ticker_top_n: usize,
+    /// Kernel-level payload blacklist. Applied to ALL appends BEFORE any SKILL tool.
+    /// Prevents brute-force tactics (decide, omega, native_decide) at the physical layer.
+    /// Cannot be bypassed by experiment code or SKILL configuration.
+    pub forbidden_payload_patterns: Vec<String>,
 }
 
 impl TuringBus {
@@ -53,6 +57,12 @@ impl TuringBus {
             clock: 0,
             graveyard: Graveyard::new(),
             ticker_top_n: 5,
+            // Kernel-level: no brute-force search tactics. Prove constructively.
+            forbidden_payload_patterns: vec![
+                "native_decide".to_string(),
+                "decide".to_string(),
+                "omega".to_string(),
+            ],
         }
     }
 
@@ -383,6 +393,31 @@ impl TuringBus {
     }
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
+        // ── Phase 0: KERNEL-LEVEL payload blacklist (cannot be bypassed) ──
+        // This runs BEFORE any SKILL tool. Physical enforcement.
+        for pattern in &self.forbidden_payload_patterns {
+            // Word-boundary check: "decide" should not match "undecidable"
+            let payload = &file.payload;
+            let mut search_start = 0;
+            while let Some(pos) = payload[search_start..].find(pattern.as_str()) {
+                let abs_pos = search_start + pos;
+                let before_ok = abs_pos == 0 ||
+                    (!payload.as_bytes()[abs_pos - 1].is_ascii_alphanumeric() &&
+                     payload.as_bytes()[abs_pos - 1] != b'_');
+                let after_pos = abs_pos + pattern.len();
+                let after_ok = after_pos >= payload.len() ||
+                    (!payload.as_bytes()[after_pos].is_ascii_alphanumeric() &&
+                     payload.as_bytes()[after_pos] != b'_');
+                if before_ok && after_ok {
+                    let reason = format!("KERNEL BLACKLIST: '{}' is forbidden (no brute-force search)", pattern);
+                    log::warn!(">>> [KERNEL] {} in payload by {}", reason, file.author);
+                    self.graveyard.record_death("root", &reason);
+                    return Err(reason);
+                }
+                search_start = abs_pos + pattern.len();
+            }
+        }
+
         let mut final_reward = 0.0;
         use crate::sdk::tool::BetDirection;
         let mut is_invest_only = false;

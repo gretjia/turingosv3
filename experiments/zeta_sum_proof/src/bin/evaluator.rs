@@ -40,6 +40,10 @@ const SKILL: &str = "\
   - short: Buy NO on any node = you believe it's a dead end. VERY PROFITABLE if you're right!\n\
   - KEY: If you spot a wrong node with high YES price, shorting it is extremely profitable.\n\
   - Your profit comes ONLY from finding mispriced probabilities.\n\
+[LAW 6] ONE STEP PER SUBMISSION:\n\
+  - Write exactly ONE mathematical reasoning step per append.\n\
+  - NO multi-step proofs. NO bundling. The kernel will reject front-running.\n\
+  - Each step must be independently evaluable by the market.\n\
 Balance < 1.0 = can only append (free). Cannot invest/bet/short.\n";
 
 fn epoch_secs() -> u64 {

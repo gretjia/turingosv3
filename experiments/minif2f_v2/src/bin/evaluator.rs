@@ -39,6 +39,8 @@ const SKILL: &str = "\
   - ALWAYS search Mathlib FIRST: {\"tool\":\"search\",\"query\":\"div_eq_iff\"}\n\
   - Common tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have, calc, ext.\n\
   - FORBIDDEN: native_decide, decide, omega (no brute-force search — prove constructively).\n\
+  - ONE STEP PER SUBMISSION. Write exactly ONE tactic. NO multi-step proofs in a single node.\n\
+  - Front-running (packing many steps) will be rejected by the kernel.\n\
   - Write ONE tactic per line. If rejected, READ THE ERROR and try differently.\n\
 [STRATEGY GUIDE — READ CAREFULLY]:\n\
   1. EXPLORE: Use 'append' freely to try tactics at zero risk.\n\

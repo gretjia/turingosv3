@@ -47,6 +47,9 @@ pub struct TuringBus {
     /// Prevents brute-force tactics (decide, omega, native_decide) at the physical layer.
     /// Cannot be bypassed by experiment code or SKILL configuration.
     pub forbidden_payload_patterns: Vec<String>,
+    /// Max tactic lines per append. Prevents front-running (packing entire proof in one node).
+    /// Each node = one atomic reasoning step. Magna Carta: one step per node.
+    pub max_tactic_lines: usize,
 }
 
 impl TuringBus {
@@ -63,6 +66,8 @@ impl TuringBus {
                 "decide".to_string(),
                 "omega".to_string(),
             ],
+            // One step per node. Prevents front-running (CLAUDE.md #21).
+            max_tactic_lines: 4,
         }
     }
 
@@ -416,6 +421,22 @@ impl TuringBus {
                 }
                 search_start = abs_pos + pattern.len();
             }
+        }
+
+        // ── Phase 0b: FRONT-RUNNING DETECTION (one step per node) ──
+        // Strip wallet tags before counting lines
+        let tactic_part = file.payload.split("[Tool: Wallet").next().unwrap_or(&file.payload).trim();
+        let tactic_lines = tactic_part.lines()
+            .filter(|l| !l.trim().is_empty())
+            .count();
+        if tactic_lines > self.max_tactic_lines {
+            let reason = format!(
+                "FRONT-RUNNING: {} tactic lines (max {}). One step per node. Split into multiple appends.",
+                tactic_lines, self.max_tactic_lines
+            );
+            log::warn!(">>> [KERNEL] {} by {}", reason, file.author);
+            self.graveyard.record_death("root", &reason);
+            return Err(reason);
         }
 
         let mut final_reward = 0.0;

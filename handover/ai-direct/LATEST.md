@@ -1,56 +1,72 @@
 # TuringOS v3 — Handover State
-**Updated**: 2026-03-26
-**Session Summary**: 三代经济引擎进化 (Hayekian→AMM→Polymarket) + Run 5/6 实战验证 + harness 升级
+**Updated**: 2026-03-28
+**Session Summary**: Magna Carta vFinal 全面对齐 + minif2f_v2 实验 (Lean 4 Oracle) + AIME 2025 首证 + 强制投资轮经济突破
 
 ## Current State
-- **经济引擎: Turing-Polymarket** — 二元条件代币 CPMM (YES/NO)，Split-Ignition 点火，Oracle 二元清算
-- **zeta_sum_proof Run 6: OMEGA** — 53 tx, 35 nodes, 6-step GP, 第三条独立代数路径 (对称双指数 z₁,z₂)
-- **Run 5 (TuringSwap AMM): OMEGA** — 15 tx, 12 nodes, 3-step GP, Gemini 审计 VALID WITH MINOR GAPS
-- **Layer 1 不变量**: 全部通过 (kernel-auditor CLEAN)
-- **P0 Bug 已识别**: MathStepMembrane 100B OMEGA 铸币 (Hayekian 遗产) 破坏 Polymarket 零和守恒 — **尚未修复**
-- **Harness 已升级**: dev-cycle Stage 4.5 MIGRATION SCAN 防止 experiments/ 兼容性遗漏
+- **经济引擎: Turing-Polymarket vFinal** — 三层纵深防御 (内核黑名单 + SKILL 安全 + Prompt), Oracle ONLY at OMEGA, 免费 append (Law 1)
+- **minif2f_v2 实验**: Lean 4 Oracle + Polymarket + Engine 4 (per-agent skills). Mac (zephrymac-studio) 运行
+- **AIME 2025 I P1: PROVED** — 首次在训练数据外新题上通过 Lean 4 形式化验证 (Run 4)
+- **AIME 1983 P1: PROVED** — Lean 4 验证, 10 分钟内完成
+- **zeta_sum_proof Run 9: OMEGA** — 强制投资轮, 7 市场, 310 Coins 流通, 完整经济循环
+- **Lean 4 + Mathlib**: omega-vm (7849 jobs built) + Mac (6996 olean) 双机就绪
+- **NVIDIA NIM API**: key 已存 .env, 测试通过, 40 RPM 限速, 备用
 
 ## Changes This Session
-- `b187ba3` — Run 4 全局节点报告 (26 nodes, DAG 拓扑, 市场效率)
-- `59d647a` — TuringSwap AMM 指令归档 + Gemini 审计 (REJECT) + 3 条架构师洞察
-- `9ce1639` — **feat: TuringSwap AMM 经济引擎** — amm.rs, kernel 6 方法, bus 重写, Split-Ignition
-- `28af785` — Run 5 TuringSwap 分析 (OMEGA 3 步, AMM 引用即买入验证)
-- `ca989ac` — Run 5 Gemini 独立审计 (VALID WITH MINOR GAPS)
-- `94f6ae1` — **feat: Turing-Polymarket** — 替换 AMM 为二元预测市场, YES/NO CPMM, Oracle 解算
-- `88d8732` — Run 6 Polymarket 分析 (OMEGA 6 步, 第三条独立代数路径)
-- `f182de7` — Run 6 经济学深度分析 (100B bug 发现, 五层做空缺失分析)
-- `9471d75` — Run 6 对齐审查 (Layer 1 4/4, Polymarket 铁律 1 VIOLATED)
-- `3e77554` — **fix: harness 升级** — Stage 4.5 MIGRATION SCAN + CLAUDE.md 规则 #16
+
+### 架构级
+- `580a0f2` — **Oracle ONLY at OMEGA** — 中间 append 免费, Oracle 不拦截 (Law 1 + 苦涩教训)
+- `29a2595` — **废除所有创世后印钞** — fund_agent/redistribute_pool/global_pool 删除
+- `1c7bb12` — **内核级暴力搜索黑名单** — bus.rs Phase 0 封锁 decide/omega/native_decide
+- `4c073ca` — **Conservation invariant check** — halt_and_settle 前后 Coins 总量验证
+- `cfabcf1` — #print 注入封锁 + global_pool 字段删除
+- `5bf661d` — **强制投资轮** — 每回合结尾额外 LLM 调用, 强制经济参与
+
+### minif2f_v2 实验
+- `577422f` — Engine 4 (per-agent skills) + OMEGA nonce 防注入 + Veto 退款
+- `3969166` — 错误反馈循环 + search-first prompt + 300s timeout
+- `bb669c5` — UTF-8 安全截断 (Lean 输出含 Unicode)
+- `86ef7e2` — LEAN_PATH 自动发现所有 Lake packages
+- `51a541e` — Strategy Guide prompt (引导投资, 不强制)
+- `b7e0bcc` — 2025 AIME I P1 问题 (post-training-cutoff)
+- `e4f1db9` — 问题形式化重写 (∀ b:ℕ 替代 Finset.range, CLAUDE.md #21)
+- `fd3134b` — ban decide + omega (SKILL 层)
+- `31e25ca` — load_problem 自动检测暴力搜索空间
+
+### 审计报告
+- `e88c839` — AIME 2025 P1 数学审计 (DAG 树状图)
+- `2c400d3` — AIME 2025 P1 双重审计 (math VALID + economics first convergence)
+- `f1f063c` — Run 9 双重审计 (math VALID + economics breakthrough)
+
+### CLAUDE.md 规则
+- `ef61142` — #20 苦涩的教训: 禁止 Over-Alignment
+- `e4f1db9` — #21 形式化不可引入暴力搜索空间
 
 ## Key Decisions
-- **三代经济引擎进化**: Hayekian (GOSPLAN 事后分配) → TuringSwap AMM (事前现货) → Polymarket (二元概率市场)
-- **不回滚，原地重构**: AMM 引入的基础设施 (portfolios, as_any, bus helpers) 在 Polymarket 中复用
-- **拓扑与金融解耦 (大宪章复辟)**: 引用零成本 (AMM 时代要付费)，金融行为独立
-- **Split-Ignition 两步点火**: 1 Coin 中性 LP + 剩余 stake auto-long (架构师补丁)
-- **Harness 根因修复**: CLAUDE.md #16 + dev-cycle Stage 4.5 防止 experiments/ 兼容性遗漏
+- **Oracle 从守门员变为信息源**: 中间步骤自由上链 (Law 1), Oracle 只在 [COMPLETE] 时编译全证明链
+- **三层纵深防御**: 内核黑名单 (bus.rs) > SKILL 安全 (Lean4Oracle) > Prompt 引导
+- **强制投资轮**: 每轮行动后追加投资专属 LLM 调用, 保证经济活动
+- **ban decide/omega**: 暴力搜索不是构造性证明, 从内核+SKILL+Prompt 三层封锁
+- **问题形式化原则**: 用 ∀ 全称量词而非 Finset.range, 逼迫构造性推理
+- **Conservation check**: halt_and_settle 前后验证系统 Coins 总量
 
 ## Next Steps
-1. **P0: 修复 MathStepMembrane 100B 铸币** — 删除 YieldReward 100B，改为 Modify (零铸币)。覆盖全部 4 个实验 (16 处)
-2. **P1: 暴露 short 动作 + 价格概率可见** — SKILL prompt 增加 short 选项，snapshot 显示 P_yes/P_no
-3. **P1: 引导跨节点投资** — SKILL prompt 引导 "invest in promising nodes you didn't create"
-4. **P2: Polymarket 零和悖论** — 保守投注 + 低 LP = 低利润率，需要架构师思考激励设计
-5. **工程化测试**: MATH Benchmark L3 Number Theory + Terminal Oracle
-6. **Terminal Oracle (Lean 4)**: [COMPLETE] 仍为字符串匹配，无数学验证
+1. **修复 Conservation 计量**: compute_total_system_coins 需要追踪 market-locked funds
+2. **做空涌现**: 0/9 次运行出现 SHORT — 可能需要在强制投资轮中增加做空引导
+3. **AIME 2025 P1 重跑**: 新形式化 (∀ b:ℕ, 无 Finset.range) + 内核黑名单, 需要构造性证明
+4. **AIME 2025 P15**: 3-adic 数论, 极难
+5. **MiniF2F v2 批量测试**: 244 题系统性测试 (需要 batch evaluator)
+6. **Engine 4 深化**: per-agent skills 已实现文件系统, 需要验证 autopsy/victory 效果
 
 ## Warnings
-- **MathStepMembrane 100B 铸币 BUG 未修复** — experiments/ 中 16 处 100_000_000_000 仍在。下次 run 前必须修复
-- **OMEGA 仍无数学验证**: [COMPLETE] 标签即触发，Lean 4 验证未实现
-- **做空机制未激活**: 协议层无 short 动作，agent 看不到 P_yes/P_no，LLM 无攻击性偏向
-- **价格信号退化**: 所有节点 P_yes≈1.0 (auto-long 后)，无差异化贝叶斯信号
-- **SiliconFlow R1 API Key 失效**: 5 个 R1 agent 在 Run 5/6 中全部 401
-- **hanoi_1m 测试预存 bug**: `run_turing_os` import 失效 (非本次引入)
+- **Conservation drift**: halt_and_settle 报 drift = 投入额 (计量 bug, 非真实铸币)
+- **SiliconFlow R1 API**: 5 个 Agent 401 失效
+- **做空未涌现**: 9 次运行, 0 SHORT — LLM 建设性偏差 + 无负面价格信号
+- **Lean 4 版本**: minif2f_data_lean4 用 v4.24.0, elan stable 是 v4.29.0 — 需要显式 LEAN_CMD 路径
+- **omega-vm Mathlib**: 已完整构建 (7849 jobs), 可作为备用运行环境
+- **3 个非活跃实验 100B 残留**: minif2f_swarm, number_theory_min, zeta_regularization 的 lean4_membrane_tool.rs
 
 ## Architect Insights (本次会话)
-- **GOSPLAN→AMM 范式转换**: "map_reduce 事后发钱 = 苏联国家计划委员会年终奖" → 已归档 `handover/architect-insights/2026-03-25_gosplan-to-amm.md`
-- **引用即买入**: "没有免费的白嫖！Agent B 必须当场买入引用权" → 已归档 `2026-03-25_citation-as-spot-purchase.md`
-- **Init AI 迭代引导**: "多次初始化，先试跑，让顶层看问题" → 已归档 `2026-03-25_init-ai-iterative-boot.md`
-- **孤立热力学孤岛**: "每个节点是绝对物理隔离的热力学孤岛，资金绝对不跨池" → 已归档 `2026-03-26_polymarket-isolated-thermodynamic-islands.md`
+- **刺客的远征**: "空头利润锁死→被迫建设→推动 OMEGA" → 已归档 `2026-03-27_assassins-expedition.md`
+- **零成本拓扑**: "建树零成本, 投资独立, 拓扑金融彻底剥离" → 已归档 `2026-03-27_zero-cost-topology.md`
 - 架构师指令归档:
-  - `directives/2026-03-25_turingswap-amm-economic-engine.md`
-  - `directives/2026-03-26_turing-polymarket-prediction-engine.md`
-  - `directives/2026-03-26_split-ignition-lp-model.md`
+  - `directives/2026-03-27_polymarket-final-four-laws.md` (四大宪法级物理法则)

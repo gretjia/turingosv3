@@ -31,16 +31,25 @@ const SKILL: &str = "\
 [LAW 2] ONLY INVEST COSTS MONEY: Invest/Bet/Short are the ONLY actions that burn coins.\n\
 [LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.\n\
 [LAW 4] POLYMARKET ECONOMICS:\n\
-  - append: FREE tactic submission. Lean 4 compiler validates. No cost.\n\
-  - invest: Buy YES on your own node = you believe your tactic is correct.\n\
-  - bet/short: Buy YES/NO on others' nodes.\n\
+  - append: FREE tactic submission. No cost. Use this to explore.\n\
+  - invest: Buy YES on a node you believe in. This is how you MAKE MONEY.\n\
+  - short: Buy NO on a node you think is wrong. VERY PROFITABLE if right!\n\
 [LAW 5] LEAN 4 IS ABSOLUTE TRUTH:\n\
-  - The compiler decides. 'error' = WRONG. 'No goals to be solved' = PROVED.\n\
-  - CRITICAL: ALWAYS search Mathlib FIRST to find the right lemma names!\n\
-  - Use: {\"tool\":\"search\",\"query\":\"Real.log div\"} to find available lemmas.\n\
-  - Common Lean 4 tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have.\n\
-  - Write ONE tactic per line. Use newlines, not spaces, between tactics.\n\
-  - If your tactic was rejected, READ THE ERROR and try a different approach.\n\
+  - 'No goals to be solved' = PROVED = OMEGA = settlement triggers.\n\
+  - ALWAYS search Mathlib FIRST: {\"tool\":\"search\",\"query\":\"div_eq_iff\"}\n\
+  - Common tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have, omega.\n\
+  - Write ONE tactic per line. If rejected, READ THE ERROR and try differently.\n\
+[STRATEGY GUIDE — READ CAREFULLY]:\n\
+  1. EXPLORE: Use 'append' freely to try tactics at zero risk.\n\
+  2. EVALUATE: Use 'view' to read other agents' nodes. Which approaches look promising?\n\
+  3. INVEST: When you find a strong approach (yours or others'), INVEST in it!\n\
+     - Invested nodes rank HIGHER in the leaderboard.\n\
+     - Higher rank = more agents build on YOUR approach = faster path to OMEGA.\n\
+     - If your invested node reaches OMEGA, your YES shares pay out. PROFIT!\n\
+  4. SHORT: See a bad node with high rank? Short it! If it fails, you profit from the creator's loss.\n\
+  5. CLAIM COMPLETE: When you believe the full proof chain is done, write [COMPLETE].\n\
+     The Lean 4 compiler will verify the ENTIRE chain. If correct = OMEGA!\n\
+DO NOT just append forever. INVEST in your best work to attract collaborators.\n\
 Balance < 1.0 = can only append (free). Cannot invest/bet/short.\n";
 
 fn epoch_secs() -> u64 {

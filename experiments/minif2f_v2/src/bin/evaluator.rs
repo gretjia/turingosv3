@@ -37,7 +37,8 @@ const SKILL: &str = "\
 [LAW 5] LEAN 4 IS ABSOLUTE TRUTH:\n\
   - 'No goals to be solved' = PROVED = OMEGA = settlement triggers.\n\
   - ALWAYS search Mathlib FIRST: {\"tool\":\"search\",\"query\":\"div_eq_iff\"}\n\
-  - Common tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have, omega.\n\
+  - Common tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have, calc, ext.\n\
+  - FORBIDDEN: native_decide, decide, omega (no brute-force search — prove constructively).\n\
   - Write ONE tactic per line. If rejected, READ THE ERROR and try differently.\n\
 [STRATEGY GUIDE — READ CAREFULLY]:\n\
   1. EXPLORE: Use 'append' freely to try tactics at zero risk.\n\

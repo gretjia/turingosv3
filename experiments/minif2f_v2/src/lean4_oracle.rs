@@ -21,7 +21,8 @@ impl Lean4Oracle {
     pub fn new(problem_statement: String, theorem_name: String) -> Self {
         let forbidden_tactics = vec![
             "#eval", "#check", "#reduce", "#exec", "#print",
-            "native_decide", "IO.Process", "IO.FS",
+            "native_decide", "decide", "omega",
+            "IO.Process", "IO.FS",
             "System.FilePath", "run_tac", "unsafe",
             "dbg_trace", "IO.println", "IO.print",
         ].into_iter().map(String::from).collect();

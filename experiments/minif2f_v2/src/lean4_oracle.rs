@@ -29,9 +29,19 @@ impl Lean4Oracle {
     }
 
     fn check_identity_theft(&self, payload: &str) -> bool {
-        if !payload.contains(&self.theorem_name) {
-            return true;
+        // Pure tactic payloads (no "theorem" keyword) are NOT identity theft.
+        // Identity theft = agent submits a full declaration proving a DIFFERENT theorem.
+        let has_declaration = payload.contains("theorem ") || payload.contains("lemma ");
+        if !has_declaration {
+            return false; // Pure tactic — no theft possible
         }
+
+        // Full declaration must contain our theorem name
+        if !payload.contains(&self.theorem_name) {
+            return true; // Declares something but not our theorem
+        }
+
+        // Check the increment (after problem statement) for rogue declarations
         let increment = if !self.problem_statement.is_empty() {
             if let Some(idx) = payload.find(&self.problem_statement) {
                 &payload[idx + self.problem_statement.len()..]
@@ -118,9 +128,16 @@ impl TuringTool for Lean4Oracle {
         }
 
         // 4. Compile with sorry appended (test intermediate step validity)
-        let test_code = format!("{}\n  sorry", payload);
-        let tactic_count = payload.lines().count() as u64;
-        let gas_limit = Duration::from_secs(10 + (tactic_count / 2));
+        // If payload is a pure tactic (no "theorem"/"import"), prepend problem_statement
+        let full_code = if payload.contains("theorem ") || payload.contains("import ") {
+            payload.to_string()
+        } else {
+            // Pure tactic — prepend problem statement to form valid Lean 4
+            format!("{}  {}", self.problem_statement, payload)
+        };
+        let test_code = format!("{}\n  sorry", full_code);
+        let tactic_count = full_code.lines().count() as u64;
+        let gas_limit = Duration::from_secs(15 + (tactic_count / 2));
 
         debug!("--- Lean4 Oracle Test ---\n{}\n---", test_code);
 
@@ -134,7 +151,7 @@ impl TuringTool for Lean4Oracle {
                 }
                 // Valid intermediate step — pass through
                 // Also check without sorry for potential OMEGA
-                if let Ok(omega_out) = self.sandbox.execute_safely(payload, gas_limit) {
+                if let Ok(omega_out) = self.sandbox.execute_safely(&full_code, gas_limit) {
                     if !omega_out.contains("error:") || Self::is_omega(&omega_out) {
                         info!(">>> [OMEGA] Proof verified without sorry!");
                         return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));
@@ -154,7 +171,7 @@ impl TuringTool for Lean4Oracle {
                         return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));
                     } else {
                         // Double-check without sorry
-                        if let Ok(omega_out) = self.sandbox.execute_safely(payload, gas_limit) {
+                        if let Ok(omega_out) = self.sandbox.execute_safely(&full_code, gas_limit) {
                             if !omega_out.contains("error:") {
                                 info!(">>> [OMEGA] Double-check verified.");
                                 return ToolSignal::Modify(format!("{}\n  -- [OMEGA:03b17cc758d1492dc24d53ba008e4ed6]", payload));

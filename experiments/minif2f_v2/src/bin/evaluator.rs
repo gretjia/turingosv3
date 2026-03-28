@@ -93,6 +93,18 @@ async fn main() {
     bus.mount_tool(Box::new(WalletTool::new()));
 
     // Lean 4 Oracle (Engine 3: Popperian Guillotine)
+    // LEAN_PATH must include Mathlib olean directory for `import Mathlib` to work
+    let lean_path = std::env::var("LEAN_PATH").unwrap_or_else(|_| {
+        let base = std::env::var("MINIF2F_LEAN4_DIR")
+            .unwrap_or_else(|_| "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test".to_string());
+        // Navigate from Test/ up to the .lake build directory
+        let data_root = std::path::Path::new(&base).parent().unwrap().parent().unwrap();
+        let lib_dir = data_root.join(".lake/packages/mathlib/.lake/build/lib/lean");
+        lib_dir.to_string_lossy().to_string()
+    });
+    std::env::set_var("LEAN_PATH", &lean_path);
+    info!("LEAN_PATH set to: {}", lean_path);
+
     let lean_cmd = std::env::var("LEAN_CMD").unwrap_or_else(|_| "lean".to_string());
     let sandbox = LocalProcessSandbox::new(&lean_cmd, vec!["--stdin".to_string()]);
     bus.mount_tool(Box::new(Lean4Oracle::new(

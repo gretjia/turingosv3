@@ -24,31 +24,9 @@ impl WalletTool {
         Self { balances: HashMap::new(), portfolios: HashMap::new(), stakes: Vec::new(), global_pool: 0.0, pending_self_stakes: HashMap::new(), participants: HashSet::new() }
     }
 
-    /// Redistribute global_pool among PARTICIPANTS only (agents who staked this theorem).
-    /// Hayekian principle: no labor, no pay. Idle agents get nothing.
-    pub fn redistribute_pool(&mut self) {
-        let eligible: Vec<String> = self.participants.iter()
-            .filter(|id| self.balances.get(*id).copied().unwrap_or(0.0) >= 1.0)
-            .cloned()
-            .collect();
-        if eligible.is_empty() || self.global_pool <= 0.0 { return; }
-        let share = self.global_pool / eligible.len() as f64;
-        for id in &eligible {
-            *self.balances.get_mut(id).unwrap() += share;
-        }
-        log::info!(">>> [REDISTRIBUTION] Pool {:.2} split among {} participants ({:.2} each). {} idle agents excluded.",
-                   self.global_pool, eligible.len(), share, self.balances.len() - eligible.len());
-        self.global_pool = 0.0;
-        self.participants.clear();
-    }
-
-    /// Inject capital into an agent's balance (for generation rebirth).
-    /// Does NOT touch intrinsic_reward — this is pure monetary policy.
-    pub fn fund_agent(&mut self, agent_id: &str, amount: f64) {
-        *self.balances.entry(agent_id.to_string()).or_insert(0.0) += amount;
-        log::info!(">>> [CENTRAL BANK] Agent {} funded with {:.2}. New balance: {:.2}",
-            agent_id, amount, self.balances.get(agent_id).unwrap_or(&0.0));
-    }
+    // redistribute_pool: ABOLISHED (Magna Carta Law 2 — no central reallocation)
+    // fund_agent: ABOLISHED (Magna Carta Law 2 — no post-genesis money printing)
+    // The ONLY legal Coin injection is on_init GENESIS below.
 
     fn parse_payment(&self, payload: &str) -> Option<(String, f64)> {
         // Support both "Action: Invest" (preferred) and "Action: Stake" (backward compat)
@@ -79,11 +57,13 @@ impl TuringTool for WalletTool {
     fn as_any(&self) -> &dyn std::any::Any { self }
 
     fn on_init(&mut self, agents: &[String]) {
+        // GENESIS: One-time fixed allocation. This is the ONLY legal Coin injection.
+        // After this, the system NEVER creates new Coins. (Magna Carta Law 2)
+        // Total system Coins = agents.len() × 10,000 = constant forever.
         self.stakes.clear();
-        self.global_pool = 0.0;
         for agent in agents {
             self.balances.insert(agent.clone(), 10000.0);
-            log::info!(">>> [WALLET] Agent {} funded with 10,000 Coins.", agent);
+            log::info!(">>> [GENESIS] Agent {} allocated 10,000 Coins.", agent);
         }
     }
 
@@ -120,12 +100,11 @@ impl TuringTool for WalletTool {
             }
         }
 
-        // Record participation — this agent is working, not free-riding
         self.participants.insert(author.to_string());
 
-        // 🌟 物理扣款（风险前置）！
+        // Deduct from agent balance (risk upfront)
         *self.balances.get_mut(author).unwrap() -= amount;
-        self.global_pool += amount;
+        // Note: Coins flow into CTF vault via prediction market, NOT into global_pool.
 
         if target.to_lowercase() == "self" {
             log::info!(">>> [SELF-INVEST] Agent {} invests {:.2} on own output. Balance after: {:.2}",

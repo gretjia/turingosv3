@@ -391,14 +391,13 @@ async fn main() {
 
                 if all_bankrupt || absolute_stagnation {
                     let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };
-                    error!("[REBIRTH] {}! Gen {} dead. Solvent: {}/{}", reason, generation, solvent_count, SWARM_SIZE);
+                    error!("[STAGNATION] {}! Gen {} stuck. Solvent: {}/{}", reason, generation, solvent_count, SWARM_SIZE);
 
                     // Engine 4: Autopsy Mutation — bankrupt agents write survival rules
                     for (idx, name) in agent_names.iter().enumerate() {
                         let bal = bus.get_agent_balance(name);
                         if bal < 1.0 {
                             bus.graveyard.record_death("root", &format!("Gen {} bankrupt: {}", generation, name));
-                            // Write autopsy to agent's skill directory
                             let autopsy_path = format!("{}/agent_{}/learned.md", skills_dir, idx);
                             let autopsy = format!(
                                 "# Autopsy — Generation {} Death\nBANKRUPT at balance {:.2}.\nSURVIVAL RULE: {}\n\n",
@@ -408,12 +407,15 @@ async fn main() {
                                 use std::io::Write;
                                 let _ = write!(f, "{}", autopsy);
                             }
-                            info!(">>> [AUTOPSY] {} wrote survival rule to {}", name, autopsy_path);
+                            info!(">>> [AUTOPSY] {} wrote survival rule", name);
                         }
                     }
 
+                    // Magna Carta Law 2: NO NEW MONEY. Bankrupt agents can still free append (Law 1).
+                    // Coins are locked in CTF vault. They return when OMEGA triggers settlement.
+                    // The system continues in free-append-only mode.
                     generation += 1;
-                    for name in &agent_names { bus.fund_agent(name, 10000.0); }
+                    info!(">>> [NO REBIRTH] Generation {} — zero new Coins. Agents must free-append to reach OMEGA.", generation);
                     let mut snap = bus.get_immutable_snapshot();
                     snap.generation = generation;
                     let _ = tx_state.send(snap);

@@ -80,31 +80,9 @@ impl TuringBus {
         self.graveyard.get_tombstones(node_id)
     }
 
-    /// Inject capital into a specific agent (generation rebirth).
-    pub fn fund_agent(&mut self, agent_id: &str, amount: f64) {
-        use crate::sdk::tools::wallet::WalletTool;
-        for tool in &mut self.tools {
-            if tool.manifest() == "core.tool.crypto_wallet" {
-                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
-                    wallet.fund_agent(agent_id, amount);
-                }
-                break;
-            }
-        }
-    }
-
-    /// Redistribute global_pool among surviving agents between theorems
-    pub fn redistribute_pool(&mut self) {
-        use crate::sdk::tools::wallet::WalletTool;
-        for tool in &mut self.tools {
-            if tool.manifest() == "core.tool.crypto_wallet" {
-                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
-                    wallet.redistribute_pool();
-                }
-                break;
-            }
-        }
-    }
+    // fund_agent: ABOLISHED (Magna Carta Law 2 — no post-genesis money printing)
+    // redistribute_pool: ABOLISHED (Magna Carta Law 2 — no central reallocation)
+    // After GENESIS, total Coins in system = constant. Only CTF mint/redeem moves Coins.
 
     /// Extract all agent balances for cross-theorem persistence
     pub fn extract_wallet_balances(&self) -> HashMap<String, f64> {
@@ -377,7 +355,6 @@ impl TuringBus {
                             if t.manifest() == "core.tool.crypto_wallet" {
                                 if let Some(wallet) = t.as_any_mut().downcast_mut::<WalletTool>() {
                                     *wallet.balances.entry(file.author.clone()).or_insert(0.0) += final_reward;
-                                    wallet.global_pool -= final_reward;
                                     log::info!(">>> [REFUND] {} refunded {:.2} after veto", file.author, final_reward);
                                 }
                                 break;

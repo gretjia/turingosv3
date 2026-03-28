@@ -45,6 +45,8 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 15. `cargo test` 必须通过才可部署
 16. `.env` 中的 API Key 不可提交到 git
 17. **经济引擎变更时必须全仓库 grep** — 修改 kernel 定价/wallet/bus 结算/reward 信号时，必须扫描 `experiments/*/src/` 中所有 SKILL 实现的兼容性。Run 6 100B-mint 事件教训: 仅审计 `src/` 而遗漏 `experiments/` 导致 Hayekian 遗产在 Polymarket 体制下破坏零和守恒。
+18. **宪法违规零容忍** — 审计中发现的大宪章违规不可标注为"可接受"、"低优先级"或"Phase N 延后"。宪法不存在"可接受的违反"。所有 KNOWN VIOLATION 必须在当前 dev-cycle 内修复或获得架构师明确豁免。教训: `fund_agent` 印钞、`global_pool` 再���配、`rebirth 10K` 注入等违反 Law 2 的代码被 4 次审计放过，每次都标注"可接受"，直到架构师亲自指出。
+19. **创世后零印钞** — `on_init` 是唯一合法的 Coin 注入点 (GENESIS)。之后系统绝不创造新 Coins。`fund_agent`、`redistribute_pool` 已废除。rebirth 不注入新钱。破产 Agent 靠 Law 1 (免费 append) 存活。
 
 ### Key File Map (关键文件地图)
 

@@ -322,10 +322,8 @@ async fn main() {
                     }
 
                     generation += 1;
-                    info!(">>> [REBIRTH] Spawning Generation {} with fresh capital!", generation);
-                    for name in &agent_names {
-                        bus.fund_agent(name, 10000.0);
-                    }
+                    // Magna Carta Law 2: NO NEW MONEY after genesis.
+                    info!(">>> [NO REBIRTH] Gen {} — zero new Coins. Free append only.", generation);
 
                     // Broadcast with generation tag — agents detect change and purge phantom context
                     let mut snap = bus.get_immutable_snapshot();

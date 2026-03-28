@@ -62,12 +62,23 @@ fn epoch_secs() -> u64 {
 
 /// Load a MiniF2F problem from the Lean 4 data directory.
 /// Returns (full_statement, theorem_name).
+/// CLAUDE.md #21: Warns if formalization contains brute-force search spaces.
 fn load_problem(problem_file: &str) -> (String, String) {
     let lean4_dir = std::env::var("MINIF2F_LEAN4_DIR")
         .unwrap_or_else(|_| "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/MiniF2F/Test".to_string());
     let path = format!("{}/{}", lean4_dir, problem_file);
     let content = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("Cannot read {}: {}", path, e));
+
+    // CLAUDE.md #21: Check for brute-force search space in formalization
+    let brute_force_patterns = ["Finset.range", "Finset.Icc", "Finset.Ico", "List.range"];
+    for pattern in &brute_force_patterns {
+        if content.contains(pattern) {
+            warn!(">>> [FORMALIZATION WARNING] '{}' found in problem statement!", pattern);
+            warn!("    This may allow brute-force verification (decide/omega).");
+            warn!("    Consider using universal quantifiers (∀) instead. (CLAUDE.md #21)");
+        }
+    }
 
     // Extract theorem name: "theorem <name> ..."
     let theorem_name = content.lines()

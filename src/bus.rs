@@ -37,6 +37,12 @@ impl Graveyard {
     }
 }
 
+/// System Market Maker: auto-injects LP into every new node's market.
+/// Magna Carta amendment 2026-03-29: 做市商豁免 (Rule #19).
+const SYSTEM_MM_ID: &str = "SYSTEM_MM";
+/// LP seed per node: 100 YES + 100 NO (CTF conservation: 100 Coin → 100Y + 100N).
+const SYSTEM_LP_AMOUNT: f64 = 100.0;
+
 pub struct TuringBus {
     pub kernel: Kernel,
     pub tools: Vec<Box<dyn TuringTool>>,
@@ -50,6 +56,8 @@ pub struct TuringBus {
     /// Max tactic lines per append. Prevents front-running (packing entire proof in one node).
     /// Each node = one atomic reasoning step. Magna Carta: one step per node.
     pub max_tactic_lines: usize,
+    /// Total Coins injected by SYSTEM_MM across all markets (for conservation accounting).
+    pub system_mm_total_injected: f64,
 }
 
 impl TuringBus {
@@ -68,6 +76,7 @@ impl TuringBus {
             ],
             // One step per node. Prevents front-running (CLAUDE.md #21).
             max_tactic_lines: 4,
+            system_mm_total_injected: 0.0,
         }
     }
 
@@ -110,27 +119,6 @@ impl TuringBus {
             }
         }
         balances
-    }
-
-    // ── Polymarket helper: deduct coins from agent via WalletTool ──
-
-    fn deduct_balance(&mut self, agent_id: &str, amount: f64) -> Result<(), String> {
-        use crate::sdk::tools::wallet::WalletTool;
-        for tool in &mut self.tools {
-            if tool.manifest() == "core.tool.crypto_wallet" {
-                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
-                    let bal = *wallet.balances.get(agent_id).unwrap_or(&0.0);
-                    if bal < amount {
-                        return Err(format!(
-                            "Insufficient funds: need {:.2}, have {:.2}", amount, bal
-                        ));
-                    }
-                    *wallet.balances.get_mut(agent_id).unwrap() -= amount;
-                    return Ok(());
-                }
-            }
-        }
-        Err("WalletTool not found".into())
     }
 
     // ── Polymarket helper: add YES/NO shares to agent portfolio ──
@@ -343,57 +331,56 @@ impl TuringBus {
 
         self.kernel.refresh_prices();
 
-        // POST-SETTLEMENT: Conservation invariant check (Magna Carta Law 2: bank P&L = 0)
+        // POST-SETTLEMENT: Conservation invariant check
+        // Magna Carta amendment 2026-03-29: allow small MM P&L (impermanent loss = physical cost of liquidity)
         let post_total = self.compute_total_system_coins();
         let drift = (post_total - pre_total).abs();
-        if drift > 0.01 {
-            log::error!(">>> [CONSERVATION VIOLATION] Bank P&L ≠ 0! Pre: {:.2}, Post: {:.2}, Drift: {:.2}",
-                pre_total, post_total, drift);
+        let num_markets = all_node_ids.len() as f64;
+        // Tolerance: each market's MM can lose up to SYSTEM_LP_AMOUNT in the worst case
+        // (all agents correctly short a junk node → MM loses entire seed).
+        // Normal impermanent loss is ~30-50% of seed per market.
+        let mm_tolerance = num_markets * SYSTEM_LP_AMOUNT;
+        let agent_tolerance = mm_tolerance.max(0.01); // at least 0.01 for rounding
+        if drift > agent_tolerance {
+            log::error!(">>> [CONSERVATION VIOLATION] Drift {:.2} exceeds tolerance {:.2}! Pre: {:.2}, Post: {:.2}",
+                drift, agent_tolerance, pre_total, post_total);
         } else {
-            log::info!(">>> [CONSERVATION] Post-settlement total: {:.2} Coins. Drift: {:.6}. Bank P&L = 0 ✓",
-                post_total, drift);
+            log::info!(">>> [CONSERVATION] Post: {:.2}, Drift: {:.6}, MM P&L tolerance: {:.2} ✓",
+                post_total, drift, agent_tolerance);
         }
+        log::info!(">>> [SYSTEM_MM] Total injected: {:.0} Coins across {:.0} markets",
+            self.system_mm_total_injected, num_markets);
     }
 
-    /// Compute total system Coins: agent balances + Coins locked in CTF vault (market reserves)
+    /// Compute total system Coins: agent balances + system MM injection tracking.
+    ///
+    /// Accounting model (APMM):
+    /// - Agent balances: liquid Coins held by agents
+    /// - Agent YES/NO shares: claims on Coins locked in CTF vault
+    /// - System MM: injects SYSTEM_LP_AMOUNT per market (Magna Carta Rule #19 做市商豁免)
+    ///   Each injection: 100 Coin → 100 YES + 100 NO (CTF conservation within each market)
+    ///
+    /// For conservation: we track agent-side Coins only.
+    /// System MM P&L is expected (impermanent loss) and tolerated per Magna Carta amendment.
+    /// Note: agent profit from correct predictions = system MM loss. This is by design.
     fn compute_total_system_coins(&self) -> f64 {
         use crate::sdk::tools::wallet::WalletTool;
         let mut total = 0.0;
 
-        // Sum all agent balances
         for tool in &self.tools {
             if tool.manifest() == "core.tool.crypto_wallet" {
                 if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
-                    for bal in wallet.balances.values() {
-                        total += bal;
+                    for (agent_id, bal) in &wallet.balances {
+                        // Exclude SYSTEM_MM from agent conservation (it has unlimited minting)
+                        if agent_id != SYSTEM_MM_ID {
+                            total += bal;
+                        }
                     }
                 }
                 break;
             }
         }
 
-        // Sum all Coins locked in prediction market pools (CTF vault)
-        // Each pool's coin equivalent = yes_reserve + no_reserve (since 1 Coin minted 1Y + 1N)
-        // But after trades, reserves shift. The invariant is:
-        // total_minted_coins = Σ(agent_initial_deposit_into_pool)
-        // We approximate: locked_coins ≈ Σ(pool.yes_reserve) for unresolved markets
-        // (After resolution, coins return to agents via redeem)
-        for market in self.kernel.prediction_markets.values() {
-            if market.resolved.is_none() {
-                // Unresolved: coins are locked. LP seed was deducted from agent balance.
-                // The YES reserve represents coins that would pay YES holders.
-                // The NO reserve represents coins that would pay NO holders.
-                // But they're not directly "Coins" — they're shares.
-                // Actually: the LP seed (1 Coin) created the pool. That Coin is "in the vault".
-                // Additional swaps: agent deposits X Coins → mints X YES + X NO → sells one side.
-                // The Coins deposited = the shares that exist outside the pool + inside the pool.
-                // For conservation: we need to track total_deposited, not pool reserves.
-            }
-        }
-
-        // For now: total = agent balances only (conservative).
-        // Full accounting would require tracking CTF vault deposits separately.
-        // This catches balance-side violations (printing, double-pay).
         total
     }
 
@@ -508,35 +495,21 @@ impl TuringBus {
                 return Ok(());
             }
 
-            // First invest on this node? Create market atomically (LP + swap)
+            // APMM: System auto-creates market if missing (should exist from Phase 4, but edge case)
             if !self.kernel.prediction_markets.contains_key(&invest_target) {
-                let lp_amount = 1.0_f64.min(invest_amount);
-                match self.kernel.create_market(&invest_target, lp_amount) {
+                match self.kernel.create_market(&invest_target, SYSTEM_LP_AMOUNT) {
                     Ok(()) => {
-                        self.add_lp_shares(&file.author, &invest_target, 1.0);
-                        log::info!(">>> [MARKET CREATED] {} ignited market for {} (LP: {:.2})",
-                            file.author, invest_target, lp_amount);
-                        let swap_amount = invest_amount - lp_amount;
-                        if swap_amount > 0.0 {
-                            let result = match invest_direction {
-                                BetDirection::Long => self.kernel.buy_yes(&invest_target, swap_amount),
-                                BetDirection::Short => self.kernel.buy_no(&invest_target, swap_amount),
-                            };
-                            if let Ok(shares) = result {
-                                match invest_direction {
-                                    BetDirection::Long => self.add_yes_shares(&file.author, &invest_target, shares),
-                                    BetDirection::Short => self.add_no_shares(&file.author, &invest_target, shares),
-                                }
-                                let p = self.kernel.yes_price(&invest_target);
-                                let side = if invest_direction == BetDirection::Long { "YES" } else { "NO" };
-                                log::info!(">>> [AUTO-{}] {} bought {:.1} on {} (P_yes={:.1}%)",
-                                    side, file.author, shares, invest_target, p * 100.0);
-                            }
-                        }
+                        self.add_lp_shares(SYSTEM_MM_ID, &invest_target, 1.0);
+                        self.system_mm_total_injected += SYSTEM_LP_AMOUNT;
+                        log::info!(">>> [APMM] System MM created market for {} (LP: {:.0})",
+                            invest_target, SYSTEM_LP_AMOUNT);
                     }
                     Err(e) => log::warn!(">>> [MARKET ERROR] {}", e),
                 }
-            } else if self.kernel.prediction_markets.contains_key(&invest_target) {
+            }
+
+            // Market exists (system-created or just created above): full amount goes to swap
+            if self.kernel.prediction_markets.contains_key(&invest_target) {
                 // Existing market: just swap
                 let result = match invest_direction {
                     BetDirection::Long => self.kernel.buy_yes(&invest_target, invest_amount),
@@ -561,19 +534,6 @@ impl TuringBus {
                     }
                     Err(e) => log::warn!(">>> [BET ERROR] {}", e),
                 }
-            } else {
-                // No market and not in tape → refund (shouldn't reach here)
-                log::warn!(">>> [BET REJECTED] Node {} has no market. Refunding {:.2} to {}.",
-                    invest_target, invest_amount, file.author);
-                use crate::sdk::tools::wallet::WalletTool;
-                for tool in &mut self.tools {
-                    if tool.manifest() == "core.tool.crypto_wallet" {
-                        if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
-                            *wallet.balances.entry(file.author.clone()).or_insert(0.0) += invest_amount;
-                        }
-                        break;
-                    }
-                }
             }
             self.kernel.refresh_prices();
             return Ok(());
@@ -594,31 +554,28 @@ impl TuringBus {
             node.id.clone()
         };
 
-        // ── Phase 5: Split-Ignition (create market + auto-long) ──
+        // ── Phase 5: APMM System Auto-Market + Creator Auto-Long ──
+        // System MM already provides 100 LP per node. Market created here (after append).
+        match self.kernel.create_market(&new_node_id, SYSTEM_LP_AMOUNT) {
+            Ok(()) => {
+                self.add_lp_shares(SYSTEM_MM_ID, &new_node_id, 1.0);
+                self.system_mm_total_injected += SYSTEM_LP_AMOUNT;
+                log::info!(">>> [APMM] System MM created market for {} (LP: {:.0}, P_yes=50.0%)",
+                    new_node_id, SYSTEM_LP_AMOUNT);
+            }
+            Err(e) => log::warn!(">>> [APMM ERROR] {}", e),
+        }
+
+        // Creator auto-long: full stake goes to YES (no LP cut from agent anymore)
         if final_reward > 0.0 {
-            let lp_amount = 1.0_f64.min(final_reward); // Protocol LP: 1 Coin (or full stake if < 1)
-            let long_amount = (final_reward - lp_amount).max(0.0);
-
-            // Step 1: Neutral ignition — create market with minimal LP + record LP ownership
-            match self.kernel.create_market(&new_node_id, lp_amount) {
-                Ok(()) => {
-                    self.add_lp_shares(&file.author, &new_node_id, 1.0);
-                    log::info!(">>> [IGNITION] Market created for {} (LP: {:.2})", new_node_id, lp_amount);
-
-                    // Step 2: Directional auto-long — creator buys YES with remaining stake
-                    if long_amount > 0.0 {
-                        match self.kernel.buy_yes(&new_node_id, long_amount) {
-                            Ok(yes_shares) => {
-                                self.add_yes_shares(&file.author, &new_node_id, yes_shares);
-                                let p = self.kernel.yes_price(&new_node_id);
-                                log::info!(">>> [AUTO-LONG] {} bought {:.1} YES on {} for {:.2} (P_yes={:.1}%)",
-                                    file.author, yes_shares, new_node_id, long_amount, p * 100.0);
-                            }
-                            Err(e) => log::warn!(">>> [AUTO-LONG ERROR] {}", e),
-                        }
-                    }
+            match self.kernel.buy_yes(&new_node_id, final_reward) {
+                Ok(yes_shares) => {
+                    self.add_yes_shares(&file.author, &new_node_id, yes_shares);
+                    let p = self.kernel.yes_price(&new_node_id);
+                    log::info!(">>> [AUTO-LONG] {} bought {:.1} YES on {} for {:.2} (P_yes={:.1}%)",
+                        file.author, yes_shares, new_node_id, final_reward, p * 100.0);
                 }
-                Err(e) => log::warn!(">>> [MARKET ERROR] {}", e),
+                Err(e) => log::warn!(">>> [AUTO-LONG ERROR] {}", e),
             }
         }
 

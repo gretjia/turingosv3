@@ -116,6 +116,69 @@ impl TuringTool for Lean4Oracle {
     }
 }
 
+/// Security check for translated Lean output before compilation.
+/// Ensures the translation LLM didn't inject forbidden patterns.
+/// Returns true if the translated code passes all security checks.
+pub fn check_translated_output(lean_code: &str, theorem_name: &str) -> bool {
+    // 1. Sorry check
+    for token in ["sorry", "sorryAx"] {
+        let mut search_start = 0;
+        while let Some(pos) = lean_code[search_start..].find(token) {
+            let abs_pos = search_start + pos;
+            let before_ok = abs_pos == 0 ||
+                (!lean_code.as_bytes()[abs_pos - 1].is_ascii_alphanumeric() &&
+                 lean_code.as_bytes()[abs_pos - 1] != b'_');
+            let after_pos = abs_pos + token.len();
+            let after_ok = after_pos >= lean_code.len() ||
+                (!lean_code.as_bytes()[after_pos].is_ascii_alphanumeric() &&
+                 lean_code.as_bytes()[after_pos] != b'_');
+            if before_ok && after_ok {
+                warn!(">>> [TRANSLATION SECURITY] Forbidden '{}' in translated output", token);
+                return false;
+            }
+            search_start = abs_pos + token.len();
+        }
+    }
+
+    // 2. Forbidden brute-force tactics (word-boundary check to avoid false positives like "decidable")
+    let forbidden = ["native_decide", "decide", "omega",
+                     "#eval", "#check", "#reduce", "#exec",
+                     "IO.Process", "IO.FS", "run_tac", "unsafe"];
+    for kw in &forbidden {
+        let mut search_start = 0;
+        while let Some(pos) = lean_code[search_start..].find(kw) {
+            let abs_pos = search_start + pos;
+            let before_ok = abs_pos == 0 ||
+                (!lean_code.as_bytes()[abs_pos - 1].is_ascii_alphanumeric() &&
+                 lean_code.as_bytes()[abs_pos - 1] != b'_');
+            let after_pos = abs_pos + kw.len();
+            let after_ok = after_pos >= lean_code.len() ||
+                (!lean_code.as_bytes()[after_pos].is_ascii_alphanumeric() &&
+                 lean_code.as_bytes()[after_pos] != b'_');
+            if before_ok && after_ok {
+                warn!(">>> [TRANSLATION SECURITY] Forbidden '{}' in translated output", kw);
+                return false;
+            }
+            search_start = abs_pos + kw.len();
+        }
+    }
+
+    // 3. Identity theft: no new theorem/lemma declarations
+    let hijack = ["theorem ", "lemma ", "def ", "axiom ", "constant "];
+    for kw in &hijack {
+        if let Some(idx) = lean_code.find(kw) {
+            let after = &lean_code[idx + kw.len()..];
+            let name = after.split_whitespace().next().unwrap_or("");
+            if !name.is_empty() && name != theorem_name {
+                warn!(">>> [TRANSLATION SECURITY] Identity theft: '{}{}' in translated output", kw, name);
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
 /// Verify OMEGA: compile the full proof chain WITHOUT sorry.
 /// Called by the evaluator when an agent declares [COMPLETE].
 /// Returns true if Lean 4 says "No goals to be solved".

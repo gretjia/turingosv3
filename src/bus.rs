@@ -68,14 +68,26 @@ impl TuringBus {
             clock: 0,
             graveyard: Graveyard::new(),
             ticker_top_n: 5,
-            // Kernel-level: no brute-force search tactics. Prove constructively.
+            // Kernel-level: Lean syntax blocked per architect directive 2026-03-29.
+            // Agents must use traditional math. Only unambiguous Lean-specific patterns here.
+            // English words like "decide"/"omega" removed to avoid false positives on natural language.
+            // Brute-force tactics (decide/omega) are guarded by check_translated_output at OMEGA.
             forbidden_payload_patterns: vec![
-                "native_decide".to_string(),
-                "decide".to_string(),
-                "omega".to_string(),
+                ":= by".to_string(),       // Lean proof block header
+                "simp [".to_string(),       // Lean tactic with arg list
+                "simp[".to_string(),
+                "rw [".to_string(),         // Lean rewrite tactic
+                "rw[".to_string(),
+                "simp_rw".to_string(),      // Lean simp_rw
+                "norm_num".to_string(),     // Lean norm_num
+                "linarith".to_string(),     // Lean linarith
+                "nlinarith".to_string(),    // Lean nlinarith
+                "field_simp".to_string(),   // Lean field_simp
+                "push_cast".to_string(),    // Lean push_cast
+                "ring_nf".to_string(),      // Lean ring_nf
             ],
-            // One step per node. Prevents front-running (CLAUDE.md #21).
-            max_tactic_lines: 4,
+            // One step per node. Recalibrated for natural language math (CLAUDE.md #21).
+            max_tactic_lines: 8,
             system_mm_total_injected: 0.0,
         }
     }

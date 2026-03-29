@@ -27,23 +27,25 @@ const SWARM_SIZE: usize = 15;
 const MAX_TRANSACTIONS: u64 = 300;
 
 const SKILL: &str = "\
-[LAW 1] APPEND IS FREE: Creating proof steps costs ZERO. Explore freely.\n\
+[LAW 1] APPEND IS FREE: Creating reasoning steps costs ZERO. Explore freely.\n\
 [LAW 2] ONLY INVEST COSTS MONEY: Invest/Bet/Short are the ONLY actions that burn coins.\n\
 [LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.\n\
 [LAW 4] POLYMARKET ECONOMICS:\n\
-  - append: FREE tactic submission. No cost. Use this to explore.\n\
+  - append: FREE mathematical reasoning step. No cost. Use this to explore.\n\
   - invest: Buy YES on a node you believe in. This is how you MAKE MONEY.\n\
   - short: Buy NO on a node you think is wrong. VERY PROFITABLE if right!\n\
-[LAW 5] LEAN 4 IS ABSOLUTE TRUTH:\n\
-  - 'No goals to be solved' = PROVED = OMEGA = settlement triggers.\n\
-  - ALWAYS search Mathlib FIRST: {\"tool\":\"search\",\"query\":\"div_eq_iff\"}\n\
-  - Common tactics: simp, ring, linarith, nlinarith, norm_num, field_simp, exact, rw, have, calc, ext.\n\
-  - FORBIDDEN: native_decide, decide, omega (no brute-force search — prove constructively).\n\
-  - ONE STEP PER SUBMISSION. Write exactly ONE tactic. NO multi-step proofs in a single node.\n\
-  - Front-running (packing many steps) will be rejected by the kernel.\n\
-  - Write ONE tactic per line. If rejected, READ THE ERROR and try differently.\n\
+[LAW 5] TRADITIONAL MATHEMATICS ONLY:\n\
+  - Write your reasoning in TRADITIONAL MATH (natural language + standard notation).\n\
+  - DO NOT write Lean 4 syntax, tactics, or code. The system will REJECT Lean syntax.\n\
+  - Example good step: 'Since 3^7 | a^3+b^3+c^3, we work in Z/2187Z. By Hensel lemma...'\n\
+  - Example BAD step: 'rw [ZMod.nat_cast_zmod_eq_zero_iff_dvd]' ← THIS WILL BE REJECTED\n\
+  - Search Mathlib for relevant lemma NAMES: {\"tool\":\"search\",\"query\":\"Hensel\"}\n\
+  - ONE REASONING STEP per submission. Each step = one atomic mathematical argument.\n\
+  - When the full proof chain is mathematically complete, claim [COMPLETE].\n\
+  - A translator will convert your math to Lean 4 for formal verification.\n\
+  - FORBIDDEN: brute-force enumeration, case-bashing without structure.\n\
 [STRATEGY GUIDE — READ CAREFULLY]:\n\
-  1. EXPLORE: Use 'append' freely to try tactics at zero risk.\n\
+  1. EXPLORE: Use 'append' freely to try reasoning steps at zero risk.\n\
   2. EVALUATE: Use 'view' to read other agents' nodes. Which approaches look promising?\n\
   3. INVEST: When you find a strong approach (yours or others'), INVEST in it!\n\
      - Invested nodes rank HIGHER in the leaderboard.\n\
@@ -51,7 +53,7 @@ const SKILL: &str = "\
      - If your invested node reaches OMEGA, your YES shares pay out. PROFIT!\n\
   4. SHORT: See a bad node with high rank? Short it! If it fails, you profit from the creator's loss.\n\
   5. CLAIM COMPLETE: When you believe the full proof chain is done, write [COMPLETE].\n\
-     The Lean 4 compiler will verify the ENTIRE chain. If correct = OMEGA!\n\
+     The system translates your math to Lean 4 and verifies. If correct = OMEGA!\n\
 DO NOT just append forever. INVEST in your best work to attract collaborators.\n\
 Balance < 1.0 = can only append (free). Cannot invest/bet/short.\n";
 
@@ -94,6 +96,52 @@ fn load_problem(problem_file: &str) -> (String, String) {
 
     info!("Loaded problem: {} (theorem: {})", problem_file, theorem_name);
     (problem, theorem_name)
+}
+
+/// Translate a chain of traditional math reasoning steps into Lean 4 tactics.
+/// Called at OMEGA time by the evaluator (Engine 3).
+async fn translate_math_to_lean(
+    client: &ResilientLLMClient,
+    problem_statement: &str,
+    math_chain: &str,
+) -> String {
+    let prompt = format!(
+        "You are a Lean 4 formalization expert. Translate the following mathematical reasoning \
+into a Lean 4 tactic proof.\n\n\
+PROBLEM (Lean 4 statement — fill in the proof after 'by'):\n{}\n\n\
+MATHEMATICAL REASONING CHAIN:\n{}\n\n\
+OUTPUT RULES:\n\
+- Output ONLY the Lean 4 tactic block (indented with 2 spaces, one tactic per line).\n\
+- Do NOT include 'theorem', 'by', imports, or any wrapper — only the tactics.\n\
+- Do NOT use native_decide, decide, or omega.\n\
+- Do NOT use sorry.\n\
+- Use Mathlib tactics: simp, rw, exact, have, calc, norm_num, ring, linarith, etc.\n\
+- Output NOTHING except the tactic lines.",
+        problem_statement, math_chain
+    );
+
+    match client.resilient_generate(&prompt, 99, 0.1).await {
+        Ok(raw) => {
+            // Extract code block if present
+            let code = if let Some(start) = raw.find("```") {
+                let after = &raw[start + 3..];
+                let lang_end = after.find('\n').unwrap_or(0);
+                let code_start = lang_end + 1;
+                if let Some(end) = after[code_start..].find("```") {
+                    after[code_start..code_start + end].to_string()
+                } else {
+                    after[code_start..].to_string()
+                }
+            } else {
+                raw.clone()
+            };
+            code.trim().to_string()
+        }
+        Err(e) => {
+            warn!(">>> [TRANSLATOR ERROR] {:?}", e);
+            String::new()
+        }
+    }
 }
 
 #[tokio::main]
@@ -193,6 +241,10 @@ async fn main() {
         "/home/zephryj/projects/turingosv3/experiments/minif2f_data_lean4/.lake/packages/mathlib/Mathlib".to_string(),
     ]));
 
+    // Translator client: converts traditional math → Lean 4 at OMEGA time
+    let translator_client = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-chat", &key_ds));
+    info!(">>> [TRANSLATOR] Math→Lean translator ready (deepseek-chat)");
+
     let free_action_epoch = Arc::new(AtomicU64::new(epoch_secs()));
 
     // Per-agent last rejection feedback (reactor writes, agent reads)
@@ -250,7 +302,7 @@ async fn main() {
                 let feedback = if last_rejection.is_empty() {
                     String::new()
                 } else {
-                    format!("\n=== YOUR LAST TACTIC WAS REJECTED BY LEAN 4 ===\n{}\n=== FIX THE ERROR. Try 'search' to find correct Mathlib lemmas. ===\n", last_rejection)
+                    format!("\n=== YOUR LAST SUBMISSION WAS REJECTED ===\n{}\n=== Write traditional math reasoning. Do NOT use Lean syntax. ===\n", last_rejection)
                 };
 
                 let p = prompt::build_agent_prompt(
@@ -259,7 +311,7 @@ async fn main() {
                     &snapshot.market_ticker,
                     &format!("{}\n{}\n{}", graveyard, private, feedback),
                     balance,
-                    "append: {\"tool\":\"append\",\"tactic\":\"your lean4 tactic\"} (FREE — Lean 4 validates)\ninvest: {\"tool\":\"invest\",\"tactic\":\"your lean4 tactic\",\"amount\":PRICE} (creates node + buys YES)\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE Mathlib search)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
+                    "append: {\"tool\":\"append\",\"tactic\":\"your mathematical reasoning step\"} (FREE — traditional math only)\ninvest: {\"tool\":\"invest\",\"tactic\":\"your mathematical reasoning step\",\"amount\":PRICE} (creates node + buys YES)\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE Mathlib search)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
                 );
 
                 let temp = 0.2 + 0.6 * (i as f32 / SWARM_SIZE.max(1) as f32);
@@ -445,32 +497,71 @@ async fn main() {
 
                         let mut is_omega = false;
                         if claims_complete {
-                            info!(">>> [COMPLETE CLAIM] {} claims proof complete. Verifying...", tx.agent_id);
+                            info!(">>> [COMPLETE CLAIM] {} claims proof complete. Translating math→Lean...", tx.agent_id);
 
-                            // Build full proof chain: all ancestor tactics concatenated
+                            // Build full math reasoning chain: all ancestor steps concatenated
                             let path = bus.kernel.trace_golden_path(&file_id);
-                            let mut proof_tactics = Vec::new();
-                            for nid in path.iter().rev() {
+                            let mut math_steps = Vec::new();
+                            for (i, nid) in path.iter().rev().enumerate() {
                                 if let Some(node) = bus.kernel.tape.files.get(nid) {
-                                    let tactic = node.payload
+                                    let step = node.payload
                                         .split("[Tool: Wallet").next().unwrap_or(&node.payload)
                                         .replace("[COMPLETE]", "")
                                         .trim().to_string();
-                                    if !tactic.is_empty() {
-                                        proof_tactics.push(format!("  {}", tactic));
+                                    if !step.is_empty() {
+                                        math_steps.push(format!("Step {}: {}", i + 1, step));
                                     }
                                 }
                             }
-                            let chain = proof_tactics.join("\n");
+                            let math_chain = math_steps.join("\n");
+                            info!(">>> [MATH CHAIN] {} steps collected", math_steps.len());
 
-                            // Engine 3: Lean 4 compiles full chain WITHOUT sorry
-                            is_omega = minif2f_v2::lean4_oracle::verify_omega(
-                                &omega_sandbox, &problem_statement, &chain
-                            );
+                            // Engine 3: Translate math → Lean 4 (with error-feedback retry)
+                            let mut last_error = String::new();
+                            for attempt in 0..2 {
+                                let translation_input = if last_error.is_empty() {
+                                    math_chain.clone()
+                                } else {
+                                    format!("{}\n\n--- PREVIOUS ATTEMPT FAILED ---\n{}\n--- Fix the translation. ---",
+                                        math_chain, last_error)
+                                };
+
+                                let lean_chain = translate_math_to_lean(
+                                    &translator_client, &problem_statement, &translation_input
+                                ).await;
+
+                                if lean_chain.is_empty() {
+                                    warn!(">>> [TRANSLATOR] Attempt {} failed (empty output)", attempt + 1);
+                                    last_error = "Translation produced empty output".to_string();
+                                    continue;
+                                }
+
+                                info!(">>> [TRANSLATOR] Attempt {} produced {} lines of Lean",
+                                    attempt + 1, lean_chain.lines().count());
+
+                                // Security check: translation output must pass Oracle guards
+                                let security_ok = minif2f_v2::lean4_oracle::check_translated_output(
+                                    &lean_chain, &theorem_name
+                                );
+                                if !security_ok {
+                                    warn!(">>> [TRANSLATOR] Security check FAILED on attempt {}", attempt + 1);
+                                    last_error = "Security check failed: forbidden pattern in translation".to_string();
+                                    continue;
+                                }
+
+                                // Compile translated Lean
+                                is_omega = minif2f_v2::lean4_oracle::verify_omega(
+                                    &omega_sandbox, &problem_statement, &lean_chain
+                                );
+
+                                if is_omega { break; }
+                                last_error = format!("Lean compilation failed on attempt {}", attempt + 1);
+                                warn!(">>> [OMEGA] {}", last_error);
+                            }
 
                             if !is_omega {
-                                warn!(">>> [COMPLETE REJECTED] Chain does NOT compile.");
-                                bus.graveyard.record_death(&file_id, "OMEGA claim failed");
+                                warn!(">>> [COMPLETE REJECTED] Translation/compilation failed.");
+                                bus.graveyard.record_death(&file_id, "OMEGA: math→Lean translation failed");
                             }
                         }
 

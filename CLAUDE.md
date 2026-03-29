@@ -49,7 +49,8 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 19. **创世后零印钞 (做市商豁免)** — `on_init` 是唯一合法的 Agent Coin 注入点 (GENESIS)。`fund_agent`、`redistribute_pool` 已废除。rebirth 不注入新钱。破产 Agent 靠 Law 1 (免费 append) 存活。**豁免**: 系统做市商在每个新节点自动注入 100 YES + 100 NO (CTF 守恒铸造，非凭空印钞 — 100 Coin → 100 YES + 100 NO)，承担初始流动性提供与 Price Oracle 职责，允许小范围盈亏。
 20. **苦涩的教训: 禁止 Over-Alignment** — 新宪法条款生效时，必须从第一性原理重新设计每个组件，不可在旧组件上打补丁。审计不仅检查"规则是否被正确实现"，还必须检查**"组件的职责范围是否与宪法设计意图一致"**。教训: Lean4Oracle 从旧版复制后只做安全补丁 (sorry/identity theft/forbidden)，但从未质疑"Oracle 该不该拦截中间步骤" — 这是 Engine 2 (市场) 的职责而非 Engine 3 (Oracle) 的职责。过度安全 = 扼杀涌现。每个 Engine 只做自己分内的事: Engine 1 = 免费工具, Engine 2 = 市场定价, Engine 3 = OMEGA 验证, Engine 4 = 物种演化。
 21. **一步一节点, 禁止抢跑 (Front-Running)** — 每次 append 只允许写一个原子推理步骤。禁止在一个节点中打包多个步骤 (如 37 行完整证明)。原因: (1) 每个步骤必须是独立可定价的 (Engine 2 需要对每步做 YES/NO 判断); (2) 打包多步 = 垄断证明路径, 剥夺其他 Agent 的协作机会; (3) 单步才能产生有效的 DAG 分支探索。内核 (bus.rs) 通过 `max_tactic_lines` 物理限制。
-22. **形式化不可引入暴力搜索空间** — 写 Lean 4 定理声明时，禁止使用 `Finset.range N` 等有限范围来限定搜索空间。这会让 `decide`/`omega` 暴力穷举变得可行，绕过构造性推理。正确做法: 用全称量词 (`∀ b : ℕ`) + 等价条件 (`↔`) 逼迫 Agent 发现数学结构。教训: AIME P1 用 `Finset.range 100` 形式化 → Agent 用 `decide` 遍历 100 个数暴力验证 → 看似 "证明" 实则穷举。形式化本身制造了暴力搜索机会。
+22. **黑盒禁 Lean，必须传统数学** — Agent (黑盒) 的输出必须是传统数学推理 (自然语言 + 标准数学符号)，绝不允许输出 Lean 4 语法/tactic。LLM 擅长数学直觉，不擅长形式语法 — 让黑盒做它擅长的事。Lean 4 编译仅在 Engine 3 OMEGA 层通过独立翻译器 (math→Lean) 执行。`bus.rs` Phase 0 物理拦截 Lean 语法模式 (Engine 1 约束，非 Oracle 职责)。市场 (Engine 2) 对数学质量定价，而非语法正确性定价。
+23. **形式化不可引入暴力搜索空间** — 写 Lean 4 定理声明时，禁止使用 `Finset.range N` 等有限范围来限定搜索空间。这会让 `decide`/`omega` 暴力穷举变得可行，绕过构造性推理。正确做法: 用全称量词 (`∀ b : ℕ`) + 等价条件 (`↔`) 逼迫 Agent 发现数学结构。教训: AIME P1 用 `Finset.range 100` 形式化 → Agent 用 `decide` 遍历 100 个数暴力验证 → 看似 "证明" 实则穷举。形式化本身制造了暴力搜索机会。
 
 ### Key File Map (关键文件地图)
 

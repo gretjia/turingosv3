@@ -40,8 +40,10 @@ impl Graveyard {
 /// System Market Maker: auto-injects LP into every new node's market.
 /// Magna Carta amendment 2026-03-29: 做市商豁免 (Rule #19).
 const SYSTEM_MM_ID: &str = "SYSTEM_MM";
-/// LP seed per node: 100 YES + 100 NO (CTF conservation: 100 Coin → 100Y + 100N).
-const SYSTEM_LP_AMOUNT: f64 = 100.0;
+/// LP seed per node: 1000 YES + 1000 NO (CTF conservation: 1000 Coin → 1000Y + 1000N).
+/// Calibrated 2026-03-30: LP=100 caused market collapse (single trade P_yes 50%→99.8%).
+/// LP=1000: 2000 Coin trade → P_yes=90% (healthy price discovery). Gemini audit PASS.
+const SYSTEM_LP_AMOUNT: f64 = 1000.0;
 
 pub struct TuringBus {
     pub kernel: Kernel,
@@ -88,9 +90,10 @@ impl TuringBus {
                 "push_cast".to_string(),    // Lean push_cast
                 "ring_nf".to_string(),      // Lean ring_nf
             ],
-            // One step per node. Calibrated for natural language math (Gemini review 2026-03-30).
-            max_payload_chars: 800,
-            max_payload_lines: 12,
+            // One step per node. Calibrated for natural language math.
+            // 800→1200: Gemini audit 2026-03-30 found 800 too tight (25% rejection rate).
+            max_payload_chars: 1200,
+            max_payload_lines: 18,
             system_mm_total_injected: 0.0,
         }
     }
@@ -373,7 +376,7 @@ impl TuringBus {
     /// - Agent balances: liquid Coins held by agents
     /// - Agent YES/NO shares: claims on Coins locked in CTF vault
     /// - System MM: injects SYSTEM_LP_AMOUNT per market (Magna Carta Rule #19 做市商豁免)
-    ///   Each injection: 100 Coin → 100 YES + 100 NO (CTF conservation within each market)
+    ///   Each injection: SYSTEM_LP_AMOUNT Coin → LP YES + LP NO (CTF conservation within each market)
     ///
     /// For conservation: we track agent-side Coins only.
     /// System MM P&L is expected (impermanent loss) and tolerated per Magna Carta amendment.

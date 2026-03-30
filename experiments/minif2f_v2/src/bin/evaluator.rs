@@ -41,7 +41,7 @@ const SKILL: &str = "\
   - Example BAD step: 'rw [ZMod.nat_cast_zmod_eq_zero_iff_dvd]' ← THIS WILL BE REJECTED\n\
   - Search Mathlib for relevant lemma NAMES: {\"tool\":\"search\",\"query\":\"Hensel\"}\n\
   - ONE REASONING STEP per submission. Each step = one atomic mathematical argument.\n\
-  - MAXIMUM 800 CHARACTERS per step. Longer submissions are REJECTED. Keep it atomic.\n\
+  - MAXIMUM 1200 CHARACTERS per step. Longer submissions are REJECTED. Keep it atomic.\n\
   - When the full proof chain is mathematically complete, claim [COMPLETE].\n\
   - A translator will convert your math to Lean 4 for formal verification.\n\
   - FORBIDDEN: brute-force enumeration, case-bashing without structure.\n\
@@ -218,7 +218,8 @@ async fn main() {
     // Separate sandbox for OMEGA verification (evaluator-side, not tool-side)
     let omega_sandbox = LocalProcessSandbox::new(&lean_cmd, vec!["--stdin".to_string()]);
 
-    let agent_ids: Vec<String> = (0..100).map(|i| format!("Agent_{}", i)).collect();
+    // GENESIS: only allocate for spawned agents (not 100 phantoms)
+    let agent_ids: Vec<String> = (0..SWARM_SIZE).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
 
     // --- Create Channels ---
@@ -324,7 +325,7 @@ async fn main() {
                 let feedback = if last_rejection.is_empty() {
                     String::new()
                 } else if last_rejection.contains("FRONT-RUNNING") {
-                    format!("\n=== YOUR LAST SUBMISSION WAS REJECTED (TOO LONG) ===\n{}\n=== MAX 800 CHARS. Write ONE short atomic math argument. Split multi-step reasoning into separate submissions. ===\n", last_rejection)
+                    format!("\n=== YOUR LAST SUBMISSION WAS REJECTED (TOO LONG) ===\n{}\n=== MAX 1200 CHARS. Write ONE short atomic math argument. Split multi-step reasoning into separate submissions. ===\n", last_rejection)
                 } else {
                     format!("\n=== YOUR LAST SUBMISSION WAS REJECTED ===\n{}\n=== Write traditional math reasoning. Do NOT use Lean syntax. ===\n", last_rejection)
                 };

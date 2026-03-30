@@ -22,7 +22,7 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 1. **kernel.rs 零领域知识** — 不可包含任何 Lean/数学/领域字符串
 2. **Tape 是 Append-Only DAG** — 不可删除已写入节点
 3. **信息平权 (大宪章 Law 1)** — 建树 (append_node) 绝对零成本。黑盒使用白盒工具免费。禁止 IP 垄断。拓扑与金融物理剥离。
-4. **共识的代价 (大宪章 Law 2)** — 唯一消耗货币的行为是投资 (invest YES/NO)。1 Coin = 1 YES + 1 NO (CTF 守恒铸造)。APMM Mint-and-Swap 路由器解决双币守恒。每个新节点系统自动注入 100 YES + 100 NO 做市。做市商 = Price Oracle（广播概率）。允许做市商小范围盈亏（无常损失 = 流动性物理成本）。废除一切补贴、悬赏、intrinsic_reward 铸币。
+4. **共识的代价 (大宪章 Law 2)** — 唯一消耗货币的行为是投资 (invest YES/NO)。1 Coin = 1 YES + 1 NO (CTF 守恒铸造)。APMM Mint-and-Swap 路由器解决双币守恒。每个新节点系统自动注入 1000 YES + 1000 NO 做市。做市商 = Price Oracle（广播概率）。允许做市商小范围盈亏（无常损失 = 流动性物理成本）。废除一切补贴、悬赏、intrinsic_reward 铸币。
 5. **数字产权 (大宪章 Law 3)** — 每个 Agent 有独立 Skill 路径。物种演化。
 
 ### Layer 2 — Evolvable Parameters (可演进参数)
@@ -46,9 +46,9 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 16. `.env` 中的 API Key 不可提交到 git
 17. **经济引擎变更时必须全仓库 grep** — 修改 kernel 定价/wallet/bus 结算/reward 信号时，必须扫描 `experiments/*/src/` 中所有 SKILL 实现的兼容性。Run 6 100B-mint 事件教训: 仅审计 `src/` 而遗漏 `experiments/` 导致 Hayekian 遗产在 Polymarket 体制下破坏零和守恒。
 18. **宪法违规零容忍** — 审计中发现的大宪章违规不可标注为"可接受"、"低优先级"或"Phase N 延后"。宪法不存在"可接受的违反"。所有 KNOWN VIOLATION 必须在当前 dev-cycle 内修复或获得架构师明确豁免。教训: `fund_agent` 印钞、`global_pool` 再���配、`rebirth 10K` 注入等违反 Law 2 的代码被 4 次审计放过，每次都标注"可接受"，直到架构师亲自指出。
-19. **创世后零印钞 (做市商豁免)** — `on_init` 是唯一合法的 Agent Coin 注入点 (GENESIS)。`fund_agent`、`redistribute_pool` 已废除。rebirth 不注入新钱。破产 Agent 靠 Law 1 (免费 append) 存活。**豁免**: 系统做市商在每个新节点自动注入 100 YES + 100 NO (CTF 守恒铸造，非凭空印钞 — 100 Coin → 100 YES + 100 NO)，承担初始流动性提供与 Price Oracle 职责，允许小范围盈亏。
+19. **创世后零印钞 (做市商豁免)** — `on_init` 是唯一合法的 Agent Coin 注入点 (GENESIS)。`fund_agent`、`redistribute_pool` 已废除。rebirth 不注入新钱。破产 Agent 靠 Law 1 (免费 append) 存活。**豁免**: 系统做市商在每个新节点自动注入 1000 YES + 1000 NO (CTF 守恒铸造，非凭空印钞 — 1000 Coin → 1000 YES + 1000 NO)，承担初始流动性提供与 Price Oracle 职责，允许小范围盈亏。
 20. **苦涩的教训: 禁止 Over-Alignment** — 新宪法条款生效时，必须从第一性原理重新设计每个组件，不可在旧组件上打补丁。审计不仅检查"规则是否被正确实现"，还必须检查**"组件的职责范围是否与宪法设计意图一致"**。教训: Lean4Oracle 从旧版复制后只做安全补丁 (sorry/identity theft/forbidden)，但从未质疑"Oracle 该不该拦截中间步骤" — 这是 Engine 2 (市场) 的职责而非 Engine 3 (Oracle) 的职责。过度安全 = 扼杀涌现。每个 Engine 只做自己分内的事: Engine 1 = 免费工具, Engine 2 = 市场定价, Engine 3 = OMEGA 验证, Engine 4 = 物种演化。
-21. **一步一节点, 禁止抢跑 (Front-Running)** — 每次 append 只允许写一个原子推理步骤。禁止在一个节点中打包多个步骤。原因: (1) 每个步骤必须是独立可定价的 (Engine 2 需要对每步做 YES/NO 判断); (2) 打包多步 = 垄断证明路径, 剥夺其他 Agent 的协作机会; (3) 单步才能产生有效的 DAG 分支探索。内核 (bus.rs) 通过 `max_payload_chars=800` + `max_payload_lines=12` 物理限制 (自然语言数学校准，Gemini 审计 2026-03-30)。
+21. **一步一节点, 禁止抢跑 (Front-Running)** — 每次 append 只允许写一个原子推理步骤。禁止在一个节点中打包多个步骤。原因: (1) 每个步骤必须是独立可定价的 (Engine 2 需要对每步做 YES/NO 判断); (2) 打包多步 = 垄断证明路径, 剥夺其他 Agent 的协作机会; (3) 单步才能产生有效的 DAG 分支探索。内核 (bus.rs) 通过 `max_payload_chars=1200` + `max_payload_lines=18` 物理限制 (自然语言数学校准，Gemini 审计 2026-03-30 从 800/12 上调)。
 22. **黑盒禁 Lean，必须传统数学** — Agent (黑盒) 的输出必须是传统数学推理 (自然语言 + 标准数学符号)，绝不允许输出 Lean 4 语法/tactic。LLM 擅长数学直觉，不擅长形式语法 — 让黑盒做它擅长的事。Lean 4 编译仅在 Engine 3 OMEGA 层通过独立翻译器 (math→Lean) 执行。`bus.rs` Phase 0 物理拦截 Lean 语法模式 (Engine 1 约束，非 Oracle 职责)。市场 (Engine 2) 对数学质量定价，而非语法正确性定价。
 23. **形式化不可引入暴力搜索空间** — 写 Lean 4 定理声明时，禁止使用 `Finset.range N` 等有限范围来限定搜索空间。这会让 `decide`/`omega` 暴力穷举变得可行，绕过构造性推理。正确做法: 用全称量词 (`∀ b : ℕ`) + 等价条件 (`↔`) 逼迫 Agent 发现数学结构。教训: AIME P1 用 `Finset.range 100` 形式化 → Agent 用 `decide` 遍历 100 个数暴力验证 → 看似 "证明" 实则穷举。形式化本身制造了暴力搜索机会。
 

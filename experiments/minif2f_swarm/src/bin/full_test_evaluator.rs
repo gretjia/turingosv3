@@ -74,18 +74,8 @@ fn evaluate_theorem(
                     break;
                 }
             }
-            // Redistribute pool among survivors before extracting balances
-            bus.redistribute_pool();
-            let mut final_balances = bus.extract_wallet_balances();
-            // Rebirth: dead agents get fresh 10000 capital (new consciousness, same body)
-            for i in 0..100 {
-                let agent_id = format!("Agent_{}", i);
-                let balance = final_balances.entry(agent_id.clone()).or_insert(0.0);
-                if *balance < 1.0 {
-                    info!(">>> [REBIRTH] Agent {} died (balance: {:.2}). New agent awakened with 10000.", agent_id, balance);
-                    *balance = 10000.0;
-                }
-            }
+            // Law 2: no redistribute, no rebirth injection — bankrupt agents survive via free append (Law 1)
+            let final_balances = bus.extract_wallet_balances();
             return (proved, final_balances);
         }
 

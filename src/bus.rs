@@ -53,9 +53,11 @@ pub struct TuringBus {
     /// Prevents brute-force tactics (decide, omega, native_decide) at the physical layer.
     /// Cannot be bypassed by experiment code or SKILL configuration.
     pub forbidden_payload_patterns: Vec<String>,
-    /// Max tactic lines per append. Prevents front-running (packing entire proof in one node).
+    /// Max payload size per append. Prevents front-running (packing multiple steps in one node).
     /// Each node = one atomic reasoning step. Magna Carta: one step per node.
-    pub max_tactic_lines: usize,
+    /// Calibrated for natural language math (Gemini review 2026-03-30: 800 chars / 12 lines).
+    pub max_payload_chars: usize,
+    pub max_payload_lines: usize,
     /// Total Coins injected by SYSTEM_MM across all markets (for conservation accounting).
     pub system_mm_total_injected: f64,
 }
@@ -86,8 +88,9 @@ impl TuringBus {
                 "push_cast".to_string(),    // Lean push_cast
                 "ring_nf".to_string(),      // Lean ring_nf
             ],
-            // One step per node. Recalibrated for natural language math (CLAUDE.md #21).
-            max_tactic_lines: 8,
+            // One step per node. Calibrated for natural language math (Gemini review 2026-03-30).
+            max_payload_chars: 800,
+            max_payload_lines: 12,
             system_mm_total_injected: 0.0,
         }
     }
@@ -423,15 +426,25 @@ impl TuringBus {
         }
 
         // ── Phase 0b: FRONT-RUNNING DETECTION (one step per node) ──
-        // Strip wallet tags before counting lines
-        let tactic_part = file.payload.split("[Tool: Wallet").next().unwrap_or(&file.payload).trim();
-        let tactic_lines = tactic_part.lines()
+        // Strip wallet tags before measuring payload size
+        let content_part = file.payload.split("[Tool: Wallet").next().unwrap_or(&file.payload).trim();
+        let content_chars = content_part.len();
+        let content_lines = content_part.lines()
             .filter(|l| !l.trim().is_empty())
             .count();
-        if tactic_lines > self.max_tactic_lines {
+        if content_chars > self.max_payload_chars {
             let reason = format!(
-                "FRONT-RUNNING: {} tactic lines (max {}). One step per node. Split into multiple appends.",
-                tactic_lines, self.max_tactic_lines
+                "FRONT-RUNNING: {} chars (max {}). One atomic step per node.",
+                content_chars, self.max_payload_chars
+            );
+            log::warn!(">>> [KERNEL] {} by {}", reason, file.author);
+            self.graveyard.record_death("root", &reason);
+            return Err(reason);
+        }
+        if content_lines > self.max_payload_lines {
+            let reason = format!(
+                "FRONT-RUNNING: {} lines (max {}). One atomic step per node.",
+                content_lines, self.max_payload_lines
             );
             log::warn!(">>> [KERNEL] {} by {}", reason, file.author);
             self.graveyard.record_death("root", &reason);

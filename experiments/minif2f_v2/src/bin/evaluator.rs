@@ -257,6 +257,25 @@ async fn main() {
         let agent_dir = format!("{}/agent_{}", skills_dir, i);
         let _ = std::fs::create_dir_all(&agent_dir);
     }
+    // Engine 4: Seed Falsifier Agent (Agent_14) — dedicated mathematical skeptic
+    // Gemini review 2026-03-30: implement via skills/ only, no kernel changes
+    let falsifier_idx = SWARM_SIZE - 1; // Last agent = falsifier
+    let falsifier_path = format!("{}/agent_{}/learned.md", skills_dir, falsifier_idx);
+    if !std::path::Path::new(&falsifier_path).exists() || std::fs::read_to_string(&falsifier_path).unwrap_or_default().is_empty() {
+        let _ = std::fs::write(&falsifier_path,
+            "# ROLE: Mathematical Falsifier (via negativa)\n\
+            You are a MATHEMATICAL FALSIFIER. Your sole purpose is to find LOGICAL ERRORS.\n\n\
+            STRATEGY:\n\
+            1. READ the highest P_yes nodes (these have the most consensus — and the most risk)\n\
+            2. FIND logical gaps: quantifier errors, unjustified leaps, missing cases, wrong inequalities\n\
+            3. APPEND a clear explanation of the flaw you found (cite the node ID)\n\
+            4. SHORT the flawed node to profit from its collapse\n\n\
+            You WIN by destroying false consensus. Every error you catch saves the swarm from wasting compute.\n\
+            Do NOT build new proof paths. Only ATTACK existing ones.\n\
+            The most profitable move is finding an error that everyone else missed.\n"
+        );
+        info!(">>> [FALSIFIER] Agent_{} seeded as Mathematical Falsifier", falsifier_idx);
+    }
     info!(">>> [ENGINE 4] Per-agent skill paths initialized at {}/", skills_dir);
 
     // --- Spawn Agent Loops ---
@@ -382,7 +401,8 @@ async fn main() {
                     Err(_) => {}
                 }
 
-                // FORCED INVESTMENT ROUND — separate LLM call for financial decisions
+                // VOLUNTARY INVESTMENT ROUND — agent MAY invest, short, or pass
+                // Magna Carta Law 2: investment must be autonomous (Gemini audit 2026-03-29)
                 let snap_for_invest = rx.borrow().clone();
                 let invest_balance = snap_for_invest.balances.get(&agent_name).copied().unwrap_or(0.0);
                 if invest_balance >= 2.0 && !snap_for_invest.tape.files.is_empty() {
@@ -397,11 +417,12 @@ async fn main() {
                     let invest_prompt = format!(
                         "You are an investor in a proof market. Your balance: {:.0} Coins.\n\
                         Recent nodes (most recent first):\n{}\n\n\
-                        You MUST invest in ONE node. Choose the node most likely on the winning proof path.\n\
+                        You MAY take ONE action or pass:\n\
                         - Back a node: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
                         - Bet against: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - Minimum 2 Coins. Recommended: 5-20 Coins.\n\
-                        Choose wisely — profit depends on the Oracle verdict.",
+                        - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
+                        Minimum 2 Coins per trade. Passing costs nothing but yields no profit.\n\
+                        Remember: ONLY invested nodes pay out at OMEGA. Topological dominance requires capital.",
                         invest_balance, node_list
                     );
 
@@ -421,7 +442,7 @@ async fn main() {
                                                 parent_id: None,
                                                 action_type: "invest".to_string(),
                                             }).await;
-                                            info!(">>> [FORCED INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
+                                            info!(">>> [INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
                                         }
                                     }
                                     "short" => {
@@ -436,10 +457,16 @@ async fn main() {
                                                 parent_id: None,
                                                 action_type: "short".to_string(),
                                             }).await;
-                                            info!(">>> [FORCED SHORT] {} bet NO {:.0} on {}", agent_name, amount, node);
+                                            info!(">>> [SHORT] {} bet NO {:.0} on {}", agent_name, amount, node);
                                         }
                                     }
-                                    _ => {}
+                                    "pass" => {
+                                        info!(">>> [PASS] {} chose not to invest", agent_name);
+                                        heartbeat.store(epoch_secs(), Ordering::Relaxed);
+                                    }
+                                    _ => {
+                                        heartbeat.store(epoch_secs(), Ordering::Relaxed);
+                                    }
                                 }
                             }
                         }

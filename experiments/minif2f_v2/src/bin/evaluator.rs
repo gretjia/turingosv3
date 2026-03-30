@@ -76,7 +76,7 @@ fn load_problem(problem_file: &str) -> (String, String) {
         .unwrap_or_else(|e| panic!("Cannot read {}: {}", path, e));
 
     // CLAUDE.md #21: Check for brute-force search space in formalization
-    let brute_force_patterns = ["Finset.range", "Finset.Icc", "Finset.Ico", "List.range"];
+    let brute_force_patterns = ["Finset.range", "Finset.Icc", "Finset.Ico", "List.range", "Finset.univ"];
     for pattern in &brute_force_patterns {
         if content.contains(pattern) {
             warn!(">>> [FORMALIZATION WARNING] '{}' found in problem statement!", pattern);
@@ -357,23 +357,19 @@ async fn main() {
                                     }
                                 }
                                 "invest" => {
-                                    if is_falsifier {
-                                        // Engine 4: Falsifier cannot buy YES — structural enforcement
-                                        info!(">>> [FALSIFIER] {} invest→NOP: falsifiers cannot buy YES", agent_name);
-                                        heartbeat.store(epoch_secs(), Ordering::Relaxed);
-                                    } else {
-                                        let tactic = action.tactic.unwrap_or_default();
-                                        let amount = action.amount.unwrap_or(1.0);
-                                        let node = action.node.unwrap_or_else(|| "self".to_string());
-                                        let payload = format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount);
-                                        let _ = tx.send(MinerTx {
-                                            agent_id: agent_name.clone(),
-                                            model_name: client.model_name().to_string(),
-                                            payload,
-                                            parent_id: parent_id.clone(),
-                                            action_type: "invest".to_string(),
-                                        }).await;
-                                    }
+                                    // Magna Carta 2026-03-30: Falsifier has full trade equality.
+                                    // Protocol does not discriminate fund direction.
+                                    let tactic = action.tactic.unwrap_or_default();
+                                    let amount = action.amount.unwrap_or(1.0);
+                                    let node = action.node.unwrap_or_else(|| "self".to_string());
+                                    let payload = format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount);
+                                    let _ = tx.send(MinerTx {
+                                        agent_id: agent_name.clone(),
+                                        model_name: client.model_name().to_string(),
+                                        payload,
+                                        parent_id: parent_id.clone(),
+                                        action_type: "invest".to_string(),
+                                    }).await;
                                 }
                                 "short" => {
                                     let node_id = action.node.unwrap_or_default();
@@ -427,15 +423,17 @@ async fn main() {
                         .collect::<Vec<_>>().join("\n");
 
                     let invest_prompt = if is_falsifier {
-                        // Engine 4: Falsifier can only SHORT or PASS — structural enforcement
+                        // Magna Carta 2026-03-30: Falsifier has full trade equality.
+                        // Prompt guides toward falsification, but all actions are available.
                         format!(
                             "You are a MATHEMATICAL FALSIFIER in a proof market. Your balance: {:.0} Coins.\n\
-                            Your role: find flawed reasoning and PROFIT by betting against it.\n\
+                            Your instinct: find flawed reasoning and PROFIT by betting against it.\n\
                             Recent nodes (most recent first):\n{}\n\n\
                             You MAY take ONE action or pass:\n\
+                            - Back a node (if the math is genuinely sound): <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
                             - Bet AGAINST a flawed node: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
                             - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
-                            Minimum 2 Coins per trade. You WIN when flawed nodes collapse.\n\
+                            Minimum 2 Coins per trade. Your edge: spotting errors others miss.\n\
                             Look for: quantifier errors, unjustified leaps, missing cases, wrong counts.",
                             invest_balance, node_list
                         )
@@ -458,23 +456,19 @@ async fn main() {
                             if let Some(action) = parse_agent_output(&raw) {
                                 match action.tool.as_str() {
                                     "invest" => {
-                                        if is_falsifier {
-                                            info!(">>> [FALSIFIER] {} invest→NOP in investment round: falsifiers cannot buy YES", agent_name);
-                                            heartbeat.store(epoch_secs(), Ordering::Relaxed);
-                                        } else {
-                                            let node = action.node.unwrap_or_default();
-                                            let amount = action.amount.unwrap_or(2.0).max(2.0);
-                                            if !node.is_empty() && node != "self" {
-                                                let payload = format!("[Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", node, amount);
-                                                let _ = tx.send(MinerTx {
-                                                    agent_id: agent_name.clone(),
-                                                    model_name: client.model_name().to_string(),
-                                                    payload,
-                                                    parent_id: None,
-                                                    action_type: "invest".to_string(),
-                                                }).await;
-                                                info!(">>> [INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
-                                            }
+                                        // Magna Carta 2026-03-30: all agents (including Falsifier) have full trade equality
+                                        let node = action.node.unwrap_or_default();
+                                        let amount = action.amount.unwrap_or(2.0).max(2.0);
+                                        if !node.is_empty() && node != "self" {
+                                            let payload = format!("[Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", node, amount);
+                                            let _ = tx.send(MinerTx {
+                                                agent_id: agent_name.clone(),
+                                                model_name: client.model_name().to_string(),
+                                                payload,
+                                                parent_id: None,
+                                                action_type: "invest".to_string(),
+                                            }).await;
+                                            info!(">>> [INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
                                         }
                                     }
                                     "short" => {
@@ -694,21 +688,52 @@ async fn main() {
                     let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };
                     error!("[STAGNATION] {}! Gen {} stuck. Solvent: {}/{}", reason, generation, solvent_count, SWARM_SIZE);
 
-                    // Engine 4: Autopsy Mutation — bankrupt agents write survival rules
+                    // Engine 4: Lamarckian Autopsy — bankrupt agents receive factual portfolio forensics
+                    // Architect praise 2026-03-30: write specific failure data, not generic text.
+                    // Bitter Lesson: provide DATA, let the LLM derive its own strategy.
+                    let snap_for_autopsy = bus.get_immutable_snapshot();
                     for (idx, name) in agent_names.iter().enumerate() {
                         let bal = bus.get_agent_balance(name);
                         if bal < 1.0 {
                             bus.graveyard.record_death("root", &format!("Gen {} bankrupt: {}", generation, name));
                             let autopsy_path = format!("{}/agent_{}/learned.md", skills_dir, idx);
+
+                            // Extract factual portfolio data: which nodes did this agent hold?
+                            let mut holdings_report = String::new();
+                            if let Some(holdings) = snap_for_autopsy.portfolios.get(name) {
+                                for (nid, (yes_s, no_s, lp_s)) in holdings {
+                                    if *yes_s > 0.1 || *no_s > 0.1 {
+                                        let p_yes = snap_for_autopsy.markets.get(nid)
+                                            .map(|m| m.yes_price * 100.0)
+                                            .unwrap_or(0.0);
+                                        holdings_report.push_str(&format!(
+                                            "  Node {}: YES={:.1} NO={:.1} LP={:.1} | P_yes={:.0}%\n",
+                                            nid, yes_s, no_s, lp_s, p_yes
+                                        ));
+                                    }
+                                }
+                            }
+                            if holdings_report.is_empty() {
+                                holdings_report = "  (no significant positions — coins lost to slippage)\n".to_string();
+                            }
+
                             let autopsy = format!(
-                                "# Autopsy — Generation {} Death\nBANKRUPT at balance {:.2}.\nSURVIVAL RULE: {}\n\n",
-                                generation, bal, reason
+                                "# Autopsy — Generation {} Death\n\
+                                BANKRUPT at balance {:.2}. Cause: {}\n\
+                                ## Portfolio at Death\n{}\
+                                ## Facts for Next Life\n\
+                                - Total nodes in tape: {}\n\
+                                - Your positions above show where your coins went.\n\
+                                - High P_yes positions (>90%) have extreme slippage cost.\n\
+                                - Low P_yes positions (<20%) offer high reward if you can prove them correct.\n\n",
+                                generation, bal, reason, holdings_report,
+                                snap_for_autopsy.tape.files.len()
                             );
                             if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&autopsy_path) {
                                 use std::io::Write;
                                 let _ = write!(f, "{}", autopsy);
                             }
-                            info!(">>> [AUTOPSY] {} wrote survival rule", name);
+                            info!(">>> [AUTOPSY] {} wrote portfolio forensics", name);
                         }
                     }
 

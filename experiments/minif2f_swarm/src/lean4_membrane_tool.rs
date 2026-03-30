@@ -149,7 +149,7 @@ impl TuringTool for Lean4MembraneTool {
                     info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
                     return ToolSignal::YieldReward {
                         payload: format!("{}\n  -- [OMEGA]", payload),
-                        reward: 100_000_000_000.0,
+                        reward: 0.0, // Law 2: zero post-genesis minting (100B legacy purged)
                     };
                 }
 
@@ -160,7 +160,7 @@ impl TuringTool for Lean4MembraneTool {
                         info!("🎇 OMEGA NODE REACHED! Theorem proved perfectly! 🎇");
                         return ToolSignal::YieldReward {
                             payload: format!("{}\n  -- [OMEGA]", payload),
-                            reward: 100_000_000_000.0,
+                            reward: 0.0, // Law 2: zero post-genesis minting (100B legacy purged)
                         };
                     }
                 }
@@ -184,7 +184,7 @@ impl TuringTool for Lean4MembraneTool {
                         info!("OMEGA (Guillotine): No goals + clean output — proof complete!");
                         return ToolSignal::YieldReward {
                             payload: format!("{}\n  -- [OMEGA]", payload),
-                            reward: 100_000_000_000.0,
+                            reward: 0.0, // Law 2: zero post-genesis minting (100B legacy purged)
                         };
                     } else {
                         // Ambiguous: other errors or sorry warning → double-check
@@ -193,7 +193,7 @@ impl TuringTool for Lean4MembraneTool {
                                 info!("OMEGA (double-check verified in Err branch)");
                                 return ToolSignal::YieldReward {
                                     payload: format!("{}\n  -- [OMEGA]", payload),
-                                    reward: 100_000_000_000.0,
+                                    reward: 0.0, // Law 2: zero post-genesis minting (100B legacy purged)
                                 };
                             }
                         }

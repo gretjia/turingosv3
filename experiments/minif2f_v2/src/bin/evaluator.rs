@@ -41,6 +41,7 @@ const SKILL: &str = "\
   - Example BAD step: 'rw [ZMod.nat_cast_zmod_eq_zero_iff_dvd]' ← THIS WILL BE REJECTED\n\
   - Search Mathlib for relevant lemma NAMES: {\"tool\":\"search\",\"query\":\"Hensel\"}\n\
   - ONE REASONING STEP per submission. Each step = one atomic mathematical argument.\n\
+  - MAXIMUM 800 CHARACTERS per step. Longer submissions are REJECTED. Keep it atomic.\n\
   - When the full proof chain is mathematically complete, claim [COMPLETE].\n\
   - A translator will convert your math to Lean 4 for formal verification.\n\
   - FORBIDDEN: brute-force enumeration, case-bashing without structure.\n\
@@ -291,7 +292,9 @@ async fn main() {
         let agent_skill_dir = format!("{}/agent_{}", skills_dir, i);
         let rejections = agent_rejections.clone();
 
-        info!(">>> [SPAWN] Agent {} → {} | $HOME: {}", i, client.model_name(), agent_skill_dir);
+        let is_falsifier = i == falsifier_idx;
+        info!(">>> [SPAWN] Agent {} → {} | $HOME: {}{}", i, client.model_name(), agent_skill_dir,
+            if is_falsifier { " [FALSIFIER]" } else { "" });
 
         tokio::spawn(async move {
             let agent_name = format!("Agent_{}", i);
@@ -320,6 +323,8 @@ async fn main() {
                     .get(&agent_name).cloned().unwrap_or_default();
                 let feedback = if last_rejection.is_empty() {
                     String::new()
+                } else if last_rejection.contains("FRONT-RUNNING") {
+                    format!("\n=== YOUR LAST SUBMISSION WAS REJECTED (TOO LONG) ===\n{}\n=== MAX 800 CHARS. Write ONE short atomic math argument. Split multi-step reasoning into separate submissions. ===\n", last_rejection)
                 } else {
                     format!("\n=== YOUR LAST SUBMISSION WAS REJECTED ===\n{}\n=== Write traditional math reasoning. Do NOT use Lean syntax. ===\n", last_rejection)
                 };
@@ -351,17 +356,23 @@ async fn main() {
                                     }
                                 }
                                 "invest" => {
-                                    let tactic = action.tactic.unwrap_or_default();
-                                    let amount = action.amount.unwrap_or(1.0);
-                                    let node = action.node.unwrap_or_else(|| "self".to_string());
-                                    let payload = format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount);
-                                    let _ = tx.send(MinerTx {
-                                        agent_id: agent_name.clone(),
-                                        model_name: client.model_name().to_string(),
-                                        payload,
-                                        parent_id: parent_id.clone(),
-                                        action_type: "invest".to_string(),
-                                    }).await;
+                                    if is_falsifier {
+                                        // Engine 4: Falsifier cannot buy YES — structural enforcement
+                                        info!(">>> [FALSIFIER] {} invest→NOP: falsifiers cannot buy YES", agent_name);
+                                        heartbeat.store(epoch_secs(), Ordering::Relaxed);
+                                    } else {
+                                        let tactic = action.tactic.unwrap_or_default();
+                                        let amount = action.amount.unwrap_or(1.0);
+                                        let node = action.node.unwrap_or_else(|| "self".to_string());
+                                        let payload = format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount);
+                                        let _ = tx.send(MinerTx {
+                                            agent_id: agent_name.clone(),
+                                            model_name: client.model_name().to_string(),
+                                            payload,
+                                            parent_id: parent_id.clone(),
+                                            action_type: "invest".to_string(),
+                                        }).await;
+                                    }
                                 }
                                 "short" => {
                                     let node_id = action.node.unwrap_or_default();
@@ -414,35 +425,55 @@ async fn main() {
                         })
                         .collect::<Vec<_>>().join("\n");
 
-                    let invest_prompt = format!(
-                        "You are an investor in a proof market. Your balance: {:.0} Coins.\n\
-                        Recent nodes (most recent first):\n{}\n\n\
-                        You MAY take ONE action or pass:\n\
-                        - Back a node: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - Bet against: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
-                        Minimum 2 Coins per trade. Passing costs nothing but yields no profit.\n\
-                        Remember: ONLY invested nodes pay out at OMEGA. Topological dominance requires capital.",
-                        invest_balance, node_list
-                    );
+                    let invest_prompt = if is_falsifier {
+                        // Engine 4: Falsifier can only SHORT or PASS — structural enforcement
+                        format!(
+                            "You are a MATHEMATICAL FALSIFIER in a proof market. Your balance: {:.0} Coins.\n\
+                            Your role: find flawed reasoning and PROFIT by betting against it.\n\
+                            Recent nodes (most recent first):\n{}\n\n\
+                            You MAY take ONE action or pass:\n\
+                            - Bet AGAINST a flawed node: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                            - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
+                            Minimum 2 Coins per trade. You WIN when flawed nodes collapse.\n\
+                            Look for: quantifier errors, unjustified leaps, missing cases, wrong counts.",
+                            invest_balance, node_list
+                        )
+                    } else {
+                        format!(
+                            "You are an investor in a proof market. Your balance: {:.0} Coins.\n\
+                            Recent nodes (most recent first):\n{}\n\n\
+                            You MAY take ONE action or pass:\n\
+                            - Back a node: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                            - Bet against: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                            - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
+                            Minimum 2 Coins per trade. Passing costs nothing but yields no profit.\n\
+                            Remember: ONLY invested nodes pay out at OMEGA. Topological dominance requires capital.",
+                            invest_balance, node_list
+                        )
+                    };
 
                     match client.resilient_generate(&invest_prompt, i, 0.3).await {
                         Ok(raw) => {
                             if let Some(action) = parse_agent_output(&raw) {
                                 match action.tool.as_str() {
                                     "invest" => {
-                                        let node = action.node.unwrap_or_default();
-                                        let amount = action.amount.unwrap_or(2.0).max(2.0);
-                                        if !node.is_empty() && node != "self" {
-                                            let payload = format!("[Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", node, amount);
-                                            let _ = tx.send(MinerTx {
-                                                agent_id: agent_name.clone(),
-                                                model_name: client.model_name().to_string(),
-                                                payload,
-                                                parent_id: None,
-                                                action_type: "invest".to_string(),
-                                            }).await;
-                                            info!(">>> [INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
+                                        if is_falsifier {
+                                            info!(">>> [FALSIFIER] {} invest→NOP in investment round: falsifiers cannot buy YES", agent_name);
+                                            heartbeat.store(epoch_secs(), Ordering::Relaxed);
+                                        } else {
+                                            let node = action.node.unwrap_or_default();
+                                            let amount = action.amount.unwrap_or(2.0).max(2.0);
+                                            if !node.is_empty() && node != "self" {
+                                                let payload = format!("[Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", node, amount);
+                                                let _ = tx.send(MinerTx {
+                                                    agent_id: agent_name.clone(),
+                                                    model_name: client.model_name().to_string(),
+                                                    payload,
+                                                    parent_id: None,
+                                                    action_type: "invest".to_string(),
+                                                }).await;
+                                                info!(">>> [INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
+                                            }
                                         }
                                     }
                                     "short" => {

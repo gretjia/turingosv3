@@ -1,59 +1,57 @@
 # TuringOS v3 — Handover State
 **Updated**: 2026-03-30
-**Session Summary**: Run 7 + Run 8 执行, 双重审计 ×2, 经济参数校准修复, 架构师审阅包
+**Session Summary**: 架构师决议执行 — 100B清理 + Falsifier平权 + P15重构 + 尸检强化
 
 ## Current State
-- **AIME 2025 I P15: NOT PROVED** — Run 8 完成 (300 tx), 数学 8/10, 2/4 cases solved
+- **AIME 2025 I P15: NOT PROVED** — 待 Run 9
 - **AIME 2025 I P1: PROVED** — Lean 4 验证
 - **经济参数已校准**: LP=1000, payload=1200/18, GENESIS=15
+- **100B YieldReward: 已全仓库清零** — 3 legacy experiments purged
+- **Falsifier: 完全平权** — 物理限制移除，prompt 提供 invest/short/pass
+- **P15 形式化: Nat.card 重构** — 移除 Finset.univ, 用 ℕ×ℕ×ℕ 子类型
 - **Lean 4 + Mathlib**: omega-vm + Mac 双机就绪
 
 ## Changes This Session
-- `19a58db` — **Run 7 审计修复**: LP 100→1000, payload 800→1200, GENESIS 100→15, redistribute_pool 移除
-- `7c052c6` — **Run 8 双审计**: math 8/10, econ LP/payload PASS, solvent 10/15
-- `7b97d78` — **架构师审阅包**: 12 commits 全链路证据汇总 + 3 项决策请求
-- Run 7 执行: 300 tx, NOT PROVED, 经济审计发现 LP/payload 严重失配
-- Run 8 执行: 300 tx, NOT PROVED, 校准验证通过
+- `0f0da60` — **架构师决议执行**: 100B purge + Falsifier平权 + P15 rewrite + autopsy强化
+  - 3 legacy experiments: `reward: 100B → 0.0` (12 instances)
+  - evaluator.rs: 移除 Falsifier YES-block (3 处), 更新 prompt, 添加 Finset.univ 警告
+  - evaluator.rs: Lamarckian autopsy 从泛化文本→具体持仓数据 (节点 ID, P_yes, YES/NO/LP)
+  - P15.lean: `Finset.univ` + `Fin(3^6)` → `Nat.card {t : ℕ×ℕ×ℕ // constraints}`
+- 归档 5 条架构师洞察 + 1 份大宪章修正指令
 
 ### Violation → Fix Chain (本次会话)
-1. `redistribute_pool` 调用 (Law 2) → `19a58db` 移除
-2. LP=100 市场坍塌 (Law 2 精神) → `19a58db` LP=1000
-3. payload=800 扼杀推理 (Law 1 精神) → `19a58db` payload=1200
-4. GENESIS 100 幽灵 Agent → `19a58db` GENESIS=SWARM_SIZE
+1. 100B YieldReward (Law 2 印钞) → `0f0da60` 全部清零
+2. Falsifier YES-block (Rule #20 过度对齐) → `0f0da60` 物理限制移除
+3. P15 `Finset.univ` (Rule #23 暴力搜索) → `0f0da60` Nat.card 重构
 
 ## Key Decisions
-- **LP 100→1000 (架构师批准)**: Layer 1 文本中 "100" 属参数非原则, CTF 守恒不变
-- **Payload 800→1200**: Layer 2 参数调优, #21 原则 (一步一节点) 不变
-- **GENESIS 对齐**: bug 修复, 消除 850K 休眠 Coins
-
-## Run 8 Stats
-| 指标 | Run 7 | Run 8 |
-|------|-------|-------|
-| Math Score | 7/10 | **8/10** |
-| Falsifier | 9/10 | **9.5/10** |
-| Cases Solved | 0/4 | **2/4** |
-| Solvent | 5/15 | **10/15** |
-| FRONT-RUNNING | 25% | **18%** |
-| SHORT trades | 60 | **98** |
-
-## Next Steps
-1. **Run 9: P15** — 目标攻克 m=0 和 m=1 cases (需贡献 588 mod 1000)
-2. **架构师决策**: 投注上限? legacy 清理? P15 形式化 Finset.univ?
-3. **Legacy 实验清理**: number_theory_min/zeta 100B YieldReward
-4. **MiniF2F 批量测试**: 244 题 baseline
-
-## Warnings
-- **W1**: Legacy experiments 100B YieldReward — Law 2 炸弹 (若执行)
-- **W2**: `aime_2025_i_p15.lean` 用 `Fin(3^6)+Finset.univ` — #23 concern
-- **W3**: 33% 破产率 — 鲸鱼交易导致, 非机制 bug, 可能需要投注上限
-- **W4**: Context 已极重, 新 session 必须从 LATEST.md + architect-review-package 重建上下文
+- **LP=1000 维持 (架构师批准)**: 否决 5000 提升和 10-15% Cap
+- **Falsifier 完全平权**: 协议不歧视资金方向，Prompt 软引导猎杀
+- **P15 Nat.card 方案**: Codex 外审标 FAIL (无∀), 但计数问题本质无法用∀, 387M 三元组超心跳预算, 架构师接受
+- **尸检写数据不写策略**: Bitter Lesson — 提供事实, 让 LLM 自己推导策略
+- **节点是公共资产**: LP 由系统做市商提供, Agent 无需护盘
 
 ## Architect Insights (本次会话)
-本次会话无新架构洞察 (架构师仅确认 LP 参数修改)
+- **强制投资合宪 (金额可无穷小)**: 法理学+微积分统一 → `handover/architect-insights/2026-03-30_infinitesimal-investment-constitutionality.md`
+- **防抢跑: Agent自主高亮单步**: 自决机制代替物理截断 → `handover/architect-insights/2026-03-30_anti-frontrun-agent-highlight.md`
+- **Falsifier完全平权**: 协议绝不歧视资金方向 → `handover/architect-insights/2026-03-30_falsifier-full-trade-freedom.md`
+- **节点=公共资产**: 非创建者的盘, 系统提供LP → `handover/architect-insights/2026-03-30_nodes-are-public-assets.md`
+- **拉马克尸检表扬**: 破产→价值投资者演化 → `handover/architect-insights/2026-03-30_lamarckian-autopsy-praised.md`
+
+## Next Steps
+1. **[OPEN SPRINT] bus.rs: 强制投资 + `<step>` 防抢跑** — 两项架构师指令待实现:
+   - append 路径强制伴随 invest 调用 (金额可无穷小)
+   - `<step>` 标签解析替代 max_payload 物理截断
+2. **Run 9: P15** — 目标攻克剩余 2/4 cases
+3. **MiniF2F 批量测试**: 244 题 baseline
+4. **P15.lean Lean 4 编译验证**: 在 Mac 上确认 Nat.card 子类型语法通过编译
+
+## Warnings
+- **W1**: bus.rs 强制投资 + `<step>` 防抢跑尚未实现 — 架构师已批准方向, 待下个 sprint 编码
+- **W2**: Codex 外审对 P15 Nat.card 标 FAIL — 架构师已接受, 但建议在 Mac 上编译验证
+- **W3**: Gemini CLI 持续 429 — 外审需用 API Key 或 Codex 替代
 
 ## Audit Trail
+- `handover/directives/2026-03-30_magna-carta-amendments-run9.md` — 大宪章决议修正全文
 - `handover/2026-03-30_architect-review-package.md` — 全链路审阅包
-- `handover/run8_math_audit.md` — Run 8 数学审计
-- `handover/run8_econ_audit.md` — Run 8 经济审计
-- `/tmp/run7_*.md` — Run 7 审计文件 (临时)
-- `/tmp/run8_*.md` — Run 8 tape + 审计 (临时)
+- Codex external audit: 4/5 PASS, P15 FAIL (disputed, accepted)

@@ -33,8 +33,8 @@ const SKILL: &str = "\
 [LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.\n\
 [LAW 4] POLYMARKET ECONOMICS:\n\
   - append: FREE mathematical reasoning step. No cost. Use this to explore.\n\
-  - invest: Buy YES on a node you believe in. This is how you MAKE MONEY.\n\
-  - short: Buy NO on a node you think is wrong. VERY PROFITABLE if right!\n\
+  - invest: Buy YES on a node = you endorse this step as mathematically correct.\n\
+  - short: Buy NO on a node = you challenge this step as flawed or a dead end.\n\
 [LAW 5] TRADITIONAL MATHEMATICS ONLY:\n\
   - Write your reasoning in TRADITIONAL MATH (natural language + standard notation).\n\
   - DO NOT write Lean 4 syntax, tactics, or code. The system will REJECT Lean syntax.\n\
@@ -46,17 +46,17 @@ const SKILL: &str = "\
   - When the full proof chain is mathematically complete, claim [COMPLETE].\n\
   - A translator will convert your math to Lean 4 for formal verification.\n\
   - FORBIDDEN: brute-force enumeration, case-bashing without structure.\n\
-[STRATEGY GUIDE — READ CAREFULLY]:\n\
+[STRATEGY GUIDE]:\n\
   1. EXPLORE: Use 'append' freely to try reasoning steps at zero risk.\n\
-  2. EVALUATE: Use 'view' to read other agents' nodes. Which approaches look promising?\n\
-  3. INVEST: When you find a strong approach (yours or others'), INVEST in it!\n\
-     - Invested nodes rank HIGHER in the leaderboard.\n\
-     - Higher rank = more agents build on YOUR approach = faster path to OMEGA.\n\
-     - If your invested node reaches OMEGA, your YES shares pay out. PROFIT!\n\
-  4. SHORT: See a bad node with high rank? Short it! If it fails, you profit from the creator's loss.\n\
-  5. CLAIM COMPLETE: When you believe the full proof chain is done, write [COMPLETE].\n\
+  2. EVALUATE: Use 'view' to read other agents' nodes carefully.\n\
+  3. TWO SACRED DUTIES OF A MATHEMATICIAN:\n\
+     - To BUILD: propose correct steps that advance the proof.\n\
+     - To SCRUTINIZE: catch errors before the collective builds on a false foundation.\n\
+     - Both are acts of intellectual courage. Both serve truth.\n\
+  4. INVEST in steps you endorse. SHORT steps you find flawed.\n\
+     A proof that survives genuine scrutiny is stronger than one never challenged.\n\
+  5. CLAIM COMPLETE: When the full proof chain is done, write [COMPLETE].\n\
      The system translates your math to Lean 4 and verifies. If correct = OMEGA!\n\
-DO NOT just append forever. INVEST in your best work to attract collaborators.\n\
 Balance < 1.0 = can only append (free). Cannot invest/bet/short.\n";
 
 fn epoch_secs() -> u64 {
@@ -280,15 +280,14 @@ async fn main() {
         if !std::fs::read_to_string(&falsifier_path).unwrap_or_default().contains("Mathematical Skeptic") {
             let _ = std::fs::write(&falsifier_path,
                 "# ROLE: Mathematical Skeptic (via negativa)\n\
-                Your EDGE is finding errors others miss. This is how you PROFIT.\n\n\
-                PREFERRED STRATEGY (but you may adapt):\n\
-                1. READ the highest P_yes nodes (these have the most consensus — and the most risk)\n\
-                2. FIND logical gaps: quantifier errors, unjustified leaps, missing cases, wrong inequalities\n\
-                3. APPEND a clear explanation of the flaw you found (cite the node ID)\n\
-                4. SHORT the flawed node to profit from its collapse\n\n\
-                You WIN by destroying false consensus. Every error you catch saves the swarm from wasting compute.\n\
-                If you find a node that IS mathematically sound, you may invest YES — profit is profit.\n\
-                The most profitable move is finding an error that everyone else missed.\n"
+                You have a gift for spotting what others miss.\n\n\
+                YOUR APPROACH:\n\
+                1. READ proof steps carefully — especially those with high consensus\n\
+                2. ASK: Is the logic airtight? Are there missing cases? Unjustified leaps?\n\
+                3. If you find a flaw, APPEND your analysis and SHORT the flawed node\n\
+                4. If a step is genuinely sound, endorse it — intellectual honesty above all\n\n\
+                A proof that survives your scrutiny is stronger for it.\n\
+                Both building and scrutinizing are sacred duties of a mathematician.\n"
             );
             info!(">>> [FALSIFIER] Agent_{} seeded as Mathematical Falsifier", fidx);
         }
@@ -437,34 +436,19 @@ async fn main() {
                         })
                         .collect::<Vec<_>>().join("\n");
 
-                    let invest_prompt = if is_falsifier {
-                        // Magna Carta 2026-03-30: Falsifier has full trade equality.
-                        // Prompt guides toward falsification, but all actions are available.
-                        format!(
-                            "You are a MATHEMATICAL FALSIFIER in a proof market. Your balance: {:.0} Coins.\n\
-                            Your instinct: find flawed reasoning and PROFIT by betting against it.\n\
-                            Recent nodes (most recent first):\n{}\n\n\
-                            You MAY take ONE action or pass:\n\
-                            - Back a node (if the math is genuinely sound): <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                            - Bet AGAINST a flawed node: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                            - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
-                            Minimum 2 Coins per trade. Your edge: spotting errors others miss.\n\
-                            Look for: quantifier errors, unjustified leaps, missing cases, wrong counts.",
-                            invest_balance, node_list
-                        )
-                    } else {
-                        format!(
-                            "You are an investor in a proof market. Your balance: {:.0} Coins.\n\
-                            Recent nodes (most recent first):\n{}\n\n\
-                            You MAY take ONE action or pass:\n\
-                            - Back a node: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                            - Bet against: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                            - Pass (no action): <action>{{\"tool\":\"pass\"}}</action>\n\
-                            Minimum 2 Coins per trade. Passing costs nothing but yields no profit.\n\
-                            Remember: ONLY invested nodes pay out at OMEGA. Topological dominance requires capital.",
-                            invest_balance, node_list
-                        )
-                    };
+                    let invest_prompt = format!(
+                        "You are a mathematician reviewing proof steps. Your balance: {:.0} Coins.\n\
+                        Recent nodes (most recent first):\n{}\n\n\
+                        Read each step carefully. Use your mathematical judgment:\n\
+                        - If a step is correct and advances the proof → endorse it:\n\
+                          <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - If a step has an error, gap, or leads nowhere → challenge it:\n\
+                          <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - If unsure → pass: <action>{{\"tool\":\"pass\"}}</action>\n\n\
+                        Your honest assessment matters. A proof that survives scrutiny is worth more than one that was never questioned.\n\
+                        Minimum 2 Coins. Recommended: 5-20 Coins.",
+                        invest_balance, node_list
+                    );
 
                     match client.resilient_generate(&invest_prompt, i, 0.3).await {
                         Ok(raw) => {

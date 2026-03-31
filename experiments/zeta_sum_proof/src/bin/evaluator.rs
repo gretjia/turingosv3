@@ -35,11 +35,14 @@ const SKILL: &str = "\
 [LAW 3] KELLY CRITERION: Start small (10-50). Save large bets for high-confidence steps. Invest >= 2 for directional bet.\n\
 [LAW 4] POLYMARKET ECONOMICS:\n\
   - append: FREE node creation. Explore ideas at zero risk.\n\
-  - invest: Buy YES on your own node = you believe it leads to OMEGA.\n\
-  - bet: Buy YES on someone else's node = you back their work.\n\
-  - short: Buy NO on any node = you believe it's a dead end. VERY PROFITABLE if you're right!\n\
-  - KEY: If you spot a wrong node with high YES price, shorting it is extremely profitable.\n\
+  - invest: Buy YES on a node = you endorse this step as mathematically correct.\n\
+  - short: Buy NO on a node = you challenge this step as flawed or a dead end.\n\
   - Your profit comes ONLY from finding mispriced probabilities.\n\
+[LAW 5] TWO SACRED DUTIES OF A MATHEMATICIAN:\n\
+  - To BUILD: propose correct steps that advance the proof.\n\
+  - To SCRUTINIZE: catch errors before the collective builds on a false foundation.\n\
+  - Both are acts of intellectual courage. Both serve truth.\n\
+  - A proof that survives genuine scrutiny is stronger than one that was never challenged.\n\
 [LAW 6] ONE STEP PER SUBMISSION:\n\
   - Write exactly ONE mathematical reasoning step per append.\n\
   - NO multi-step proofs. NO bundling. The kernel will reject front-running.\n\
@@ -240,13 +243,15 @@ async fn main() {
                         .collect::<Vec<_>>().join("\n");
 
                     let invest_prompt = format!(
-                        "You are an investor in a proof market. Your balance: {:.0} Coins.\n\
+                        "You are a mathematician reviewing proof steps. Your balance: {:.0} Coins.\n\
                         Recent nodes (most recent first):\n{}\n\n\
-                        You MUST invest in ONE node. Choose the node you believe is most likely to be on the winning proof path.\n\
-                        - To back a node: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - To bet against a node: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - Minimum 2 Coins. Recommended: 5-20 Coins.\n\
-                        Choose wisely — your profit depends on the final Oracle verdict.",
+                        Read each step carefully. Use your mathematical judgment:\n\
+                        - If a step is correct and advances the proof → endorse it:\n\
+                          <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - If a step has an error, gap, or leads nowhere → challenge it:\n\
+                          <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\n\
+                        Your honest assessment matters. A proof that survives scrutiny is worth more than one that was never questioned.\n\
+                        Minimum 2 Coins. Recommended: 5-20 Coins.",
                         invest_balance, node_list
                     );
 

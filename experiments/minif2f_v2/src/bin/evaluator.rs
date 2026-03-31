@@ -24,7 +24,8 @@ use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
 use minif2f_v2::lean4_oracle::Lean4Oracle;
 
 const SWARM_SIZE: usize = 15;
-const MAX_TRANSACTIONS: u64 = 300;
+const MAX_TRANSACTIONS: u64 = 1000;
+const FALSIFIER_COUNT: usize = 2; // Nakamoto N-1: redundant falsifier syndicate
 
 const SKILL: &str = "\
 [LAW 1] APPEND IS FREE: Creating reasoning steps costs ZERO. Explore freely.\n\
@@ -41,7 +42,7 @@ const SKILL: &str = "\
   - Example BAD step: 'rw [ZMod.nat_cast_zmod_eq_zero_iff_dvd]' ← THIS WILL BE REJECTED\n\
   - Search Mathlib for relevant lemma NAMES: {\"tool\":\"search\",\"query\":\"Hensel\"}\n\
   - ONE REASONING STEP per submission. Each step = one atomic mathematical argument.\n\
-  - MAXIMUM 1200 CHARACTERS per step. Longer submissions are REJECTED. Keep it atomic.\n\
+  - MAXIMUM 1600 CHARACTERS per step. Longer submissions are REJECTED. Keep it atomic.\n\
   - When the full proof chain is mathematically complete, claim [COMPLETE].\n\
   - A translator will convert your math to Lean 4 for formal verification.\n\
   - FORBIDDEN: brute-force enumeration, case-bashing without structure.\n\
@@ -228,15 +229,25 @@ async fn main() {
     let (tx_state, rx_state) = watch::channel(init_snap);
     let (tx_mempool, mut rx_mempool) = mpsc::channel::<MinerTx>(1000);
 
-    // --- Build Clients ---
+    // --- Build Clients (Kolmogorov K-1: heterogeneous model families) ---
     let ds_url = "https://api.deepseek.com/chat/completions";
     let key_ds = std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY required");
 
-    let clients: Vec<Arc<ResilientLLMClient>> = vec![
+    // Third model family: SiliconFlow (Qwen) for cognitive diversity
+    let sf_url = "https://api.siliconflow.cn/v1/chat/completions";
+    let key_sf = std::env::var("SILICONFLOW_API_KEY").unwrap_or_default();
+    let has_sf = !key_sf.is_empty();
+
+    let mut clients: Vec<Arc<ResilientLLMClient>> = vec![
         Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-chat", &key_ds)),
         Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_ds)),
     ];
-    info!("Models: DeepSeek-V3.2 + Reasoner");
+    if has_sf {
+        clients.push(Arc::new(ResilientLLMClient::with_key(sf_url, "Qwen/Qwen3-32B", &key_sf)));
+        info!("Models: DeepSeek-V3.2 + Reasoner + Qwen3-32B (3 families)");
+    } else {
+        info!("Models: DeepSeek-V3.2 + Reasoner (SILICONFLOW_API_KEY not set, 2 families)");
+    }
 
     // --- Search Tool (Mathlib) ---
     let search_tool = Arc::new(SearchTool::new(vec![
@@ -259,26 +270,30 @@ async fn main() {
         let agent_dir = format!("{}/agent_{}", skills_dir, i);
         let _ = std::fs::create_dir_all(&agent_dir);
     }
-    // Engine 4: Seed Falsifier Agent (Agent_14) — dedicated mathematical skeptic
-    // Gemini review 2026-03-30: implement via skills/ only, no kernel changes
-    let falsifier_idx = SWARM_SIZE - 1; // Last agent = falsifier
-    let falsifier_path = format!("{}/agent_{}/learned.md", skills_dir, falsifier_idx);
-    if !std::path::Path::new(&falsifier_path).exists() || std::fs::read_to_string(&falsifier_path).unwrap_or_default().is_empty() {
-        let _ = std::fs::write(&falsifier_path,
-            "# ROLE: Mathematical Falsifier (via negativa)\n\
-            You are a MATHEMATICAL FALSIFIER. Your sole purpose is to find LOGICAL ERRORS.\n\n\
-            STRATEGY:\n\
-            1. READ the highest P_yes nodes (these have the most consensus — and the most risk)\n\
-            2. FIND logical gaps: quantifier errors, unjustified leaps, missing cases, wrong inequalities\n\
-            3. APPEND a clear explanation of the flaw you found (cite the node ID)\n\
-            4. SHORT the flawed node to profit from its collapse\n\n\
-            You WIN by destroying false consensus. Every error you catch saves the swarm from wasting compute.\n\
-            Do NOT build new proof paths. Only ATTACK existing ones.\n\
-            The most profitable move is finding an error that everyone else missed.\n"
-        );
-        info!(">>> [FALSIFIER] Agent_{} seeded as Mathematical Falsifier", falsifier_idx);
+    // Engine 4: Seed Falsifier Syndicate — Nakamoto N-1 redundancy
+    // FALSIFIER_COUNT agents from the tail of the swarm are seeded as falsifiers.
+    // Architect 2026-03-31: all agents CAN short, falsifiers just lean toward it.
+    let falsifier_start = SWARM_SIZE - FALSIFIER_COUNT;
+    for fidx in falsifier_start..SWARM_SIZE {
+        let falsifier_path = format!("{}/agent_{}/learned.md", skills_dir, fidx);
+        // Always overwrite: ensures falsifier role even if skills dir is reused from prior run
+        if !std::fs::read_to_string(&falsifier_path).unwrap_or_default().contains("Mathematical Skeptic") {
+            let _ = std::fs::write(&falsifier_path,
+                "# ROLE: Mathematical Skeptic (via negativa)\n\
+                Your EDGE is finding errors others miss. This is how you PROFIT.\n\n\
+                PREFERRED STRATEGY (but you may adapt):\n\
+                1. READ the highest P_yes nodes (these have the most consensus — and the most risk)\n\
+                2. FIND logical gaps: quantifier errors, unjustified leaps, missing cases, wrong inequalities\n\
+                3. APPEND a clear explanation of the flaw you found (cite the node ID)\n\
+                4. SHORT the flawed node to profit from its collapse\n\n\
+                You WIN by destroying false consensus. Every error you catch saves the swarm from wasting compute.\n\
+                If you find a node that IS mathematically sound, you may invest YES — profit is profit.\n\
+                The most profitable move is finding an error that everyone else missed.\n"
+            );
+            info!(">>> [FALSIFIER] Agent_{} seeded as Mathematical Falsifier", fidx);
+        }
     }
-    info!(">>> [ENGINE 4] Per-agent skill paths initialized at {}/", skills_dir);
+    info!(">>> [ENGINE 4] Per-agent skill paths initialized at {}/ ({} falsifiers)", skills_dir, FALSIFIER_COUNT);
 
     // --- Spawn Agent Loops ---
     for i in 0..SWARM_SIZE {
@@ -293,7 +308,7 @@ async fn main() {
         let agent_skill_dir = format!("{}/agent_{}", skills_dir, i);
         let rejections = agent_rejections.clone();
 
-        let is_falsifier = i == falsifier_idx;
+        let is_falsifier = i >= falsifier_start;
         info!(">>> [SPAWN] Agent {} → {} | $HOME: {}{}", i, client.model_name(), agent_skill_dir,
             if is_falsifier { " [FALSIFIER]" } else { "" });
 
@@ -325,7 +340,7 @@ async fn main() {
                 let feedback = if last_rejection.is_empty() {
                     String::new()
                 } else if last_rejection.contains("FRONT-RUNNING") {
-                    format!("\n=== YOUR LAST SUBMISSION WAS REJECTED (TOO LONG) ===\n{}\n=== MAX 1200 CHARS. Write ONE short atomic math argument. Split multi-step reasoning into separate submissions. ===\n", last_rejection)
+                    format!("\n=== YOUR LAST SUBMISSION WAS REJECTED (TOO LONG) ===\n{}\n=== MAX 1600 CHARS. Write ONE short atomic math argument. Split multi-step reasoning into separate submissions. ===\n", last_rejection)
                 } else {
                     format!("\n=== YOUR LAST SUBMISSION WAS REJECTED ===\n{}\n=== Write traditional math reasoning. Do NOT use Lean syntax. ===\n", last_rejection)
                 };

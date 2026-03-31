@@ -91,9 +91,10 @@ impl TuringBus {
                 "ring_nf".to_string(),      // Lean ring_nf
             ],
             // One step per node. Calibrated for natural language math.
-            // 800→1200: Gemini audit 2026-03-30 found 800 too tight (25% rejection rate).
-            max_payload_chars: 1200,
-            max_payload_lines: 18,
+            // 800→1200→1600: Run 9 audit found 11% rejection on deep case analysis (mod 3^7).
+            // Kolmogorov prescription: allow high-density algebraic reasoning to complete on-chain.
+            max_payload_chars: 1600,
+            max_payload_lines: 24,
             system_mm_total_injected: 0.0,
         }
     }

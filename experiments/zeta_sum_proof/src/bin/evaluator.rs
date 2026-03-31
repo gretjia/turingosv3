@@ -81,16 +81,13 @@ async fn main() {
     // --- Build Clients (3 species) ---
     let sf_url = "https://api.siliconflow.cn/v1/chat/completions";
     let ds_url = "https://api.deepseek.com/chat/completions";
-    let key_sf = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
-    let key_sf2 = std::env::var("SILICONFLOW_API_KEY_SECONDARY").unwrap_or_else(|_| key_sf.clone());
-    let key_ds = std::env::var("DEEPSEEK_API_KEY").unwrap_or_else(|_| key_sf.clone());
+    let key_ds = std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY required");
 
     let clients: Vec<Arc<ResilientLLMClient>> = vec![
         Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-chat", &key_ds)),
         Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_ds)),
-        Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/deepseek-ai/DeepSeek-R1", &key_sf2)),
     ];
-    info!("Worker: DeepSeek-V3.2 (deepseek-chat) | Scholar: deepseek-reasoner | Explorer: R1");
+    info!("Worker: DeepSeek-V3.2 (deepseek-chat) | Scholar: deepseek-reasoner");
 
     // --- Search Tool (for free queries) ---
     let search_tool = Arc::new(SearchTool::new(vec![

@@ -18,7 +18,7 @@ if echo "$FILE_PATH" | grep -qE "$CRITICAL_PATTERN"; then
     echo "Critical file modified: $FILE_PATH"
     echo "Running cargo check..."
 
-    cd /home/zephryj/projects/turingosv3
+    cd "$(git rev-parse --show-toplevel)"
     if cargo check 2>&1; then
         echo "✓ cargo check PASSED"
         exit 0

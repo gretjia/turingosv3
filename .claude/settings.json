@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/block-destructive.sh",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/block-destructive.sh\"",
             "timeout": 5
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/post-edit-validate.sh",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/post-edit-validate.sh\"",
             "timeout": 60
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/stop-guard.sh",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/stop-guard.sh\"",
             "timeout": 10
           }
         ]

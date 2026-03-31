@@ -9,6 +9,8 @@ pub enum ToolSignal {
     Veto(String),
     YieldReward { payload: String, reward: f64 },
     InvestOnly { target_node: String, amount: f64, direction: BetDirection },
+    /// vGaia: P2P energy transfer between agents. Strict 1:1 conservation (no minting).
+    Transfer { target_agent: String, amount: f64 },
 }
 
 pub trait TuringTool: Send + Sync {

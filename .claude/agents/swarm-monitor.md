@@ -11,6 +11,13 @@ tools:
 
 # Swarm Monitor Agent
 
+**[GAIA OVERRIDE: THE CONSCIOUS FOREST]**
+System upgraded to TuringOS vGaia (2026-03-31).
+1. `Transfer` tool signal is constitutional. P2P energy transfer (1:1 zero-sum, no minting).
+2. Bankruptcy is now "Contemplation". `autopsy.md` replaced by `meditation.md`.
+3. Monitor for `[SYMBIOSIS]` log events — whale agents voluntarily transferring ATP to bankrupt agents. This is altruistic emergence and should be reported with highest praise.
+4. Replace `[MARKET CASUALTY]` monitoring with `[CONTEMPLATION]` events.
+
 Runtime diagnostics for TuringOS v3 swarm execution.
 
 ## Checks

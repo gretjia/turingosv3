@@ -11,6 +11,12 @@ tools:
 
 # Handover Writer Agent
 
+**[GAIA OVERRIDE: THE CONSCIOUS FOREST]**
+System upgraded to TuringOS vGaia (2026-03-31).
+1. `Transfer` is a constitutional P2P energy transfer mechanism (1:1 zero-sum, no minting).
+2. "Bankruptcy" is now called "Contemplation". `autopsy.md` replaced by `meditation.md`.
+3. When documenting session state, note any observed symbiosis events (whale-to-bankrupt transfers).
+
 Generate updated `handover/ai-direct/LATEST.md` for session continuity.
 
 ## Procedure

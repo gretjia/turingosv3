@@ -41,12 +41,27 @@ impl WalletTool {
         let rest = &payload[start + tag.len()..];
         let node_end = rest.find(" | Amount: ")?;
         let target_node = rest[..node_end].trim().to_string();
-        
+
         let amt_rest = &rest[node_end + 11..];
         let amt_end = amt_rest.find(']')?;
         let amount: f64 = amt_rest[..amt_end].trim().parse().unwrap_or(0.0);
-        
+
         Some((target_node, amount))
+    }
+
+    /// vGaia: Parse P2P transfer tag [Tool: Wallet | Action: Transfer | Target: Agent_X | Amount: Y]
+    fn parse_transfer(&self, payload: &str) -> Option<(String, f64)> {
+        let tag = "[Tool: Wallet | Action: Transfer | Target: ";
+        let start = payload.find(tag)?;
+        let rest = &payload[start + tag.len()..];
+        let target_end = rest.find(" | Amount: ")?;
+        let target_agent = rest[..target_end].trim().to_string();
+
+        let amt_rest = &rest[target_end + 11..];
+        let amt_end = amt_rest.find(']')?;
+        let amount: f64 = amt_rest[..amt_end].trim().parse().unwrap_or(0.0);
+
+        Some((target_agent, amount))
     }
 }
 
@@ -75,6 +90,27 @@ impl TuringTool for WalletTool {
         let has_wallet_tag = payload.contains("[Tool: Wallet");
         if !has_wallet_tag {
             return ToolSignal::Pass; // Free append — zero cost topology
+        }
+
+        // vGaia: P2P Transfer — agent-to-agent energy transfer (1:1, no minting)
+        if payload.contains("Action: Transfer") {
+            let (target_agent, amount) = match self.parse_transfer(payload) {
+                Some(cmd) => cmd,
+                None => return ToolSignal::Veto("Malformed Transfer tag. Expected: [Tool: Wallet | Action: Transfer | Target: Agent_X | Amount: Y]".into()),
+            };
+            if !amount.is_finite() || amount <= 0.0 {
+                return ToolSignal::Veto("Transfer amount must be a finite positive number.".into());
+            }
+            let balance = *self.balances.get(author).unwrap_or(&0.0);
+            if balance < amount {
+                return ToolSignal::Veto(format!("Insufficient ATP for transfer. Balance: {:.2}, Requested: {:.2}", balance, amount));
+            }
+            if target_agent == author {
+                return ToolSignal::Veto("Cannot transfer ATP to self.".into());
+            }
+            // Deduct from sender immediately (bus.rs will credit receiver)
+            *self.balances.get_mut(author).unwrap() -= amount;
+            return ToolSignal::Transfer { target_agent, amount };
         }
 
         let (target, amount) = match self.parse_payment(payload) {

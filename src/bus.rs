@@ -127,6 +127,27 @@ impl TuringBus {
     // redistribute_pool: ABOLISHED (Magna Carta Law 2 — no central reallocation)
     // After GENESIS, total Coins in system = constant. Only CTF mint/redeem moves Coins.
 
+    /// vGaia: Credit coins to an agent's wallet. Used by Transfer (P2P symbiosis).
+    /// NOT money printing — caller must have already debited the sender.
+    /// Returns true if credit succeeded, false if wallet not found or agent unknown.
+    fn credit_agent_balance(&mut self, agent_id: &str, amount: f64) -> bool {
+        use crate::sdk::tools::wallet::WalletTool;
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    // Only credit existing agents — prevent coins vanishing to typo targets
+                    if wallet.balances.contains_key(agent_id) {
+                        *wallet.balances.get_mut(agent_id).unwrap() += amount;
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
+            }
+        }
+        false
+    }
+
     /// Extract all agent balances for cross-theorem persistence
     pub fn extract_wallet_balances(&self) -> HashMap<String, f64> {
         let mut balances = HashMap::new();
@@ -502,6 +523,28 @@ impl TuringBus {
                     invest_amount = amount;
                     invest_direction = direction;
                     break;
+                }
+                ToolSignal::Transfer { target_agent, amount } => {
+                    // vGaia: P2P energy transfer. Sender already debited by wallet.
+                    // Credit receiver here (bus = orchestrator of cross-agent flows).
+                    if self.credit_agent_balance(&target_agent, amount) {
+                        log::info!("[SYMBIOSIS] {} transferred {:.2} ATP to {}",
+                                   file.author, amount, target_agent);
+                    } else {
+                        // Rollback: refund sender since receiver credit failed
+                        use crate::sdk::tools::wallet::WalletTool;
+                        for t in &mut self.tools {
+                            if t.manifest() == "core.tool.crypto_wallet" {
+                                if let Some(wallet) = t.as_any_mut().downcast_mut::<WalletTool>() {
+                                    *wallet.balances.entry(file.author.clone()).or_insert(0.0) += amount;
+                                }
+                                break;
+                            }
+                        }
+                        log::warn!("[TRANSFER FAILED] Target {} not found. Refunded {} to {}.",
+                                   target_agent, amount, file.author);
+                    }
+                    return Ok(()); // Transfer is not an append — pure financial operation
                 }
             }
         }

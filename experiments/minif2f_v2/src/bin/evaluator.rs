@@ -238,9 +238,27 @@ async fn main() {
     let agent_ids: Vec<String> = (0..SWARM_SIZE).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
 
+    // --- WAL: Tape Persistence (resume from crash/restart) ---
+    let wal_dir = format!("experiments/minif2f_v2/wal");
+    let _ = std::fs::create_dir_all(&wal_dir);
+    let wal_path = format!("{}/{}.wal.json", wal_dir, problem_file.replace(".lean", ""));
+    let (mut restored_tx, mut restored_gen) = (0u64, 1usize);
+    if std::path::Path::new(&wal_path).exists() {
+        match bus.restore_wal(&wal_path) {
+            Ok((tx, gen)) => {
+                restored_tx = tx;
+                restored_gen = gen;
+                info!(">>> [WAL] Tape restored! Resuming from tx={}, gen={}", tx, gen);
+            }
+            Err(e) => {
+                warn!(">>> [WAL] Restore failed: {}. Starting fresh.", e);
+            }
+        }
+    }
+
     // --- Create Channels ---
     let mut init_snap = bus.get_immutable_snapshot();
-    init_snap.generation = 1;
+    init_snap.generation = restored_gen as u32;
     let (tx_state, rx_state) = watch::channel(init_snap);
     let (tx_mempool, mut rx_mempool) = mpsc::channel::<MinerTx>(1000);
 
@@ -258,8 +276,8 @@ async fn main() {
         Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &key_ds)),
     ];
     if has_sf {
-        clients.push(Arc::new(ResilientLLMClient::with_key(sf_url, "Qwen/Qwen3-32B", &key_sf)));
-        info!("Models: DeepSeek-V3.2 + Reasoner + Qwen3-32B (3 families)");
+        clients.push(Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/deepseek-ai/DeepSeek-R1", &key_sf)));
+        info!("Models: DeepSeek-V3.2 + Reasoner + SF-DeepSeek-R1 (3 families)");
     } else {
         info!("Models: DeepSeek-V3.2 + Reasoner (SILICONFLOW_API_KEY not set, 2 families)");
     }
@@ -524,8 +542,11 @@ async fn main() {
     info!(">>> TuringOS v3 MiniF2F Booted. {} agents. <<<", SWARM_SIZE);
 
     // --- Reactor Loop ---
-    let mut tx_count: u64 = 0;
-    let mut generation: u32 = 1;
+    let mut tx_count: u64 = restored_tx;
+    let mut generation: u32 = restored_gen as u32;
+    if tx_count > 0 {
+        info!(">>> [WAL] Reactor resuming at tx={}, gen={}", tx_count, generation);
+    }
     let mut last_invest_epoch = epoch_secs();
 
     loop {
@@ -555,6 +576,11 @@ async fn main() {
                         info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
                         agent_rejections.lock().unwrap().remove(&tx.agent_id); // Clear rejection on success
                         bus.tick_map_reduce();
+
+                        // WAL: persist tape after every successful tx
+                        if let Err(e) = bus.save_wal(&wal_path, tx_count, generation as usize) {
+                            warn!(">>> [WAL] Save failed: {}", e);
+                        }
 
                         // OMEGA Detection: Agent claims [COMPLETE] → compile FULL PROOF CHAIN.
                         // Oracle (Engine 3) fires ONLY here. Intermediate appends are free (Law 1).

@@ -5,7 +5,9 @@
 /// Price = Bayesian probability. Oracle resolves at OMEGA.
 /// Pure math — zero domain knowledge.
 
-#[derive(Debug, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BinaryMarket {
     pub node_id: String,
     /// YES share reserves in the pool

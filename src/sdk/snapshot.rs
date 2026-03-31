@@ -5,10 +5,11 @@
 /// This enables lock-free concurrent reads (Append-Only DAG guarantee).
 
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 use crate::kernel::Tape;
 
 /// Frozen view of a single binary prediction market
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct MarketSnapshot {
     /// Bayesian probability that this node is on the Golden Path
     pub yes_price: f64,
@@ -21,7 +22,7 @@ pub struct MarketSnapshot {
     pub resolved: Option<bool>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct UniverseSnapshot {
     /// The complete DAG of all appended nodes
     pub tape: Tape,

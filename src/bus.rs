@@ -1,6 +1,25 @@
 use crate::kernel::{Kernel, File};
+use crate::prediction_market::BinaryMarket;
 use crate::sdk::tool::{TuringTool, ToolSignal};
+use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, VecDeque};
+
+/// WAL: Full persistent state for tape recovery.
+/// A Turing machine without persistent tape is not a Turing machine.
+#[derive(Serialize, Deserialize)]
+pub struct WalState {
+    pub tape_files: HashMap<String, File>,
+    pub tape_reverse_citations: HashMap<String, Vec<String>>,
+    pub tape_time_arrow: Vec<String>,
+    pub prediction_markets: HashMap<String, BinaryMarket>,
+    pub balances: HashMap<String, f64>,
+    pub portfolios: HashMap<String, HashMap<String, (f64, f64, f64)>>,
+    pub tombstones: HashMap<String, VecDeque<String>>,
+    pub clock: usize,
+    pub system_mm_total_injected: f64,
+    pub tx_count: u64,
+    pub generation: usize,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct Graveyard {
@@ -670,6 +689,87 @@ impl TuringBus {
     /// Legacy: tick_map_reduce redirects to refresh_prices for backward compat
     pub fn tick_map_reduce(&mut self) {
         self.tick_refresh_prices();
+    }
+
+    // ── WAL: Tape Persistence (A Turing machine's tape MUST survive restart) ──
+
+    /// Serialize full bus state to WAL file. Called after each tx.
+    pub fn save_wal(&self, path: &str, tx_count: u64, generation: usize) -> Result<(), String> {
+        use crate::sdk::tools::wallet::WalletTool;
+
+        let mut balances = HashMap::new();
+        let mut portfolios = HashMap::new();
+        for tool in &self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
+                    balances = wallet.balances.clone();
+                    portfolios = wallet.portfolios.clone();
+                }
+                break;
+            }
+        }
+
+        let state = WalState {
+            tape_files: self.kernel.tape.files.clone(),
+            tape_reverse_citations: self.kernel.tape.reverse_citations.clone(),
+            tape_time_arrow: self.kernel.tape.time_arrow.clone(),
+            prediction_markets: self.kernel.prediction_markets.clone(),
+            balances,
+            portfolios,
+            tombstones: self.graveyard.tombstones.clone(),
+            clock: self.clock,
+            system_mm_total_injected: self.system_mm_total_injected,
+            tx_count,
+            generation,
+        };
+
+        let json = serde_json::to_string(&state).map_err(|e| format!("WAL serialize: {}", e))?;
+        // Atomic write: write to tmp then rename
+        let tmp = format!("{}.tmp", path);
+        std::fs::write(&tmp, &json).map_err(|e| format!("WAL write: {}", e))?;
+        std::fs::rename(&tmp, path).map_err(|e| format!("WAL rename: {}", e))?;
+        Ok(())
+    }
+
+    /// Restore full bus state from WAL file. Returns (tx_count, generation).
+    pub fn restore_wal(&mut self, path: &str) -> Result<(u64, usize), String> {
+        use crate::sdk::tools::wallet::WalletTool;
+
+        let json = std::fs::read_to_string(path).map_err(|e| format!("WAL read: {}", e))?;
+        let state: WalState = serde_json::from_str(&json).map_err(|e| format!("WAL deserialize: {}", e))?;
+
+        // Restore tape
+        self.kernel.tape.files = state.tape_files;
+        self.kernel.tape.reverse_citations = state.tape_reverse_citations;
+        self.kernel.tape.time_arrow = state.tape_time_arrow;
+
+        // Restore prediction markets
+        self.kernel.prediction_markets = state.prediction_markets;
+
+        // Restore wallet
+        for tool in &mut self.tools {
+            if tool.manifest() == "core.tool.crypto_wallet" {
+                if let Some(wallet) = tool.as_any_mut().downcast_mut::<WalletTool>() {
+                    wallet.balances = state.balances;
+                    wallet.portfolios = state.portfolios;
+                }
+                break;
+            }
+        }
+
+        // Restore graveyard
+        self.graveyard.tombstones = state.tombstones;
+        self.clock = state.clock;
+        self.system_mm_total_injected = state.system_mm_total_injected;
+
+        // Refresh prices from restored markets
+        self.kernel.refresh_prices();
+
+        let node_count = self.kernel.tape.files.len();
+        log::info!(">>> [WAL RESTORE] Tape recovered: {} nodes, {} markets, tx={}, gen={}",
+            node_count, self.kernel.prediction_markets.len(), state.tx_count, state.generation);
+
+        Ok((state.tx_count, state.generation))
     }
 }
 

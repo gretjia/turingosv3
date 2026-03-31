@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use serde::{Serialize, Deserialize};
 use crate::prediction_market::BinaryMarket;
 
 pub type Token = u64;
@@ -10,7 +11,7 @@ pub enum MachineState {
     Halt,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct File {
     pub id: FileId,
     pub author: String,
@@ -21,7 +22,7 @@ pub struct File {
     pub price: f64,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Tape {
     pub files: HashMap<FileId, File>,
     pub reverse_citations: HashMap<FileId, Vec<FileId>>,

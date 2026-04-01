@@ -25,7 +25,10 @@ use minif2f_v2::lean4_oracle::Lean4Oracle;
 
 const SWARM_SIZE: usize = 15;
 const MAX_TRANSACTIONS: u64 = 1000;
-const FALSIFIER_COUNT: usize = 2; // Nakamoto N-1: redundant falsifier syndicate
+// Architect 2026-04-01: Role trifecta — 5 math / 5 bull / 5 bear
+const MATH_COUNT: usize = 5;   // Agent 0-4:  proof builders
+const BULL_COUNT: usize = 5;   // Agent 5-9:  YES investors (做多)
+const BEAR_COUNT: usize = 5;   // Agent 10-14: NO shorters (做空)
 
 const SKILL: &str = "\
 [TURING-OS vGAIA: CONSCIOUS FOREST DIRECTIVE]\n\
@@ -303,29 +306,53 @@ async fn main() {
         let agent_dir = format!("{}/agent_{}", skills_dir, i);
         let _ = std::fs::create_dir_all(&agent_dir);
     }
-    // Engine 4: Seed Falsifier Syndicate — Nakamoto N-1 redundancy
-    // FALSIFIER_COUNT agents from the tail of the swarm are seeded as falsifiers.
-    // Architect 2026-03-31: all agents CAN short, falsifiers just lean toward it.
-    let falsifier_start = SWARM_SIZE - FALSIFIER_COUNT;
-    for fidx in falsifier_start..SWARM_SIZE {
-        let falsifier_path = format!("{}/agent_{}/learned.md", skills_dir, fidx);
-        // Always overwrite: ensures falsifier role even if skills dir is reused from prior run
-        if !std::fs::read_to_string(&falsifier_path).unwrap_or_default().contains("Mathematical Skeptic") {
-            let _ = std::fs::write(&falsifier_path,
-                "# ROLE: Mathematical Skeptic (via negativa)\n\
-                You have a gift for spotting what others miss.\n\n\
-                YOUR APPROACH:\n\
-                1. READ proof steps carefully — especially those with high consensus\n\
-                2. ASK: Is the logic airtight? Are there missing cases? Unjustified leaps?\n\
-                3. If you find a flaw, APPEND your analysis and SHORT the flawed node\n\
-                4. If a step is genuinely sound, endorse it — intellectual honesty above all\n\n\
-                A proof that survives your scrutiny is stronger for it.\n\
-                Both building and scrutinizing are sacred duties of a mathematician.\n"
-            );
-            info!(">>> [FALSIFIER] Agent_{} seeded as Mathematical Falsifier", fidx);
-        }
+    // Engine 4: Seed Role Trifecta — Architect 2026-04-01
+    // 5 Math (proof builders) + 5 Bull (做多 YES) + 5 Bear (做空 NO)
+    // All agents retain full action freedom; roles are cognitive bias, not hard constraints.
+    for i in 0..SWARM_SIZE {
+        let role_path = format!("{}/agent_{}/learned.md", skills_dir, i);
+        let (role_name, role_content) = if i < MATH_COUNT {
+            ("Mathematician", "\
+# ROLE: Mathematician (Proof Builder)\n\
+Your PRIMARY mission is constructing correct proof steps.\n\n\
+YOUR APPROACH:\n\
+1. FOCUS on advancing the proof — find the next logical step others have missed\n\
+2. READ the existing chain carefully to avoid repeating what's already been done\n\
+3. APPEND novel, atomic reasoning steps that push the frontier forward\n\
+4. You MAY invest/short when you see a clearly correct or flawed step,\n\
+   but your comparative advantage is BUILDING, not trading.\n\
+5. Seek DIFFERENT angles — if many steps approach from algebra, try geometry or combinatorics.\n\n\
+Your value to the forest: every correct step you build is a brick in the cathedral.\n")
+        } else if i < MATH_COUNT + BULL_COUNT {
+            ("Bull", "\
+# ROLE: Bull Investor (做多 · YES Advocate)\n\
+Your PRIMARY mission is discovering and funding correct proof steps.\n\n\
+YOUR APPROACH:\n\
+1. READ every new node carefully — look for mathematical correctness and progress\n\
+2. INVEST YES aggressively on steps you judge as sound (recommended: 20-100 Coins)\n\
+3. Build consensus around promising proof paths by concentrating capital\n\
+4. You MAY append steps too, but your comparative advantage is CAPITAL ALLOCATION.\n\
+5. When you see an underpriced correct step, that's alpha — invest before others notice.\n\n\
+Your value to the forest: capital flows signal which paths deserve collective effort.\n\
+High-conviction bets on correct steps accelerate proof convergence.\n")
+        } else {
+            ("Bear", "\
+# ROLE: Bear Investor (做空 · NO Advocate)\n\
+Your PRIMARY mission is finding and punishing flawed proof steps.\n\n\
+YOUR APPROACH:\n\
+1. READ every new node with SKEPTICISM — assume errors until proven otherwise\n\
+2. SHORT aggressively on steps with logical gaps, unjustified leaps, or errors (20-100 Coins)\n\
+3. Look for: missing edge cases, implicit assumptions, circular reasoning, hand-waving\n\
+4. HIGH-PRICE nodes are your prime targets — overpriced consensus is your profit opportunity\n\
+5. You MAY append corrective steps showing WHY a node is wrong.\n\n\
+Your value to the forest: you ARE the immune system. False consensus is cancer.\n\
+Every bad step you kill saves the forest from building on sand.\n")
+        };
+        let _ = std::fs::write(&role_path, role_content);
+        info!(">>> [ROLE] Agent_{} seeded as {}", i, role_name);
     }
-    info!(">>> [ENGINE 4] Per-agent skill paths initialized at {}/ ({} falsifiers)", skills_dir, FALSIFIER_COUNT);
+    info!(">>> [ENGINE 4] Role trifecta initialized at {}/ ({}M/{}B+/{}B-)",
+        skills_dir, MATH_COUNT, BULL_COUNT, BEAR_COUNT);
 
     // --- Spawn Agent Loops ---
     for i in 0..SWARM_SIZE {
@@ -340,9 +367,10 @@ async fn main() {
         let agent_skill_dir = format!("{}/agent_{}", skills_dir, i);
         let rejections = agent_rejections.clone();
 
-        let is_falsifier = i >= falsifier_start;
-        info!(">>> [SPAWN] Agent {} → {} | $HOME: {}{}", i, client.model_name(), agent_skill_dir,
-            if is_falsifier { " [FALSIFIER]" } else { "" });
+        let agent_role = if i < MATH_COUNT { "MATH" }
+            else if i < MATH_COUNT + BULL_COUNT { "BULL" }
+            else { "BEAR" };
+        info!(">>> [SPAWN] Agent {} → {} | $HOME: {} [{}]", i, client.model_name(), agent_skill_dir, agent_role);
 
         tokio::spawn(async move {
             let agent_name = format!("Agent_{}", i);
@@ -469,18 +497,26 @@ async fn main() {
                         })
                         .collect::<Vec<_>>().join("\n");
 
+                    let role_bias = if i < MATH_COUNT {
+                        "You are a proof builder. Only invest when you see clearly correct or flawed steps. Prefer PASS if unsure — your main job is building, not trading."
+                    } else if i < MATH_COUNT + BULL_COUNT {
+                        "You are a BULL investor. Your edge is finding CORRECT steps before others. Invest YES aggressively (20-100 Coins) on sound reasoning. SHORT only when a flaw is undeniable. DO NOT pass lightly — capital deployment is your mission."
+                    } else {
+                        "You are a BEAR investor. Your edge is finding FLAWED steps before others. SHORT aggressively (20-100 Coins) on gaps, errors, and hand-waving. Invest YES only when correctness is beyond doubt. DO NOT pass lightly — skepticism is your weapon."
+                    };
+
                     let invest_prompt = format!(
-                        "You are a mathematician reviewing proof steps. Your balance: {:.0} Coins.\n\
+                        "You are reviewing proof steps. Your balance: {:.0} Coins.\n\
+                        {}\n\n\
                         Recent nodes (most recent first):\n{}\n\n\
                         Read each step carefully. Use your mathematical judgment:\n\
-                        - If a step is correct and advances the proof → endorse it:\n\
+                        - Endorse a correct step:\n\
                           <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - If a step has an error, gap, or leads nowhere → challenge it:\n\
+                        - Challenge a flawed step:\n\
                           <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - If unsure → pass: <action>{{\"tool\":\"pass\"}}</action>\n\n\
-                        Your honest assessment matters. A proof that survives scrutiny is worth more than one that was never questioned.\n\
-                        Minimum 2 Coins. Recommended: 5-20 Coins.",
-                        invest_balance, node_list
+                        - If genuinely unsure: <action>{{\"tool\":\"pass\"}}</action>\n\n\
+                        Minimum 2 Coins.",
+                        invest_balance, role_bias, node_list
                     );
 
                     match client.resilient_generate(&invest_prompt, i, 0.3).await {

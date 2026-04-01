@@ -1,141 +1,148 @@
-# Zeta Sum Proof Run 11 — Visualized DAG
+# Zeta Sum Proof Run 11 — Visualized DAG (Character Art)
 
-**61 nodes | 4 GP | 10 Insights | 42 Duplicates | 4 Partials | 1 Whale | 0 Errors**
+**61 nodes | 4 GP | 10 ★ Insights | 42 ◎ Duplicates | 4 △ Partials | 1 ⚠ Whale | 0 ✗ Errors**
 
-Color key: 🟢 GP (settled 1.00) | 🔵 Insight (valuable, not GP) | ⬜ Duplicate | 🟡 Partial | 🔴 Error | 🟠 Whale
-
-## Golden Path + Insights + Key Traded Nodes
-
-```mermaid
-flowchart LR
-    subgraph STEP1["STEP 1: Define S(N) + Convergence"]
-        GP1["✓ tx_7 [A10]\n52% BULL\n2 bets"]:::gp
-        D1a["◎ tx_1 [A4]\n50%"]:::dup
-        D1b["◎ tx_2 [A2]\n50%"]:::dup
-        D1c["◎ tx_3 [A0]\n50%"]:::dup
-        D1d["◎ tx_4 [A12]\n50%"]:::dup
-        D1e["◎ tx_5 [A8]\n50%"]:::dup
-        D1f["◎ tx_6 [A14]\n50%"]:::dup
-        D1g["◎ tx_8 [A6]\n50%"]:::dup
-        D1h["◎ tx_11 [A11]\n50%"]:::dup
-        D1i["◎ tx_17 [A13]\n50%"]:::dup
-        D1j["◎ tx_18 [A9]\n50%"]:::dup
-        D1k["◎ tx_29 [A3]\n50%"]:::dup
-        D1l["◎ tx_41 [A5]\n50%"]:::dup
-        D1m["◎ tx_47 [A1]\n50%"]:::dup
-        D1n["◎ tx_49 [A7]\n50%"]:::dup
-    end
-
-    subgraph STEP2["STEP 2: Euler + Geometric Series"]
-        GP2["✓ tx_24 [A14]\n50% NO BETS\nDUAL-SUM PATH"]:::gp
-        I2["★ tx_57 [A8]\n50% NO BETS\nz₂=conj(z₁)\nBRIDGES BOTH PATHS"]:::insight
-
-        subgraph DS["Dual-Sum Branch"]
-            D2a["◎ tx_12 [A4] 50%"]:::dup
-            D2b["◎ tx_23 [A6] 50%"]:::dup
-            D2c["◎ tx_27 [A2] 50%"]:::dup
-            D2d["◎ tx_42 [A14] 50%"]:::dup
-            D2e["◎ tx_53 [A4] 50%"]:::dup
-            D2f["◎ tx_61 [A3] 50%"]:::dup
-            D2g["◎ tx_86 [A6] 50%"]:::dup
-        end
-
-        subgraph RE["Re Path Branch"]
-            D2h["◎ tx_21 [A12] 50%"]:::dup
-            D2i["◎ tx_22 [A0] 50%"]:::dup
-            D2j["◎ tx_25 [A8] 50%"]:::dup
-            D2k["◎ tx_34 [A4] 50%"]:::dup
-            D2l["◎ tx_38 [A8] 50%"]:::dup
-            D2m["◎ tx_56 [A14] 50%"]:::dup
-            D2n["◎ tx_66 [A6] 50%"]:::dup
-            D2o["◎ tx_76 [A4] 50%"]:::dup
-        end
-    end
-
-    subgraph STEP3["STEP 3: Laurent Expansion"]
-        GP3["✓ tx_70 [A10]\n50% NO BETS\n1/(ε²(i-1)²) − 1/12"]:::gp
-        I3a["★ tx_84 [A12]\n50%\nreal (r,θ) form"]:::insight
-        I3b["★ tx_60 [A9]\n50%\nexp/(exp-1)² form"]:::insight
-
-        D3a["◎ tx_36 [A0] 50%"]:::dup
-        D3b["◎ tx_39 [A12] 50%"]:::dup
-        D3c["◎ tx_46 [A6] 43%⚠\nCORRECT but\nshorted 150N"]:::dup
-        D3d["◎ tx_67 [A8] 50%"]:::dup
-        D3e["◎ tx_74 [A6] 50%"]:::dup
-        D3f["◎ tx_85 [A7] 50%"]:::dup
-        D3g["◎ tx_87 [A1] 50%"]:::dup
-        D3h["◎ tx_93 [A11] 50%"]:::dup
-        D3i["◎ tx_100 [A4] 50%"]:::dup
-        D3j["◎ tx_102 [A14] 50%"]:::dup
-        D3k["◎ tx_104 [A3] 50%"]:::dup
-    end
-
-    subgraph STEP4["STEP 4: Limit → OMEGA"]
-        GP4["✓ tx_112 [A9]\n50% NO BETS\nRe=0 → −1/12\n★ OMEGA ★"]:::gp
-        I4a["★ tx_91 [A14]\n50%\nN²/(1-i)²−1/12"]:::insight
-        I4b["★ tx_92 [A13]\n50%\nN²/(i-1)²−1/12"]:::insight
-        I4c["★ tx_103 [A0]\n50%\n1/w²−1/12+O(w²)"]:::insight
-        I4d["★ tx_109 [A2]\n50%\n1/z²−1/12+z/12"]:::insight
-        P4a["△ tx_65 [A2] 50%"]:::partial
-        P4b["△ tx_73 [A11] 50%"]:::partial
-        P4c["△ tx_101 [A10] 50%"]:::partial
-        P4d["△ tx_105 [A8] 50%"]:::partial
-    end
-
-    subgraph WHALE["DETACHED: Whale + Shorted"]
-        W1["⚠ tx_5 [A14]\n90%!! → 0.00\nA6 bet 2000C\nLOST EVERYTHING"]:::whale
-        S1["◎ tx_40 [A0]\n41% BEAR\n200C NO\nCORRECT but killed"]:::shorted
-        S2["◎ tx_21b [A8]\n42% BEAR\n170C NO\nCORRECT but killed"]:::shorted
-        S3["◎ tx_1b [A2]\n43% BEAR\n140C NO"]:::shorted
-    end
-
-    %% Golden Path flow
-    GP1 ==>|"GP"| GP2 ==>|"GP"| GP3 ==>|"GP"| GP4
-
-    %% Insight connections
-    GP2 -.->|"proves equiv"| I2
-    GP3 -.->|"independent"| I4a
-    GP3 -.->|"independent"| I4b
-    GP3 -.->|"independent"| I4c
-    GP3 -.->|"independent"| I4d
-
-    %% Duplicate flows
-    D1a --> D2a
-    D1c --> D2i
-    D1d --> D2h
-    D1d --> D2j
-    D1g --> D2b
-    D1i --> D3a
-    D1k --> D3k
-    D1n --> D3f
-
-    %% Styles
-    classDef gp fill:#22c55e,stroke:#166534,color:#fff,stroke-width:3px
-    classDef insight fill:#3b82f6,stroke:#1e40af,color:#fff,stroke-width:2px
-    classDef dup fill:#e5e7eb,stroke:#9ca3af,color:#374151
-    classDef partial fill:#fef08a,stroke:#ca8a04,color:#713f12
-    classDef whale fill:#f97316,stroke:#c2410c,color:#fff,stroke-width:3px
-    classDef shorted fill:#fca5a5,stroke:#dc2626,color:#7f1d1d
+```
+Legend:  ✓ GP (1.00)   ★ Insight   ◎ Dup   △ Partial   ⚠ Whale
+        ══> GP edge    ──> citation    ···> equiv     [XX%] = live price
 ```
 
-## Market Price Distribution
+## Full DAG with All 61 Nodes, Citations, and Pricing
 
-```mermaid
-xychart-beta
-    title "Live Price Distribution (61 nodes)"
-    x-axis ["90%", "55%", "52%", "51%", "50%", "48%", "47%", "45%", "43%", "42%", "41%"]
-    y-axis "Node Count" 0 --> 40
-    bar [1, 2, 1, 5, 34, 2, 5, 2, 2, 1, 1]
 ```
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+ STEP 1: Define S(N)                    STEP 2: Euler + Σmz^m                     STEP 3: Laurent              STEP 4 → OMEGA
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-## Market Scorecard
+ ┌───────────────────┐                  ┌──────────────────────────┐               ┌──────────────────────┐     ┌──────────────────────┐
+ │ ✓ tx_7 [A10] 52%  │════════════════>│ ✓ tx_24 [A14] (50%)      │══════════════>│ ✓ tx_70 [A10] (50%)  │════>│ ✓ tx_112 [A9] (50%)  │
+ │ ratio test proof   │  GP EDGE        │ cos=(e+e⁻)/2             │  GP EDGE      │ 1/((i-1)²ε²)−1/12   │ GP  │ Re=0, lim=−1/12      │
+ │ B=2 BULL (40Y)     │                 │ z₁,z₂ → ½[z₁/(1-z₁)²+…]│               │ THE −1/12 APPEARS    │     │ ★ OMEGA REACHED ★     │
+ └───────────────────┘                  │ DUAL-SUM ◄── GP chose    │               │ zero bets on GP!     │     │ zero bets on OMEGA!   │
+          │                              │ zero bets on GP!         │               └──────────┬───────────┘     └──────────────────────┘
+          │                              └────────────┬─────────────┘                          │
+          │                                           │                                        │  (independent derivations)
+          │                                ···········│····················                     │
+          │                               :           │                   :              ┌──────┴──────────────┐
+          │                               :  ┌────────┴──────────────┐    :              │ ★ tx_91 [A14] (50%) │
+          │                               :  │ ★ tx_57 [A8] (50%)   │    :              │ N²/(1-i)²−1/12     │
+          │                               :  │ z₂=conj(z₁)          │    :              │ indep Laurent       │
+          │                               :  │ PROVES dual=Re path   │    :              │ zero bets           │
+          │                               :  │ Most valuable non-GP  │    :              ├─────────────────────┤
+          │                               :  │ ZERO BETS. Gem.       │    :              │ ★ tx_92 [A13] (50%) │
+          │                               :  └───────────────────────┘    :              │ N²/(i-1)²−1/12     │
+          │                               :    bridges the two branches   :              ├─────────────────────┤
+          │                               ····································           │ ★ tx_103 [A0] (50%) │
+          │                                                                              │ 1/w²−1/12+O(w²)    │
+          │                                                                              ├─────────────────────┤
+          │                                                                              │ ★ tx_109 [A2] (50%) │
+          │                                                                              │ 1/z²−1/12+z/12     │
+          │                                                                              │ (extended Laurent)  │
+          │                                                                              └─────────────────────┘
+          │                                                                              ALL ★ = 50%, 0 bets.
+          │                                                                              Proof verified 5× indep.
+          │                                                                              Market saw NONE of it.
+          │
+          │
+ ─────────┼────── DUPLICATE CHAINS (42 nodes, all ◎, showing citation edges) ──────────────────────────
+          │
+          │  DUAL-SUM BRANCH                           Re PATH BRANCH
+          │  ─────────────────                         ──────────────────
+          │
+ ┌────────┴───────────┐  ┌──────────────────┐         ┌──────────────────┐  ┌──────────────────┐
+ │ ◎ tx_1 [A4] (50%)  │─>│ ◎ tx_12 [A4](50%)│──┐      │ ◎ tx_17[A13](50%)│─>│ ◎ tx_36[A0] (50%)│──┐
+ │ "abs convergence"   │  │ cos=(e+e⁻)/2     │  │      │ cos=Re(e^iθ)     │  │ Σmx^m=x/(1-x)²  │  │
+ └────────────────────┘  └──────────────────┘  │      └──────────────────┘  └──────────────────┘  │
+                                                │                                                   │
+ ┌────────────────────┐  ┌──────────────────┐  │      ┌──────────────────┐  ┌──────────────────┐  │
+ │ ◎ tx_2 [A2] (50%)  │─>│ ◎ tx_27 [A2](50%)│─>│──┐   │ ◎ tx_4 [A12](50%)│─>│ ◎ tx_21[A12](50%)│──┼─┐
+ │ "decays expon"      │  │ cos=(e+e⁻)/2     │  │  │   │ "dominating"     │  │ r=exp((i-1)/N)   │  │ │
+ └────────────────────┘  └──────────────────┘  │  │   └──────────────────┘  └──────────────────┘  │ │
+                                                │  │                          │                     │ │
+ ┌────────────────────┐  ┌──────────────────┐  │  │   ┌──────────────────┐   │  ┌────────────────┐ │ │
+ │ ◎ tx_3 [A0] (50%)  │─>│ ◎ tx_22 [A0](50%)│  │  │   │ ◎ tx_25 [A8](50%)│<──┘  │◎ tx_39[A12]   │ │ │
+ │ "regulated sum"     │  │ Re path          │  │  │   │ Re path          │──────>│(50%) z/(1-z)² │ │ │
+ └────────────────────┘  └──────────────────┘  │  │   └──────────────────┘       └───────┬────────┘ │ │
+                                                │  │     │                                │          │ │
+ ┌────────────────────┐                         │  │     │  ┌──────────────────┐  ┌───────┴────────┐ │ │
+ │ ◎ tx_8 [A6] (50%)  │──┐                     │  │     └─>│ ◎ tx_46 [A6]     │  │◎ tx_105[A8]   │ │ │
+ │ "ratio test"        │  │                     │  │        │ 43% BEAR ⚠       │  │(50%) Taylor   │ │ │
+ └────────────────────┘  │                     │  │        │ CORRECT shorted!  │  └────────────────┘ │ │
+                          │                     │  │        │ A4 NO 100,A8 NO50│                     │ │
+ ┌────────────────────┐  │  ┌──────────────────┐│  │        │ MARKET ERROR      │                     │ │
+ │ ◎ tx_5 [A8] (50%)  │──┼─>│ ◎ tx_56[A14](50%)││  │        └──────────────────┘                     │ │
+ │ "minimal defn"      │  │  │ Re path          ││  │                                                 │ │
+ └────────────────────┘  │  └──────────────────┘│  │   ┌──────────────────┐                          │ │
+                          │                     │  └──>│ ◎ tx_53 [A4](50%)│───────────────────────────┘ │
+ ┌────────────────────┐  │  ┌──────────────────┐│      │ ½[a/(1-a)²+b/…] │                             │
+ │ ◎ tx_11[A11] (50%) │──┼─>│ ◎ tx_38 [A8](50%)││      └──────────────────┘                             │
+ │ "exp decay"         │  │  │ Re path          ││                                                       │
+ └────────────────────┘  │  └─────────┬────────┘│      ┌──────────────────┐                             │
+                          │            │         │      │ ◎ tx_61 [A3](50%)│<────────────────────────────┘
+ ┌────────────────────┐  │  ┌─────────┴────────┐│      │ dual sum ∓       │
+ │ ◎ tx_29 [A3] (50%) │──┼─>│ ◎ tx_67 [A8](50%)││      └──────────────────┘
+ │ "ratio test"        │  │  │ z/(1-z)²         ││
+ └────────────────────┘  │  └──────────────────┘│   More Step 3 dups (all 50%, 0 bets):
+                          │                      │   ◎ tx_74[A6] ◎ tx_85[A7] ◎ tx_87[A1]
+ ◎ tx_41[A5] (50%)       │  ◎ tx_23[A6] (50%)   │   ◎ tx_93[A11] ◎ tx_99[A6] ◎ tx_100[A4]
+ ◎ tx_47[A1] (50%)       │  ◎ tx_34[A4] (50%)   │   ◎ tx_102[A14] ◎ tx_104[A3]
+ ◎ tx_49[A7] (50%)       │  ◎ tx_66[A6] (50%)   │
+ ◎ tx_6 [A14] (50%)      │  ◎ tx_76[A4] (50%)   │   Step 3 insights (50%, 0 bets):
+ ◎ tx_18[A9] (50%)       │  ◎ tx_86[A6] (50%)   │   ★ tx_84[A12] real(r,θ) form
+                          │  ◎ tx_42[A14] (50%)  │   ★ tx_60[A9]  exp/(exp-1)² form
+                          │                      │
+                          │                      │   Step 4 partials (50%, 0 bets):
+                          │                      │   △ tx_65[A2] △ tx_73[A11]
+                          │                      │   △ tx_101[A10] △ tx_105[A8]
+                          │                      │
 
-```mermaid
-pie title "Market Scorecard: 1/10"
-    "GP identified (tx_7 only)" : 1
-    "GP invisible (tx_24,70,112)" : 3
-    "Insights invisible (all 10)" : 10
-    "Duplicates correctly ignored" : 20
-    "Correct nodes wrongly shorted" : 4
-    "Whale bubble (2000C→0)" : 1
+
+ ─────────────────── DETACHED: WHALE + HEAVILY SHORTED (not on any chain) ──────────────────────────
+
+ ┌──────────────────────────────┐     ┌──────────────────────────┐     ┌──────────────────────────┐
+ │ ⚠ tx_5_by_14 [A14]          │     │ ◎ tx_40 [A0] 41% BEAR   │     │ ◎ tx_21b [A8] 42% BEAR   │
+ │ P = 90% !!                   │     │ 200C NO on correct math  │     │ 170C NO on correct math   │
+ │ Agent_6 bet 2000 Coins       │     │ MARKET ERROR: killed     │     │ MARKET ERROR: killed       │
+ │ 20% of genesis funds         │     │ correct Step 2 node      │     │ correct Step 2 node        │
+ │ Settled: 0.00                │     └──────────────────────────┘     └──────────────────────────┘
+ │ LOST EVERYTHING              │
+ │ WORST SIGNAL IN RUN          │     ┌──────────────────────────┐
+ └──────────────────────────────┘     │ ◎ tx_1 [A2] 43% BEAR    │
+                                       │ 140C NO on correct math  │
+ ┌──────────────────────────────┐     └──────────────────────────┘
+ │ ◎ tx_6 [A6] 54.8%           │
+ │ A10 YES 100C (dup endorsed) │
+ └──────────────────────────────┘
+
+
+ ═══════════ PRICE SPECTRUM ═══════════
+
+           90%  │█                              ⚠ whale bubble (1 node)
+                │
+           55%  │██                             ◎ endorsed dups (2 nodes)
+           52%  │█                              ✓ GP tx_7 (only GP with bets!)
+           51%  │█████                          ◎ tepid endorsements
+                │
+           50%  │████████████████████████████████████  ← 34 nodes: 3 GP + 10★ + dups
+                │  ↑ 3/4 GP nodes invisible
+                │  ↑ ALL 10 insights invisible
+                │
+           48%  │██                             ◎ mild shorts
+           47%  │█████                          ◎ shorts on correct math
+           45%  │██                             ◎ harder shorts
+           43%  │██                             ◎ MARKET ERROR: correct killed
+           42%  │█                              ◎ MARKET ERROR: correct killed
+           41%  │█                              ◎ WORST: 200C on correct math
+                └─────────────────────────────────────────────────────────────
+
+ Market Scorecard: 1/10
+ ┌──────────────────────────────┬───────┐
+ │ GP Step 1 identified         │  6/10 │
+ │ GP Steps 2-4 identified      │  0/10 │
+ │ 10 insights identified       │  0/10 │
+ │ Whale prevention             │  0/10 │
+ │ Correct nodes not killed     │  0/10 │
+ │ Error detection              │  N/A  │
+ │ OVERALL                      │  1/10 │
+ └──────────────────────────────┴───────┘
 ```

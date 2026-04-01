@@ -19,13 +19,13 @@ use turingosv3::sdk::tools::search::SearchTool;
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
 use zeta_sum_proof::math_membrane::MathStepMembrane;
 
-const SWARM_SIZE: usize = 30;
-const MAX_TRANSACTIONS: u64 = 300;
+const SWARM_SIZE: usize = 90;
+const MAX_TRANSACTIONS: u64 = 6000;
 
-// Architect 2026-04-01: Role trifecta (scaled to 30)
-const MATH_COUNT: usize = 10;  // Agent 0-9:   proof builders
-const BULL_COUNT: usize = 10;  // Agent 10-19:  YES investors (做多)
-const BEAR_COUNT: usize = 10;  // Agent 20-29:  NO shorters (做空)
+// Architect 2026-04-01: Role trifecta (scaled to 90)
+const MATH_COUNT: usize = 30;  // Agent 0-29:   proof builders
+const BULL_COUNT: usize = 30;  // Agent 30-59:  YES investors (做多)
+const BEAR_COUNT: usize = 30;  // Agent 60-89:  NO shorters (做空)
 
 const PROBLEM: &str = r#"PROVE: 1 + 2 + 3 + 4 + ... = -1/12 (in the sense of regularization)
 

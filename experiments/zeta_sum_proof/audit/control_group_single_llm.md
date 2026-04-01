@@ -378,3 +378,314 @@ The swarm destroys value when:
 - Market pricing fails (77% of nodes never traded)
 
 **Conclusion**: Zeta was too easy to demonstrate swarm value. The real benchmark is problems at the frontier of LLM capability — where single-shot fails and collective intelligence has room to outperform.
+
+---
+
+## Appendix: TuringOS Swarm Run 11 — Unified DAG with Pricing & Node Classification
+
+**61 nodes | 112 tx | 47 bets on 27 nodes | 34 nodes never traded**
+**Golden Path: tx_7 → tx_24 → tx_70 → tx_112 (4 steps, OMEGA reached)**
+**Post-settlement: GP=1.00, all others=0.00. Prices below are LIVE during trading.**
+
+### Legend
+
+```
+✓ GP            = Golden Path node (settled Price=1.00)
+★ INSIGHT       = correct novel insight, NOT on GP (settled 0.00)
+◎ DUPLICATE     = repeats content already on tape (settled 0.00)
+✗ ERROR         = none found in this run (all nodes mathematically correct!)
+⚠ WHALE         = extreme single bet (>1000 Coins)
+
+BULL = more YES than NO coins    | BEAR = more NO than YES coins
+P:XX-YY% = live price range      | (50%) = never traded
+```
+
+### Unified DAG (all 61 nodes)
+
+```
+ROOT: Prove 1+2+3+... = -1/12 using S(N) = Σ m·exp(-m/N)·cos(m/N)
+│
+╔══════════════════════════════════════════════════════════════════════════════════
+║ STEP 1: Define S(N) + Prove Convergence
+║ 12 nodes — 1 GP + 11 DUPLICATES (all correct, all say the same thing)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ✓ tx_7_by_10  [Agent_10] SETTLED=1.00 | P:50.0-52.0% BULL(40Y/0N) 2 bets
+║ │  "S(N) converges absolutely by ratio test (lim (m+1)/m · e^{-1/N} < 1)"
+║ │  ├─ Agent_12 YES 20 → 51.0%
+║ │  └─ Agent_1  YES 20 → 52.0%
+║ │  WHY GP: Most rigorous convergence proof (explicit ratio test bound)
+║ │
+║ ◎ tx_1_by_4   [Agent_4]  (50%)         | "absolute convergence" (same idea)
+║ ◎ tx_2_by_2   [Agent_2]  (50%)         | "decays exponentially" (same idea)
+║ ◎ tx_3_by_0   [Agent_0]  (50%)         | "regulated sum" (same idea)
+║ ◎ tx_4_by_12  [Agent_12] (50%)         | "dominating linear growth" (same idea)
+║ ◎ tx_5_by_8   [Agent_8]  (50%)         | minimal definition, no convergence proof
+║ ◎ tx_6_by_14  [Agent_14] (50%)         | Step 1+2 combined (advanced but not selected)
+║ ◎ tx_8_by_6   [Agent_6]  (50%)         | "ratio test" (same as GP)
+║ ◎ tx_11_by_11 [Agent_11] (50%)         | "exponential decay dominates" (same idea)
+║ ◎ tx_18_by_9  [Agent_9]  (50%)         | ratio test detailed (same as GP)
+║ ◎ tx_29_by_3  [Agent_3]  (50%)         | ratio test (same as GP)
+║ ◎ tx_41_by_5  [Agent_5]  (50%)         | ratio test (late arrival, tx 41)
+║ ◎ tx_47_by_1  [Agent_1]  (50%)         | m=1 start instead of m=0 (minor variant)
+║ ◎ tx_49_by_7  [Agent_7]  (50%)         | Re(exp) direct (no Euler split)
+║
+║ REDUNDANCY: 12 agents wrote Step 1. Only tx_7 entered GP. 11/12 = 92% wasted.
+║ MARKET: Only tx_7 received bets (2 YES). Other 11 = zero market activity.
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ STEP 2: Euler Formula + Geometric Series Identity
+║ 18 nodes — 1 GP + 17 non-GP (2 METHOD BRANCHES discovered)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║                   ┌─────────────────────────────┐
+║                   │    TWO METHOD BRANCHES       │
+║                   ├──────────────┬──────────────┤
+║                   │ DUAL-SUM ◄GP │   Re PATH    │
+║                   │ cos=(e+e⁻)/2 │ cos=Re(e^iθ) │
+║                   │ → z₁,z₂      │ → single z   │
+║                   └──────────────┴──────────────┘
+║
+║ ✓ tx_24_by_14 [Agent_14] SETTLED=1.00 | (50%) NO BETS!
+║ │  "cos=(e^{im/N}+e^{-im/N})/2 → z₁=exp((i-1)/N), z₂=exp((-i-1)/N)"
+║ │  "Σmz^m = z/(1-z)² → S(N) = ½[z₁/(1-z₁)² + z₂/(1-z₂)²]"
+║ │  DUAL-SUM PATH — same method Chat LLM chose in control group!
+║ │  WARNING: GP node received ZERO market investment. Its value was
+║ │  only recognized post-settlement. Market completely blind here.
+║ │
+║ ★ tx_57_by_8  [Agent_8]  (50%) NO BETS ★★ MOST VALUABLE NON-GP NODE
+║ │  "z₂ = conj(z₁), so S(N) = Re(z₁/(1-z₁)²)"
+║ │  PROVES dual-sum = Re path. Bridges the two branches.
+║ │  NEVER PRICED BY MARKET. Mathematical gem ignored.
+║ │
+║ DUAL-SUM branch duplicates:
+║ ◎ tx_12_by_4  [Agent_4]  (50%)  | cos=(e+e⁻)/2 (same as GP)
+║ ◎ tx_23_by_6  [Agent_6]  (50%)  | cos=(e+e⁻)/2 (same as GP)
+║ ◎ tx_27_by_2  [Agent_2]  (50%)  | cos=(e+e⁻)/2 (same as GP)
+║ ◎ tx_42_by_14 [Agent_14] (50%)  | cos=(e+e⁻)/2 (same, by GP author!)
+║ ◎ tx_53_by_4  [Agent_4]  (50%)  | "½[a/(1-a)² + b/(1-b)²]" (same)
+║ ◎ tx_61_by_3  [Agent_3]  (50%)  | dual sum with ∓ (same)
+║ ◎ tx_86_by_6  [Agent_6]  (50%)  | Euler substitute (same)
+║
+║ Re PATH branch duplicates:
+║ ◎ tx_17_by_13 [Agent_13] (50%)  | "cos=Re(exp)" → single z
+║ ◎ tx_21_by_12 [Agent_12] (50%)  | "r=exp((i-1)/N)" Re path
+║ ◎ tx_22_by_0  [Agent_0]  (50%)  | "Re[Σ m exp(m(i-1)/N)]"
+║ ◎ tx_25_by_8  [Agent_8]  (50%)  | "Re[Σ m e^{-m(1-i)/N}]"
+║ ◎ tx_34_by_4  [Agent_4]  (50%)  | Re path direct closed form
+║ ◎ tx_38_by_8  [Agent_8]  (50%)  | "Re Σ m (e^{-(1-i)/N})^m"
+║ ◎ tx_56_by_14 [Agent_14] (50%)  | "Re(Σ m [e^{(i-1)/N}]^m)"
+║ ◎ tx_66_by_6  [Agent_6]  (50%)  | Re path + identity in one
+║ ◎ tx_76_by_4  [Agent_4]  (50%)  | "Re(z/(1-z)²)" direct
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ STEP 3: Closed Form → Laurent Expansion
+║ 18 nodes — 1 GP + 17 non-GP (most stuck at closed form, didn't expand)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ✓ tx_70_by_10 [Agent_10] SETTLED=1.00 | (50%) NO BETS!
+║ │  "z₁/(1-z₁)² = 1/((i-1)²ε²) - 1/12 + O(ε²)"
+║ │  "similarly z₂/(1-z₂)² = 1/((-i-1)²ε²) - 1/12 + O(ε²)"
+║ │  THE CRITICAL STEP: Laurent expansion with -1/12 constant term.
+║ │  WARNING: GP node received ZERO bets. Market blind again.
+║ │
+║ ★ tx_84_by_12 [Agent_12] (50%) NO BETS
+║ │  "Real-valued closed form with (r,θ) parametrization"
+║ │  INSIGHT: Alternative real representation. Never priced.
+║ │
+║ ★ tx_60_by_9  [Agent_9]  (50%) NO BETS
+║ │  "Re[exp(z)/(exp(z)-1)²]" — alternative form via 1-exp(-z)
+║ │  INSIGHT: Equivalent reformulation. Never priced.
+║ │
+║ STUCK AT CLOSED FORM (correct but didn't reach Laurent expansion):
+║ ◎ tx_26_by_10 [Agent_10] (50%)  | "rewrite using Euler's formula" (vague)
+║ ◎ tx_36_by_0  [Agent_0]  (50%)  | "Σmx^m = x/(1-x)²" applied
+║ ◎ tx_39_by_12 [Agent_12] (50%)  | "z/(1-z)²" (closed form only)
+║ ◎ tx_46_by_6  [Agent_6]  P:43.1-50.0% BEAR(20Y/150N) 3 bets ⚠
+║ │  "Σm e^{-m(1-i)/N} = e^{-(1-i)/N}/(1-e^{-(1-i)/N})²"
+║ │  SHORTED: Agent_8 NO 50, Agent_4 NO 100 (!!), but Agent_0 YES 20
+║ │  Market thought this was wrong — but it's CORRECT (just incomplete)!
+║ │  MARKET ERROR: Correct node shorted to 43.1%.
+║ │
+║ ◎ tx_48_by_2  [Agent_2]  (50%)  | "complex exponential closed form" (vague)
+║ ◎ tx_51_by_0  [Agent_0]  (50%)  | "rewrite using complex exponential"
+║ ◎ tx_67_by_8  [Agent_8]  (50%)  | "z/(1-z)²" (same as others)
+║ ◎ tx_74_by_6  [Agent_6]  (50%)  | "r/(1-r)²" (same)
+║ ◎ tx_78_by_8  [Agent_8]  (50%)  | "Apply the formula" (too brief)
+║ ◎ tx_83_by_10 [Agent_10] (50%)  | "arithmetico-geometric" (same)
+║ ◎ tx_85_by_7  [Agent_7]  (50%)  | "z/(1-z)²" (same)
+║ ◎ tx_87_by_1  [Agent_1]  (50%)  | "r/(1-r)²" (same)
+║ ◎ tx_93_by_11 [Agent_11] (50%)  | "z/(1-z)²" (same)
+║ ◎ tx_99_by_6  [Agent_6]  (50%)  | "substitute z in terms of ω" (vague)
+║ ◎ tx_100_by_4 [Agent_4]  (50%)  | "exp((i-1)/N)/(1-exp)²" (same)
+║ ◎ tx_102_by_14[Agent_14] (50%)  | "r/(1-r)²" (same)
+║ ◎ tx_104_by_3 [Agent_3]  (50%)  | "Σm exp(m(i-1)/N) converges" (same)
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ STEP 4: Substitute w=(i-1)/N → Re(1/w²)=0 → limit = -1/12 → OMEGA
+║ 8 nodes — 1 GP (OMEGA) + 7 non-GP (some independently derived -1/12)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ✓ tx_112_by_9 [Agent_9]  SETTLED=1.00 | (50%) NO BETS!  ★ OMEGA ★
+║ │  "(i-1)²=-2i → 1/((i-1)²)=i/2 → Re=0"
+║ │  "S(N) = ½[-1/6+O(ε²)] = -1/12"
+║ │  "[COMPLETE] → OMEGA VERIFIED"
+║ │  WARNING: THE OMEGA NODE HAD ZERO MARKET INVESTMENT.
+║ │  The proof was found entirely through exploration, not market guidance.
+║ │
+║ ★ tx_91_by_14 [Agent_14] (50%) NO BETS
+║ │  "e^{-ε}/(1-e^{-ε})² = N²/(1-i)² - 1/12 + O(1/N)"
+║ │  INSIGHT: Independent Laurent derivation. Same -1/12. Never priced.
+║ │
+║ ★ tx_92_by_13 [Agent_13] (50%) NO BETS
+║ │  "a/(1-a)² = N²/(i-1)² - 1/12 + O(1/N)"
+║ │  INSIGHT: Independent Laurent. Same result. Never priced.
+║ │
+║ ★ tx_103_by_0 [Agent_0]  (50%) NO BETS
+║ │  "1/w² - 1/12 + O(w²)"
+║ │  INSIGHT: Compact Laurent form. Never priced.
+║ │
+║ ★ tx_109_by_2 [Agent_2]  (50%) NO BETS
+║ │  "f(z) = 1/z² - 1/12 + z/12 + O(z²)"
+║ │  INSIGHT: Extended Laurent (extra term z/12). Never priced.
+║ │
+║ △ tx_65_by_2  [Agent_2]  (50%) NO BETS
+║ │  "Apply summation formula... with r₁,r₂" (setup for Step 4, incomplete)
+║ △ tx_73_by_11 [Agent_11] (50%) NO BETS
+║ │  "Taylor expansion of e^{-(1-i)ε}" (concrete computation, incomplete)
+║ △ tx_101_by_10[Agent_10] (50%) NO BETS
+║ │  "Σ m z^m for z₁,z₂" (Step 4 setup)
+║ △ tx_105_by_8 [Agent_8]  (50%) NO BETS
+║ │  "expand e^{-w} and 1-e^{-w}" (Taylor details)
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ HEAVILY TRADED NON-GP NODES (market active but ultimately Price=0)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ⚠ tx_5_by_14  [Agent_14] (50%) → Agent_6 YES 2000 → P:90.0%!
+║ │  "Define S(N)... cos=(e+e⁻)/2... S(N) = ½Σ m[...]"
+║ │  Step 1+2 combined. Correct math but NOT selected for GP.
+║ │  Agent_6 bet 20% of genesis funds (2000 Coins). LOST EVERYTHING.
+║ │  BIGGEST SINGLE BET IN ENTIRE RUN. Post-settlement: 0.00.
+║ │
+║ ◎ tx_6_by_6   [Agent_6]  → Agent_10 YES 100 → P:54.8%
+║ │  Step 1, correct but duplicate. Heavy endorsement.
+║ │
+║ ◎ tx_13_by_3  [Agent_3]  → Agent_0/4/6 YES 10+10+20 → P:52.0%
+║ │  Step 1, correct but duplicate. Triple endorsement.
+║ │
+║ SHORTED NODES:
+║ ◎ tx_1_by_2   [Agent_2]  P:43.5-50.0% BEAR(0Y/140N) | Step 1 (shorted!)
+║ ◎ tx_20_by_11 [Agent_11] P:45.2-50.0% BEAR(0Y/100N) | Step 1 (shorted!)
+║ ◎ tx_21_by_8  [Agent_8]  P:42.2-50.0% BEAR(0Y/170N) | Step 2 Re path (shorted!)
+║ ◎ tx_40_by_0  [Agent_0]  P:41.0-50.0% BEAR(0Y/200N) | Step 2 (MOST SHORTED)
+║ │  MARKET ERROR: tx_40 is mathematically CORRECT but shorted to 41%.
+║ │  Why? Probably because agents couldn't distinguish correct-but-redundant
+║ │  from incorrect. Shorting = "I think this is a dead branch",
+║ │  not "I found a mathematical error."
+║ │
+║ ◎ tx_4_by_8   [Agent_8]  P:47.6% BEAR(0Y/50N)  | Step 1 duplicate
+║ ◎ tx_10_by_2  [Agent_2]  P:47.6% BEAR(0Y/50N)  | Step 1 duplicate
+║ ◎ tx_12_by_9  [Agent_9]  P:47.6% BEAR(0Y/50N)  | Step 2 duplicate
+║ ◎ tx_55_by_9  [Agent_9]  P:48.0% BEAR(10Y/50N) | Step 3 duplicate
+║ ◎ tx_69_by_11 [Agent_11] P:48.0% BEAR(0Y/40N)  | Step 3 duplicate
+║ ◎ tx_77_by_6  [Agent_6]  P:47.6% BEAR(0Y/50N)  | shorted
+║ ◎ tx_89_by_14 [Agent_14] P:47.6% BEAR(0Y/50N)  | shorted
+║ │
+║ ◎ tx_91_by_8  [Agent_8]  → Agent_8 AUTO-LONG 100 → P:54.8%
+║     Agent_8's own Step 4 attempt. Self-invested 100 Coins. Lost.
+║
+╚══════════════════════════════════════════════════════════════════════════════════
+```
+
+### Node Classification Summary
+
+```
+Category          Nodes  %     Market Reaction            Correct?
+────────────────  ─────  ────  ─────────────────────────  ─────────
+GP STEP 1 ✓         1    2%   52.0% (2 YES bets)         ✓ OMEGA
+GP STEP 2 ✓         1    2%   (50%) NO BETS              ✓ OMEGA
+GP STEP 3 ✓         1    2%   (50%) NO BETS              ✓ OMEGA
+GP STEP 4 ✓         1    2%   (50%) NO BETS              ✓ OMEGA
+INSIGHT ★          10   16%   ALL (50%) NO BETS          ✓ correct but ignored
+DUPLICATE ◎        42   69%   Mix: 50% / 41-48% BEAR     ✓ correct but redundant
+INCOMPLETE △        4    7%   ALL (50%) NO BETS          ✓ partial
+WHALE ⚠             1    2%   90.0% → settled 0.00       ✓ correct but dead
+ERROR ✗             0    0%   N/A                        (no errors in run!)
+────────────────  ─────  ────
+TOTAL              61   100%
+```
+
+### Price Spectrum (all 61 nodes)
+
+```
+Price Band         Nodes   Key Examples                         Signal Quality
+─────────────────  ─────   ──────────────────────────────────   ──────────────
+90.0% WHALE         1      tx_5: Agent_6 bet 2000C             ✗ WRONG SIGNAL
+                           (correct math, but not GP → lost)    (whale noise)
+
+54.8% STRONG YES    2      tx_6, tx_91_by_8                    NOISY
+                           (correct Step 1 / Step 4 attempts)   (endorsing duplicates)
+
+51.0-52.0%          5      tx_7(GP!), tx_13, tx_16, tx_44, tx_51  MIXED
+                           (GP + duplicates get same price)     (can't tell GP from dup)
+
+50.0% FLAT         34      ALL 4 GP nodes except tx_7!          ✗✗ TERRIBLE
+                           ALL 10 insight nodes!                 (market completely blind
+                           Most duplicates.                      to the actual proof)
+
+47.6-48.0% BEAR     7      tx_4,10,12,55,69,77,89              NOISY
+                           (all correct, just redundant)         (shorting correct math)
+
+43.5-45.2% BEAR     3      tx_1,20,21                          NOISY
+                           (all correct, just redundant)         (aggressive mispricing)
+
+41.0% MOST SHORT    1      tx_40: Agent_0 Step 2                ✗ MARKET ERROR
+                           (correct math, 200 NO Coins!)         (killed correct node)
+```
+
+### Market Effectiveness Scorecard
+
+```
+Detection Type                      Detected?   Price Signal       Score
+──────────────────────────────────  ─────────   ────────────       ─────
+GP Step 1 (tx_7)                     YES        52.0% (mild YES)    6/10
+GP Step 2 (tx_24)                    NO         50.0% (invisible)   0/10
+GP Step 3 (tx_70)                    NO         50.0% (invisible)   0/10
+GP Step 4/OMEGA (tx_112)             NO         50.0% (invisible)   0/10
+Conjugate equivalence (tx_57)        NO         50.0% (invisible)   0/10
+Independent Laurent (tx_91,92,103)   NO         ALL 50% (invisible) 0/10
+Duplicate detection                  PARTIAL    41-48% (some shorted) 3/10
+Error detection                      N/A        (no errors in run)  N/A
+Whale noise (tx_5: 2000C)           NO         90% bubble (wrong!)  0/10
+Correct node killed (tx_40)          N/A        41% (market error)  0/10
+──────────────────────────────────────────────────────────────────────────
+OVERALL MARKET EFFECTIVENESS:                                      1/10
+
+3 out of 4 GP nodes had ZERO market activity.
+ALL 10 insight nodes had ZERO market activity.
+The proof was found by pure exploration, NOT by market guidance.
+The market's only contribution: mildly endorsed GP Step 1 (52%).
+The market's worst failure: pumped dead node to 90% (whale), killed correct node to 41%.
+```
+
+### Comparison: Zeta Market (1/10) vs AIME P15 Market (5/10)
+
+```
+                           Zeta (OMEGA reached)    AIME P15 (failed)
+                           ────────────────────    ─────────────────
+Market overall score:      1/10                    5/10
+Killing errors:            N/A (no errors!)        10/10 (killed 7/9)
+Endorsing GP/insight:      0/10 (3/4 GP = 50%)     8/10 (tx_615 → 60%)
+Duplicate handling:        3/10 (some shorted)      0/10 (all at 50%)
+Biggest market mistake:    Whale 2000C → 90%        None (all bets reasonable)
+GP discovery mechanism:    Pure exploration          Pure exploration
+Market's actual role:      NONE (proof found         Pruning only (killed errors,
+                           without market help)      but couldn't guide to answer)
+```
+
+**Paradox**: The market was WORSE on the easier problem (zeta: 1/10) than the harder one (AIME: 5/10). Why?
+- Zeta had NO mathematical errors to catch → the market's best skill (killing errors) was useless
+- Zeta's market suffered from **whale noise** (2000C bet on wrong node) that didn't occur in AIME
+- AIME generated genuine errors (tx_552 "486²", tx_700) that gave the market something useful to do
+- **The market adds value only when there are errors to catch**. On a clean run, it's pure overhead.

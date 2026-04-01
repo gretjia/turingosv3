@@ -269,205 +269,77 @@ The failure was not in the market mechanism — it was in the **mathematical dif
 
 ---
 
-## Unified DAG: All 310 Nodes with Pricing & Classification
+## Unified DAG: All 310 Nodes — Horizontal Layout with Pricing & Classification
 
 **310 nodes | 1000 tx | 641 bets on 230 nodes | 80 untraded | 0 OMEGA**
 
 ### Legend
 
 ```
-✓ CORRECT   = verified math result           ◎ DUP   = repeats existing content
-✗ ERROR     = mathematical error              ★ INSIGHT = novel correct, not GP
-⚠ BLACK_BOX = claims answer w/o derivation   △ PARTIAL = correct but incomplete
-
-BULL = YES coins > NO coins  |  BEAR = NO coins > YES coins
-B=N = bet count  |  (50%) = never traded  |  P:XX-YY% = live price range
+✓ = correct verified result    ◎ = duplicate content       ✗ = mathematical error
+★ = novel insight (not GP)     △ = correct but incomplete   ⚠ = black-box claim
+Price = LIVE peak during trading. (50%) = never traded.
+BULL = YES>NO.  BEAR = NO>YES.  B=N total bets.
 ```
 
-### The Complete DAG
+### Horizontal DAG: Proof Progression Left → Right
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════════════
-║  ROOT: N = #{(a,b,c) ≤ 729 : 3⁷ | a³+b³+c³}. Find N mod 1000. [Answer: 735]
-╠══════════════════════════════════════════════════════════════════════════════════════
-║
-║ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ TIER 1: N_HIGH = 27³ = 19683 (min v₃ ≥ 3, auto-satisfy)                          │
-║ │ 51 nodes — 1 CORRECT reference + 50 DUPLICATES                                    │
-║ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │
-║ │  ✓ tx_23_by_12 [A12] (50%)  B=0      | "N_high = 27³ = 19683"
-║ │  ✓ tx_24_by_9  [A9]  (50%)  B=0      | "N_high = 27³ = 19683"
-║ │  ✓ tx_25_by_3  [A3]  (50%)  B=0      | "N_high = 27³ = 19683"
-║ │  ✓ tx_30_by_6  [A6]  (51%)  B=0 BULL | "N_high = 27³ = 19683"
-║ │  ✓ tx_31_by_12 [A12] (51%)  B=0 BULL | "N_high = 27³ = 19683"
-║ │  ◎ tx_1_by_6   [A6]  P:49.8-50.3%  B=4 BULL(20Y/15N) | framework + N_high
-║ │  ◎ tx_2_by_3   [A3]  (51%)  B=0  | framework + N_high
-║ │  ◎ tx_14_by_12 [A12] (51%)  B=0  | framework + N_high
-║ │  ◎ ... +43 more nodes computing 27³=19683
-║ │
-║ │  WASTE: 51 nodes for a 1-line result. ALL correct. 96% pure redundancy.
-║ │  MARKET: Nearly all at 50%, zero price differentiation.
-║ │
-║ ├────────────────────────────────────────────────────────────────────────────────────
-║ │
-║ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ TIER 2: CASE FRAMEWORK (3-adic valuation decomposition setup)                     │
-║ │ │ 57 nodes — mostly DUPLICATES, 2 genuine INSIGHTS                                  │
-║ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │
-║ │ │  ◎ tx_7_by_6   [A6]  (50%)  B=0 | "case analysis by min v₃ ∈ {0,1,2}"
-║ │ │  ◎ tx_10_by_0  [A0]  (50%)  B=0 | "partition into 4 cases by v₃"
-║ │ │  ◎ tx_18_by_3  [A3]  (50%)  B=0 | "classify by # indices at minimum"
-║ │ │  ◎ tx_44_by_6  [A6]  (50%)  B=0 | "define v₃, factor out 3^m"
-║ │ │  ◎ ... +52 more restating the same case structure
-║ │ │
-║ │ │  ★ tx_70_by_3  [A3]  (50%)  B=0 | "v₃(x³-ε) = v₃(x-ε)+1" (Hensel lift lemma)
-║ │ │     INSIGHT: Key algebraic property for Hensel lifting. NEVER PRICED.
-║ │ │
-║ │ │  ★ tx_75_by_3  [A3]  (50%)  B=0 | "N_k = 2·3^{5-k} for k=0..5, N_6=1"
-║ │ │     INSIGHT: Explicit per-valuation counting formula. NEVER PRICED.
-║ │ │
-║ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │
-║ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ TIER 3: N₂ = 157464 (min v₃=2, condition 3|a'³+b'³+c'³)                         │
-║ │ │ │ 20 nodes — CORRECT consensus, HOTTEST traded node                                 │
-║ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │
-║ │ │ │  ✓ tx_505_by_10 [A10] P:50.0-52.9% B=17 BULL(100Y/40N) ★★ HOTTEST NODE
-║ │ │ │  │  "II.2: 118098. II.3: 39366. Total: 157464"
-║ │ │ │  │  ├─ A0  YES 10→50.5  A3  YES 10→51.0  A12 YES 5→51.2
-║ │ │ │  │  ├─ A8  NO  10→50.7  (skeptic, overruled)
-║ │ │ │  │  ├─ A6  YES 5→51.0   A7  YES 10→51.2  A13 YES 5→50.9
-║ │ │ │  │  ├─ A3  YES 10→51.4  A9  YES 10→51.9  A10 YES 10→52.4
-║ │ │ │  │  ├─ A11 YES 10→52.9  A5  NO  10→52.3  A14 YES 10→52.8
-║ │ │ │  │  NET: 120Y/40N → STRONG CONSENSUS. Result is CORRECT.
-║ │ │ │  │
-║ │ │ │  ✓ tx_48_by_0  [A0]  P:50.0-52.4% B=5 BULL(50Y/0N) | N₂ via subcases
-║ │ │ │  ✓ tx_50_by_7  [A7]  (51%)  B=0  | N₂=157464
-║ │ │ │  ✓ tx_85_by_3  [A3]  P:50.0-52.2% B=5 BULL(45Y/0N) | N₂ via inclusion-exclusion
-║ │ │ │  ✓ tx_176_by_9 [A9]  P:50.0-52.4% B=5 BULL(50Y/0N) | N₂ confirmed
-║ │ │ │  ◎ ... +15 more nodes deriving 157464
-║ │ │ │
-║ │ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │ │
-║ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ │ TIER 4: HENSEL LIFTING (N₁ + deep mod 81/2187)                                   │
-║ │ │ │ │ 147 nodes — THE HARDEST PART, all incomplete                                      │
-║ │ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │ │
-║ │ │ │ │  △ tx_33_by_0  [A0]  (50%)  B=0 | "min v₃=1, need 81|A³+B³+C³"
-║ │ │ │ │  △ tx_36_by_8  [A8]  P:50-51.5% B=7 BULL(40Y/30N) | "Hensel mod 3→81"
-║ │ │ │ │  △ tx_53_by_9  [A9]  (50%)  B=0 | "N₁ needs C81"
-║ │ │ │ │  △ tx_64_by_12 [A12] (50%)  B=0 | "Hensel mod 81 attempted"
-║ │ │ │ │  △ ... +60 more incomplete Hensel attempts (all stuck at (50%))
-║ │ │ │ │
-║ │ │ │ │  ★ tx_368_by_5 [A5] P:49.8-53.1% B=9 BULL(70Y/15N)
-║ │ │ │ │  │  "f(7) = 729*f(4)" — recursive lifting formula
-║ │ │ │ │  │  Best mathematical idea for N₁. But f(4) never computed.
-║ │ │ │ │  │
-║ │ │ │ │  ★ tx_456_by_0 [A0] (50%) B=0 | "x³+y³≡0 mod 3^k paired analysis"
-║ │ │ │ │     Paired cube residue insight. Never priced.
-║ │ │ │ │
-║ │ │ │ │  ◎ ... +80 more framework/setup duplicates within Hensel tier
-║ │ │ │ │
-║ │ │ │ │  BOTTLENECK: 147 nodes attempting Hensel lifting.
-║ │ │ │ │  NONE completed the full mod 3→9→27→81→...→2187 chain.
-║ │ │ │ │  MARKET: Nearly all at 50%. Cannot evaluate incomplete math.
-║ │ │ │ │
-║ │ │ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │ │ │
-║ │ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ │ │ TIER 5: ERROR NODES (9 nodes — market killed most)                                │
-║ │ │ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │ │ │
-║ │ │ │ │ │  ✗ tx_19_by_0  [A0]  (50%)  B=0 | "v₃(x) for x=a-1" ← WRONG VARIABLE
-║ │ │ │ │ │     NOT caught by market (50%). Semantic error invisible.
-║ │ │ │ │ │
-║ │ │ │ │ │  ✗ tx_552_by_8 [A8] P:42.6-50% B=13 BEAR(0Y/160N) ★ 2nd MOST SHORTED
-║ │ │ │ │ │  │  "486²=236196" ← WRONG FORMULA
-║ │ │ │ │ │  │  A9 NO×3, A6 NO×2, A13 NO 20, A7 NO 20, A14 NO 10...
-║ │ │ │ │ │  │  MARKET CORRECTLY KILLED. 13 unanimous shorts.
-║ │ │ │ │ │  │
-║ │ │ │ │ │  ✗ tx_700_by_11 [A11] P:39.0-50% B=12 BEAR(0Y/250N) ★★ LOWEST PRICE
-║ │ │ │ │ │  │  Flawed R1 reasoning. MOST VIOLENT rejection in entire run.
-║ │ │ │ │ │  │  A10 NO 100 ← biggest single short. A1 NO 20→39%.
-║ │ │ │ │ │  │  MARKET CORRECTLY KILLED.
-║ │ │ │ │ │  │
-║ │ │ │ │ │  ✗ tx_583_by_5  [A5]  P:42.4-50% B=7 BEAR(0Y/165N) | killed to 42.4%
-║ │ │ │ │ │  ✗ tx_417_by_14 [A14] P:44.6-50% B=11 BEAR(0Y/115N)| killed to 44.6%
-║ │ │ │ │ │  ✗ tx_696_by_12 [A12] P:43.5-50% B=6 BEAR(10Y/140N)| killed to 43.5%
-║ │ │ │ │ │  ✗ tx_250_by_3  [A3]  P:48.8-50% B=5 BEAR(10Y/35N) | mild short
-║ │ │ │ │ │  ✗ tx_341_by_6  [A6]  P:48.8-50% B=6 BEAR(15Y/35N) | mild short
-║ │ │ │ │ │  ✗ tx_526_by_2  [A2]  (50%)  B=0 | NOT caught (50%)
-║ │ │ │ │ │
-║ │ │ │ │ │  SCORE: 7/9 errors caught (78%). 2 escaped at 50%.
-║ │ │ │ │ │
-║ │ │ │ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │ │ │ │
-║ │ │ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ │ │ │ TIER 6: META-INSIGHT (error detection / correction)                               │
-║ │ │ │ │ │ │ 3 nodes — MARKET'S PROUDEST MOMENT                                               │
-║ │ │ │ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │ │ │ │
-║ │ │ │ │ │ │  ★ tx_615_by_14 [A14] P:50.0-60.2% B=15 BULL(230Y/0N) ★★★ HIGHEST PRICE
-║ │ │ │ │ │ │  │  "Flaw in m=0: 486² unjustified. Need character sums or Hensel."
-║ │ │ │ │ │ │  │  A12 YES 10→50.5  A6  YES 10→51.0  A4  YES 10→51.5
-║ │ │ │ │ │ │  │  A13 YES 10→52.0  A9  YES 20→52.9  A0  YES 20→53.8
-║ │ │ │ │ │ │  │  A1  YES 10→54.3  A7  YES 20→55.2  A10 YES 20→56.1
-║ │ │ │ │ │ │  │  A3  YES 10→56.5  A4  YES 20→57.4  A13 YES 20→58.2
-║ │ │ │ │ │ │  │  A2  YES 10→58.6  A1  YES 20→59.4  A7  YES 20→60.2
-║ │ │ │ │ │ │  │  15 UNANIMOUS YES. Market's strongest consensus in entire run.
-║ │ │ │ │ │ │  │  Valued ERROR DETECTION higher than any correct computation.
-║ │ │ │ │ │ │  │
-║ │ │ │ │ │ │  ★ tx_786_by_13 [A13] P:50.0-60.2% B=11 BULL(230Y/0N) ★★
-║ │ │ │ │ │ │  │  Falsifier's correction. Also peaked at 60.2%.
-║ │ │ │ │ │ │  │
-║ │ │ │ │ │ │  ★ tx_501_by_9  [A9]  P:48.0% B=? BEAR | "total 295245 incorrect"
-║ │ │ │ │ │ │     Self-correction attempt. Market slightly skeptical.
-║ │ │ │ │ │ │
-║ │ │ │ │ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │ │ │ │ │
-║ │ │ │ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ │ │ │ │ TIER 7: BLACK-BOX CLAIMS (16 nodes — answers w/o derivation)                     │
-║ │ │ │ │ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │  ⚠ tx_58_by_2   [A2]  (50%) B=0 | "N=5×3¹¹=885735, mod 1000=735"
-║ │ │ │ │ │ │ │     Claims CORRECT answer 735. Zero derivation. Zero market reaction.
-║ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │  ⚠ tx_492_by_9  [A9]  (50%) B=0 | "summation → mod 1000"
-║ │ │ │ │ │ │ │  ⚠ tx_512_by_6  [A6]  (50%) B=0 | "summing all cases"
-║ │ │ │ │ │ │ │  ⚠ ... +13 more black-box claims (all at 50%, all ignored)
-║ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ │ │ │ │ │ TIER 8: 8 OMEGA ATTEMPTS (all failed)                                            │
-║ │ │ │ │ │ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │ │  #1 [A6]  tx~500 — 8 steps  → REJECTED (math→Lean failed)
-║ │ │ │ │ │ │ │ │  #2 [A2]  tx~730 — 11 steps → REJECTED
-║ │ │ │ │ │ │ │ │  #3 [A0]  tx~770 — 12 steps → REJECTED
-║ │ │ │ │ │ │ │ │  #4 [A8]  tx~840 — 13 steps → REJECTED
-║ │ │ │ │ │ │ │ │  #5 [A0]  tx~870 — 12 steps → REJECTED
-║ │ │ │ │ │ │ │ │  #6 [A1]  tx~930 — 14 steps → REJECTED
-║ │ │ │ │ │ │ │ │  #7 [A1]  tx~955 — 15 steps → REJECTED (longest chain)
-║ │ │ │ │ │ │ │ │  #8 [A6]  tx~960 — 13 steps → REJECTED
-║ │ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │ │  ROOT CAUSE: N₁ never computed → proof chain always incomplete.
-║ │ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │ ├────────────────────────────────────────────────────────────────────────────────────
-║ │ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────────┐
-║ │ │ │ │ │ │ │ │ │ TIER 9: UNTRADED (80 nodes at 50% — market blind spot)                           │
-║ │ │ │ │ │ │ │ │ └────────────────────────────────────────────────────────────────────────────────────┘
-║ │ │ │ │ │ │ │ │
-║ │ │ │ │ │ │ │ │  ? 80 nodes with valid reasoning, NEVER evaluated by market.
-║ │ │ │ │ │ │ │ │    Mix of duplicates, incomplete Hensel, and potentially valuable insights.
-║ │ │ │ │ │ │ │ │    All stuck at genesis 50.0%.
-║ │ │ │ │ │ │ │ │
-╚══╧══╧══╧══╧══╧══╧══╧══╧═══════════════════════════════════════════════════════════════
+ PROBLEM: N = #{(a,b,c) ≤ 729 : 3⁷ | a³+b³+c³}. Find N mod 1000. [Correct: 735]
+
+
+ N_HIGH (trivial)        CASE SETUP             N₂ COMPUTATION          HENSEL LIFTING (N₁)        ERROR/META/OMEGA
+ min v₃≥3, auto          3-adic decomposition    min v₃=2, 3|sum         min v₃=1, 81|sum           detection + attempts
+ ═══════════════         ══════════════════      ═══════════════════     ═══════════════════════     ═══════════════════════
+
+ ✓ tx_23 [A12] (50%)     ◎ tx_7  [A6]  (50%)    ✓ tx_505 [A10] 52.9%   △ tx_33  [A0]  (50%)       ✗ tx_552 [A8]  42.6%
+ ✓ tx_24 [A9]  (50%)     ◎ tx_10 [A0]  (50%)    │ "157464" B=17 BULL    △ tx_36  [A8]  51.5%       │ "486²=236196" ← WRONG
+ ✓ tx_25 [A3]  (50%)     ◎ tx_18 [A3]  (50%)    │ 120Y/40N consensus    △ tx_53  [A9]  (50%)       │ B=13 BEAR(0Y/160N)
+ ✓ tx_30 [A6]  (51%)     ◎ tx_44 [A6]  (50%)    │                       △ tx_64  [A12] (50%)       │ A9 NO×3! KILLED ✓
+ ✓ tx_31 [A12] (51%)     ◎ ... +52 more          ✓ tx_48  [A0]  52.4%   △ ... +60 more (50%)       │
+ ◎ tx_1  [A6]  50.3%     all (50%), zero bets    ✓ tx_85  [A3]  52.2%                               ✗ tx_700 [A11] 39.0%
+ ◎ tx_2  [A3]  (51%)                              ✓ tx_176 [A9]  52.4%   ★ tx_368 [A5] 53.1%        │ B=12 BEAR(0Y/250N)
+ ◎ tx_14 [A12] (51%)     INSIGHTS (buried):       ◎ ... +15 more          │ "f(7)=729·f(4)"         │ A10 NO 100! ← BIGGEST
+ ◎ ... +43 more           ★ tx_70b [A3] (50%)                              │ B=9 BULL(70Y/15N)       │ LOWEST PRICE IN RUN
+                           "v₃(x³-ε)=v₃(x-ε)+1"                           │ Best N₁ idea.           │
+ ALL ✓ correct.            NEVER PRICED.                                    │ f(4) never computed.    ✗ tx_583 [A5]  42.4%
+ 51 nodes for 27³.                                                                                    ✗ tx_417 [A14] 44.6%
+ 96% redundancy.          ★ tx_75  [A3] (50%)                             ★ tx_456 [A0] (50%)        ✗ tx_696 [A12] 43.5%
+                           "N_k=2·3^{5-k}"                                 "paired cube residues"    ✗ tx_250 [A3]  48.8%
+                           NEVER PRICED.                                    NEVER PRICED.             ✗ tx_341 [A6]  48.8%
+                                                                                                      ✗ tx_19  [A0]  (50%) ←
+                                                                                                        "v₃(a-1)" WRONG VAR
+                                                                                                        NOT CAUGHT!
+                                                                                                      ✗ tx_526 [A2]  (50%) ←
+                                                                                                        NOT CAUGHT!
+
+                                                                                                      SCORE: 7/9 errors killed
+
+
+ ──────────────────────────────────────── META-INSIGHT ─────────────────────────────────────────────
+
+ ★ tx_615 [A14] 60.2% ★★★ HIGHEST PRICE IN ENTIRE RUN         ★ tx_786 [A13] 60.2% ★★
+ │ "Flaw in m=0: 486² unjustified. Need Hensel."                │ Falsifier's correction. Also 60.2%.
+ │ B=15 BULL (230Y/0N) — 15 UNANIMOUS YES                      │ B=11 BULL (230Y/0N)
+ │ A12→50.5 A6→51 A4→51.5 A13→52 A9→52.9                      │
+ │ A0→53.8 A1→54.3 A7→55.2 A10→56.1 A3→56.5                   ★ tx_501 [A9] 48% BEAR
+ │ A4→57.4 A13→58.2 A2→58.6 A1→59.4 A7→60.2                     "total 295245 incorrect"
+ │ MARKET VALUED ERROR-DETECTION > ANY CORRECT COMPUTATION
+
+
+ ──────────────────────────────── BLACK-BOX + OMEGA ATTEMPTS ──────────────────────────────────────
+
+ ⚠ tx_58 [A2] (50%)  "N=5×3¹¹=885735 mod 1000=735" ← claims CORRECT answer, ZERO derivation, ZERO bets
+ ⚠ tx_492, tx_512, ... +13 more (all 50%, all ignored)
+
+ OMEGA #1 [A6]  8 steps →✗   #2 [A2] 11 steps →✗   #3 [A0] 12 steps →✗   #4 [A8] 13 steps →✗
+ OMEGA #5 [A0] 12 steps →✗   #6 [A1] 14 steps →✗   #7 [A1] 15 steps →✗   #8 [A6] 13 steps →✗
+ ALL 8 FAILED. Root cause: N₁ never computed → proof chain always incomplete.
+
+
+ ──────────────────────────────────── UNTRADED ZONE ───────────────────────────────────────────────
+
+ ? 80 nodes at (50%) — created, contain reasoning, NEVER evaluated by any agent. Market blind spot.
 ```
 
 ---

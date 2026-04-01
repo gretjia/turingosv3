@@ -299,3 +299,295 @@ However, the swarm also failed. The bottleneck — **Hensel lifting through 7 le
 2. **Or** a fundamentally different swarm strategy: instead of 15 agents all exploring independently, have specialized "Hensel lifting agents" that work sequentially on the mod 3→9→27→81→243→729→2187 chain, with each agent handling one lift level.
 
 The current swarm design (parallel exploration with market pricing) is optimized for **breadth** problems. AIME P15 is a **depth** problem — it requires a single chain of 7 sequential lift operations, not 54 frontier branches.
+
+---
+
+## Appendix: TuringOS Swarm Run 15 — Unified DAG with Pricing & Node Classification
+
+**310 nodes | 1000 tx | 641 bets on 230 nodes | 80 nodes never traded**
+
+### Legend
+
+```
+✓ CORRECT       = mathematically correct result
+✗ ERROR         = contains mathematical error
+◎ DUPLICATE     = repeats content already on tape
+★ INSIGHT       = novel correct insight (not on any GP)
+⚠ BLACK_BOX     = claims answer without derivation
+△ INCOMPLETE    = correct direction but unfinished
+? UNVERIFIED    = cannot determine correctness
+
+BULL = more YES than NO coins    | BEAR = more NO than YES coins
+P:XX-YY% = price range (low-high during trading)
+(50%) = never traded, stuck at genesis price
+```
+
+### Unified DAG
+
+```
+ROOT: Count ordered triples (a,b,c) ≤ 729, 3⁷ | a³+b³+c³. Find N mod 1000.
+│
+╔══════════════════════════════════════════════════════════════════════════════════
+║ TIER 1: N_HIGH = 27³ = 19683 (min v₃ ≥ 3 → automatic)
+║ 51 nodes — ALL DUPLICATES of the same trivial computation
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ◎ tx_1_by_6   [Agent_6]  P:49.8-50.3% BULL  | "count triples..." (framework+N_high)
+║ ◎ tx_2_by_3   [Agent_3]  P:(51%)  BULL       | "analyzing condition..." (framework+N_high)
+║ ◎ tx_14_by_12 [Agent_12] P:(51%)  BULL       | "classify by min v₃..." (framework+N_high)
+║ ◎ tx_23_by_12 [Agent_12] P:(50%)             | "N_high = 27³ = 19683" (pure duplicate)
+║ ◎ tx_24_by_9  [Agent_9]  P:(50%)             | "N_high = 27³ = 19683" (pure duplicate)
+║ ◎ tx_25_by_3  [Agent_3]  P:(50%)             | "N_high = 27³ = 19683" (pure duplicate)
+║ ◎ tx_30_by_6  [Agent_6]  P:(51%)  BULL       | "N_high = 27³ = 19683" (pure duplicate)
+║ ◎ tx_31_by_12 [Agent_12] P:(51%)  BULL       | "N_high = 27³ = 19683" (pure duplicate)
+║ ◎ ... +43 more nodes all computing 27³=19683
+║
+║ WASTE: 51 nodes for a 1-line computation. 96% pure redundancy.
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 2: CASE ANALYSIS FRAMEWORK (分层讨论 setup)
+║ 57 nodes — MOSTLY DUPLICATES of the same case decomposition
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ◎ tx_7_by_6   [Agent_6]  P:(50%)             | "case analysis by min v₃ ∈ {0,1,2}"
+║ ◎ tx_10_by_0  [Agent_0]  P:(50%)             | "partition into 4 cases by v₃"
+║ ◎ tx_18_by_3  [Agent_3]  P:(50%)             | "classify by # indices at minimum"
+║ ◎ tx_44_by_6  [Agent_6]  P:(50%)             | "define v₃, factor out 3^m"
+║ ◎ tx_105_by_0 [Agent_0]  P:(50%)             | "m≥3 automatic, m<3 nontrivial"
+║ ◎ ... +52 more nodes restating the same case structure
+║
+║ ★ tx_70_by_3  [Agent_3]  P:(50%)             | "key 3-adic cube property: v₃(x³-ε)=v₃(x-ε)+1"
+║     INSIGHT: Hensel-style lifting lemma for cubes. Never priced by market.
+║
+║ ★ tx_75_by_3  [Agent_3]  P:(50%)             | "valuation counts: N_k=2·3^{5-k} for k=0..5, N_6=1"
+║     INSIGHT: Explicit counting formula. Never priced.
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 3: N₂ = 157464 (min v₃ = 2, condition: 3 | a'³+b'³+c'³)
+║ 20 nodes — MIX of correct duplicates + one hottest node
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ✓ tx_505_by_10 [Agent_10] P:50.0-52.9% BULL(100Y/40N) 17 bets ★ HOTTEST NODE
+║ │  "Subcase II.2: 118098. Subcase II.3: 39366. Total: 157464"
+║ │  ├─ Agent_0  YES 10 → 50.5%
+║ │  ├─ Agent_3  YES 10 → 51.0%
+║ │  ├─ Agent_12 YES  5 → 51.2%
+║ │  ├─ Agent_8  NO  10 → 50.7%  (skeptic, overruled)
+║ │  ├─ Agent_6  YES  5 → 51.0%
+║ │  ├─ Agent_7  YES 10 → 51.2%
+║ │  ├─ Agent_13 YES  5 → 50.9%  (Falsifier endorses!)
+║ │  ├─ Agent_3  YES 10 → 51.4%
+║ │  ├─ Agent_9  YES 10 → 51.9%
+║ │  ├─ Agent_10 YES 10 → 52.4%  (author doubles down)
+║ │  ├─ Agent_11 YES 10 → 52.9%  (R1 joins late)
+║ │  ├─ Agent_5  NO  10 → 52.3%  (lone late skeptic)
+║ │  └─ Agent_14 YES 10 → 52.8%
+║ │  VERDICT: MARKET CORRECTLY ENDORSED (157464 is correct)
+║ │
+║ ◎ tx_48_by_0  [Agent_0]  P:50.0-52.4% BULL(50Y/0N)  | N₂ via subcase counting
+║ ◎ tx_50_by_7  [Agent_7]  P:(51%)  BULL               | N₂ = 157464 (duplicate)
+║ ◎ tx_85_by_3  [Agent_3]  P:50.0-52.2% BULL(45Y/0N)  | N₂ via inclusion-exclusion
+║ ◎ tx_372_by_4 [Agent_4]  P:(50%)                      | "Complete count for min v₃=2"
+║ ◎ ... +15 more nodes deriving 157464
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 4: HENSEL LIFTING ATTEMPTS (N₁ + deep mod 81/2187 analysis)
+║ 147 nodes — THE HARDEST PART, mostly incomplete
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ △ tx_33_by_0  [Agent_0]  P:(50%)              | "min v₃=1, need 81|A³+B³+C³"
+║ △ tx_36_by_8  [Agent_8]  P:50.0-51.5% BULL   | "Hensel lifting mod 3→9→27→81"
+║ △ tx_53_by_9  [Agent_9]  P:(50%)              | "N₁ needs C81 solutions mod 81"
+║ △ tx_64_by_12 [Agent_12] P:(50%)              | "Hensel mod 81 attempted"
+║ △ tx_66_by_9  [Agent_9]  P:(50%)              | "subcases by min v₃ among a',b',c'"
+║ △ ... +60 more incomplete Hensel attempts
+║
+║ ★ tx_368_by_5 [Agent_5]  P:49.8-53.1% BULL(70Y/15N) 9 bets
+║ │  "Compute f(7) using recurrence: f(7) = 729*f(4)"
+║ │  INSIGHT: Recursive formula for lifting. Best mathematical idea for N₁.
+║ │  BUT: f(4) value was never correctly computed upstream.
+║ │
+║ ★ tx_456_by_0 [Agent_0]  P:(50%)              | "for k≥2, x³+y³≡0 mod 3^k analysis"
+║     INSIGHT: Paired cube residue analysis. Never priced.
+║
+║ ◎ tx_213_by_8 [Agent_8]  P:(51%)  BULL        | "Case C m=1 subcases" (duplicate setup)
+║ ◎ ... +80 more framework/setup duplicates within Hensel tier
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 5: ERROR NODES (9 nodes — market correctly killed most)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ✗ tx_19_by_0  [Agent_0]  P:(50%)              | "v₃(x) for x=a-1" ← WRONG VARIABLE
+║     ERROR: Defines valuation on a-1 instead of a. Never caught by market (50%).
+║
+║ ✗ tx_552_by_8 [Agent_8]  P:42.6-50.0% BEAR(0Y/160N) 13 bets ★ MOST SHORTED
+║ │  "Count Case D2 as 486²=236196" ← WRONG FORMULA
+║ │  ├─ Agent_9  NO 10 → 49.5%
+║ │  ├─ Agent_6  NO 10 → 49.0%
+║ │  ├─ Agent_3  NO 10 → 48.5%
+║ │  ├─ Agent_12 NO 10 → 48.0%
+║ │  ├─ Agent_13 NO 20 → 47.1%  (Falsifier HEAVY short!)
+║ │  ├─ Agent_1  NO 10 → 46.6%
+║ │  ├─ Agent_9  NO 10 → 46.2%  (shorts TWICE)
+║ │  ├─ Agent_10 NO 10 → 45.7%
+║ │  ├─ Agent_4  NO 10 → 45.2%
+║ │  ├─ Agent_7  NO 20 → 44.4%
+║ │  ├─ Agent_9  NO 10 → 43.9%  (shorts THREE TIMES!)
+║ │  ├─ Agent_14 NO 10 → 43.5%
+║ │  └─ Agent_6  NO 20 → 42.6%
+║ │  VERDICT: MARKET CORRECTLY KILLED. 13 agents unanimously shorted.
+║
+║ ✗ tx_700_by_11 [Agent_11] P:39.0-50.0% BEAR(0Y/250N) 12 bets ★ LOWEST PRICE
+║ │  (R1 model output with flawed reasoning)
+║ │  ├─ Agent_10 NO 100 → 43.9%  ★ BIGGEST SINGLE SHORT IN ENTIRE RUN
+║ │  ├─ Agent_1  NO  20 → 39.0%  ← ABSOLUTE BOTTOM: P_yes=39%
+║ │  └─ ... +10 more shorts
+║ │  VERDICT: MARKET CORRECTLY KILLED. Most violent rejection in entire run.
+║
+║ ✗ tx_583_by_5 [Agent_5]  P:42.4-50.0% BEAR(0Y/165N) 7 bets
+║     ERROR node shorted to 42.4%.
+║
+║ ✗ tx_417_by_14 [Agent_14] P:44.6-50.0% BEAR(0Y/115N) 11 bets
+║     ERROR node shorted to 44.6%.
+║
+║ ✗ tx_250_by_3 [Agent_3]  P:48.8-50.0% BEAR(10Y/35N)
+║ ✗ tx_341_by_6 [Agent_6]  P:48.8-50.0% BEAR(15Y/35N)
+║ ✗ tx_526_by_2 [Agent_2]  P:(50%)              | (never caught by market!)
+║ ✗ tx_696_by_12[Agent_12] P:43.5-50.0% BEAR(10Y/140N) | shorted to 43.5%
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 6: META-INSIGHT NODES (3 nodes — error detection / correction)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ★ tx_615_by_14 [Agent_14] P:50.0-60.2% BULL(230Y/0N) 15 bets ★★ HIGHEST PRICE
+║ │  "Highlight flaw in m=0: 486² unjustified. Need character sums or Hensel."
+║ │  ├─ Agent_12 YES 10 → 50.5%
+║ │  ├─ Agent_6  YES 10 → 51.0%
+║ │  ├─ Agent_4  YES 10 → 51.5%
+║ │  ├─ Agent_13 YES 10 → 52.0%   (Falsifier endorses!)
+║ │  ├─ Agent_9  YES 20 → 52.9%
+║ │  ├─ Agent_0  YES 20 → 53.8%
+║ │  ├─ Agent_1  YES 10 → 54.3%
+║ │  ├─ Agent_7  YES 20 → 55.2%
+║ │  ├─ Agent_10 YES 20 → 56.1%
+║ │  ├─ Agent_3  YES 10 → 56.5%
+║ │  ├─ Agent_4  YES 20 → 57.4%   (doubles down)
+║ │  ├─ Agent_13 YES 20 → 58.2%   (Falsifier doubles down!)
+║ │  ├─ Agent_2  YES 10 → 58.6%   (R1 model joins)
+║ │  ├─ Agent_1  YES 20 → 59.4%
+║ │  └─ Agent_7  YES 20 → 60.2%   ← PEAK PRICE IN ENTIRE RUN
+║ │  VERDICT: 15 UNANIMOUS YES BETS. Market's strongest consensus.
+║ │  This node DETECTS the error in tx_552, not computes a new result.
+║ │  The market valued error-detection HIGHER than correct computation.
+║
+║ ★ tx_786_by_13 [Agent_13] P:50.0-60.2% BULL(230Y/0N) 11 bets
+║     Falsifier's correction node. Also 60.2% peak. Strong consensus.
+║
+║ ★ tx_436_by_13 [Agent_13] P:(50%)             | "Correction to case II for m=0"
+║ ★ tx_501_by_9  [Agent_9]  P:48.0% BEAR        | "current total 295245 incorrect"
+║ ★ tx_606_by_13 [Agent_13] P:(50%)             | "must consider α=0 carefully"
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 7: BLACK-BOX ANSWER CLAIMS (16 nodes — claims without derivation)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ⚠ tx_58_by_2  [Agent_2]  P:(50%)              | "N = 5×3¹¹ = 885735, mod 1000 = 735"
+║     UNVERIFIED: Claims correct answer 735 but zero derivation.
+║     Market reaction: NONE (50%, never traded). Market can't evaluate this.
+║
+║ ⚠ tx_492_by_9 [Agent_9]  P:(50%)              | "Summation of all cases → mod 1000"
+║ ⚠ tx_512_by_6 [Agent_6]  P:(50%)              | "summing counts from all cases"
+║ ⚠ ... +13 more nodes claiming partial/final answers without proof
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 8: 8 OMEGA ATTEMPTS (all failed — math→Lean translation)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║  #1 [Agent_6]  tx~500  — 8-step chain  → REJECTED (translation failed)
+║  #2 [Agent_2]  tx~730  — 11-step chain → REJECTED
+║  #3 [Agent_0]  tx~770  — 12-step chain → REJECTED
+║  #4 [Agent_8]  tx~840  — 13-step chain → REJECTED
+║  #5 [Agent_0]  tx~870  — 12-step chain → REJECTED
+║  #6 [Agent_1]  tx~930  — 14-step chain → REJECTED
+║  #7 [Agent_1]  tx~955  — 15-step chain → REJECTED (longest)
+║  #8 [Agent_6]  tx~960  — 13-step chain → REJECTED
+║
+║  ROOT CAUSE: N₁ never computed → proof chain always incomplete
+║
+╠══════════════════════════════════════════════════════════════════════════════════
+║ TIER 9: UNTRADED NODES (80 nodes at 50.0% — market blind spot)
+╠══════════════════════════════════════════════════════════════════════════════════
+║
+║ ? 80 nodes created by agents, containing valid reasoning,
+║   but NEVER evaluated by any other agent via YES/NO bet.
+║   All stuck at genesis price 50.0%.
+║   Contains mix of duplicates, incomplete Hensel attempts,
+║   and potentially valuable insights that were never discovered.
+║
+╚══════════════════════════════════════════════════════════════════════════════════
+```
+
+### Node Classification Summary
+
+```
+Category        Nodes   %      Market Reaction         Correct?
+─────────────   ─────   ─────  ────────────────────    ────────
+N_HIGH ◎         51     16%    Mostly 50% (ignored)    ✓ but redundant
+CASE_ANALYSIS ◎  57     18%    Mostly 50% (ignored)    ✓ but redundant
+N₂ CORRECT ✓     20      6%    tx_505: 52.9% BULL      ✓
+HENSEL △        147     47%    Mixed / mostly 50%      △ incomplete
+ERROR ✗           9      3%    42-46% BEAR (killed!)   ✗
+META-INSIGHT ★    3      1%    60.2% BULL (highest!)   ★ most valuable
+BLACK_BOX ⚠      16      5%    50% (ignored)           ? unverifiable
+OTHER             7      2%    Mixed                   Mixed
+─────────────   ─────   ─────
+TOTAL           310    100%
+```
+
+### Price Spectrum (all 310 nodes)
+
+```
+Price Band        Nodes   Key Examples                           Signal Quality
+──────────────    ─────   ──────────────────────────────────    ──────────────
+58-60% (STRONG    2       tx_615 (error-detection), tx_786      ★★ PERFECT
+  ENDORSEMENT)                                                  (most valuable nodes)
+
+52-55% (MILD      ~15     tx_505 (N₂=157464), tx_368 (Hensel)  ★ CORRECT
+  ENDORSEMENT)                                                  (verified results)
+
+50-52% (TEPID)    ~50     Auto-longs, slight endorsements       NOISY
+                                                                (weak signal)
+
+50.0% (FLAT)      ~160    Never traded OR equal YES/NO          ZERO SIGNAL
+                                                                (market blind spot)
+
+48-50% (MILD      ~40     Mild skepticism                       WEAK BEAR
+  SKEPTICISM)
+
+45-48% (STRONG    ~25     tx_118 (45.5%), tx_215 (45.9%)        ★ CORRECT
+  REJECTION)                                                    (flawed nodes)
+
+39-43% (TOTAL     ~8      tx_700 (39%), tx_552 (42.6%),         ★★ PERFECT
+  ANNIHILATION)            tx_583 (42.4%), tx_696 (43.5%)       (garbage killed)
+```
+
+### Market Effectiveness Scorecard
+
+```
+Detection Type                  Detected?   Price Signal    Score
+──────────────────────────────  ─────────   ────────────    ─────
+Wrong math (tx_552 "486²")      YES         42.6% (killed)  10/10
+Wrong math (tx_700 R1 node)     YES         39.0% (killed)  10/10
+Wrong variable (tx_19 "a-1")    NO          50.0% (missed)   0/10
+Error detection insight          YES         60.2% (peak!)   10/10
+Correct N₂ computation          YES         52.9% (endorsed)  8/10
+Black-box "735" (tx_58)          NO          50.0% (missed)   0/10
+Hensel lifting quality           NO          50% (all flat)   2/10
+Duplicate detection              NO          Duplicates = 50% 0/10
+──────────────────────────────────────────────────────────────────
+OVERALL MARKET EFFECTIVENESS:                                5/10
+
+Market excels at: killing obvious errors, endorsing consensus results
+Market fails at:  evaluating novel insights, detecting duplicates,
+                  pricing incomplete work, evaluating black-box claims
+```

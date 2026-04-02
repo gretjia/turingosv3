@@ -1,0 +1,21 @@
+run_id	ERS	depth	novelty	nodes	roots	ratio	proved	status	description
+001	0.0036	25	0.009	110	2	16.9:1	NO	keep	baseline 5/5/5 qwen2.5-7b Aliyun — depth=25★ but novelty=0.009, YES:NO=16.9:1 (zero shorting)
+002	0.0048	23	0.006	166	4	14.5:1	NO	keep	5/2/8 bear-heavy — bears still don't short (4 NO). More nodes(166) + roots(4) but novelty worse(0.006)
+003	0.0000	0	0	0	0	0:0	NO	discard	13/1/1 math-extreme — timeout at 101tx/900s. Aliyun qwen2.5-7b ~9s/tx. Reducing budget to 100tx for faster iteration.
+004	0.0114	3	0.143	7	2	8.6:1	NO	keep	13/1/1 100tx — ERS★ but only 7 nodes depth=3. Novelty=0.143 (best yet) likely artifact of small sample. Need 100tx baseline for fair comparison.
+005	0.0119	4	0.111	9	2	18.5:1	NO	keep	5/5/5 100tx — ERS≈004. Novelty=0.111 is sample-size artifact (9 nodes). Confirms: novelty metric is broken at low tx. Switch focus to DEPTH.
+006	0.0000	0	0	0	0	0:0	NO	discard	13/1/1 300tx — timeout at 106tx/1800s. Aliyun latency degraded to ~17s/tx. Switching to 150tx.
+007	0.0056	18	0.014	71	2	3.7:1	NO	keep	SF baseline 5/5/5 300tx — 165s★★★ depth=18 YES:NO=3.7:1(healthy!) traded=70%. SF is the right provider.
+008	0.0116	12	0.015	69	5	10.8:1	NO	discard	13/1/1 SF — depth=12 WORSE than baseline(18)! Pure math scatters (5 roots). Market roles help focus depth.
+009	0.0092	11	0.013	80	5	3.8:1	NO	discard	3/7/5 bull-heavy SF — depth=11 < baseline(18). Too few math + scattered(5 roots). Confirms: balanced ratio produces deepest chains.
+010	0.0039	14	0.007	144	3	10.1:1	NO	discard	7/4/4 SF pre-dedup — depth=14 < baseline(18). Slight math edge hurts. 5/5/5 remains optimal ratio.
+011	0.0107	12	0.022	45	3	3.2:1	NO	keep	DEDUP 5/5/5 SF — 20 dedup rejections! But novelty only 0.014→0.022. 50-char prefix too coarse. depth=12 < pre-dedup 18. Need tighter dedup.
+012	0.0133	16	0.022	45	3	11.5:1	NO	keep	DEDUP 30-char — depth=16(up from 12!) 25 dedup rejects. Novelty metric buggy (parse_tape empty payloads). Actual content IS diverse. FIXING METRIC.
+013	0.2566	10	0.962	53	2	10.8:1	NO	keep	TRUE BASELINE — dedup+metric fix. ERS=0.2566★★★ novelty=96%! 51/53 unique nodes. Depth=10. This is the real starting point.
+014	0.2435	10	0.913	46	2	4.1:1	NO	discard	8/4/3 dedup — depth=10(same). YES:NO=4.1:1(healthier) but ERS slightly lower. Depth seems capped at 10 with dedup.
+015	0.4518	9	0.941	34	4	8.2:1	NO	keep	DEDUP 60-char — ERS=0.452★★★(new best) but depth=9. Key insight: 7B true reasoning depth ≈ 10 regardless of dedup level. Pre-dedup depth=18-25 was fake (repetition padding).
+016	0.2400	9	1.000	33	2	6.0:1	NO	keep	BRANCH-AWARE dedup — depth=9(still). novelty=100%★. ROOT CAUSE FOUND: 286/300 tx are investments, only ~14 appends. Investment tx consuming build budget.
+017	0.5490	14	0.980	51	3	3.9:1	NO	keep	BRANCH DEDUP + APPEND BUDGET — ERS=0.549★★★ depth=14(+5!) novelty=98% YES:NO=3.9:1. Three-fix combo works. True depth breakthrough.
+018	0.4552	12	0.948	58	3	5.3:1	NO	discard	500 appends — depth=12 < 300's 14. 6 gen stagnation. More budget doesn't help. 7B reasoning vocabulary exhausted at depth ~12-14.
+019	0.0000	0	0	0	0	0:0	NO	discard	14B Aliyun — timeout 38 appends/1800s (47s/append). Long prompt makes 14B very slow on Aliyun. Need shorter budget or faster provider.
+020	0.2222	4	0.833	36	9	3.6:1	NO	keep	14B SF — depth=4(!) but roots=9(!!). Smarter model explores MORE paths but shallower. Anti-intuitive: 14B depth < 7B depth. Need to incentivize depth over breadth.

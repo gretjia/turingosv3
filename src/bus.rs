@@ -633,6 +633,68 @@ impl TuringBus {
         // ── Phase 3: Citations are FREE (Magna Carta: topology decoupled from finance) ──
         // No citation purchase. DAG connectivity costs nothing.
 
+        // ── Phase 3b: Branch-aware content deduplication ──
+        // Only dedup within the same branch (ancestors + siblings), NOT globally.
+        // Different proof strategies CAN reuse the same reasoning step (e.g., DCT in branch A and B).
+        // Same branch CANNOT repeat the same step (forces depth novelty).
+        {
+            let new_prefix: String = file.payload.chars()
+                .filter(|c| !c.is_whitespace())
+                .take(40)
+                .collect::<String>()
+                .to_lowercase();
+            if new_prefix.len() >= 20 {
+                // Collect ancestors: trace citations back to root
+                let mut branch_nodes: Vec<String> = Vec::new();
+                if let Some(parent_id) = file.citations.first().cloned() {
+                    let mut cur = parent_id.clone();
+                    while let Some(node) = self.kernel.tape.files.get(&cur) {
+                        branch_nodes.push(cur.clone());
+                        if node.citations.is_empty() { break; }
+                        cur = node.citations[0].clone();
+                    }
+                    // Collect siblings: nodes sharing the same parent
+                    for (nid, node) in &self.kernel.tape.files {
+                        if node.citations.first().map_or(false, |c| c == &parent_id)
+                            && !branch_nodes.contains(nid) {
+                            branch_nodes.push(nid.clone());
+                        }
+                    }
+                }
+
+                for branch_nid in &branch_nodes {
+                    if let Some(existing) = self.kernel.tape.files.get(branch_nid) {
+                        let existing_prefix: String = existing.payload.chars()
+                            .filter(|c| !c.is_whitespace())
+                            .take(40)
+                            .collect::<String>()
+                            .to_lowercase();
+                        if new_prefix == existing_prefix {
+                            let reason = format!(
+                                "Duplicate in branch — similar to ancestor/sibling {}. Try a DIFFERENT step.",
+                                existing.id
+                            );
+                            log::warn!(">>> [DEDUP] {} rejected: matches {} (branch-aware)", file.author, existing.id);
+                            // Refund any wallet deduction
+                            if final_reward > 0.0 {
+                                use crate::sdk::tools::wallet::WalletTool;
+                                for t in &mut self.tools {
+                                    if t.manifest() == "core.tool.crypto_wallet" {
+                                        if let Some(wallet) = t.as_any_mut().downcast_mut::<WalletTool>() {
+                                            *wallet.balances.entry(file.author.clone()).or_insert(0.0) += final_reward;
+                                            log::info!(">>> [REFUND] {} refunded {:.2} after dedup veto", file.author, final_reward);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                            return Err(reason);
+                        }
+                    }
+                }
+            }
+        }
+
         // ── Phase 4: Kernel append (unchanged — Append-Only DAG) ──
         let new_node_id = {
             let node = match self.kernel.append_tape(file.clone(), final_reward) {

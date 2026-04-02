@@ -32,11 +32,11 @@ impl TuringTool for MathStepMembrane {
             return ToolSignal::Veto(format!("Step too short ({} chars). Write a real mathematical reasoning step.", step.len()));
         }
 
-        // [COMPLETE] → OMEGA signal (terminal oracle will verify)
-        // Polymarket: zero mint. Only tag OMEGA marker. Agent's own stake is the only reward.
+        // [COMPLETE] → NOT auto-OMEGA. Mark as pending, let market price it.
+        // DeepSeek verification only triggers when price >= 90% (architect directive 2026-04-02).
         if step.contains("[COMPLETE]") {
-            info!(">>> [MEMBRANE] COMPLETE declared! Triggering terminal oracle.");
-            return ToolSignal::Modify(format!("{}\n  -- [OMEGA]", payload));
+            info!(">>> [MEMBRANE] COMPLETE declared by {}. Pending market validation (need P >= 90%).", _author);
+            // Pass through — reactor loop will check price threshold and call DeepSeek
         }
 
         // Everything else passes — market handles quality

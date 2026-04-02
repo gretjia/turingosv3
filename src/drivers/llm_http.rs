@@ -51,23 +51,37 @@ impl ResilientLLMClient {
 
     /// 执行具备热力学韧性与指数退避的网络请求
     pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, temperature: f32) -> Result<String, DriverError> {
-        let payload = json!({
-            "model": self.model_name,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a logical reasoning agent in the TuringOS Thermodynamic Sandbox. You can output <think>...</think> and reason freely without any length limits. However, you MUST conclude your entire reasoning with exactly [State: ...]."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            // Temperature varies slightly based on agent_id to create genuine DAG branching
-            "temperature": temperature, 
-            "max_tokens": 8192,
-            "stream": false
-        });
+        let needs_thinking_off = self.api_url.contains("dashscope") || self.model_name.contains("qwen3");
+        let payload = if needs_thinking_off {
+            json!({
+                "model": self.model_name,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a logical reasoning agent in the TuringOS Thermodynamic Sandbox. You can output <think>...</think> and reason freely without any length limits. However, you MUST conclude your entire reasoning with exactly [State: ...]."
+                    },
+                    { "role": "user", "content": prompt }
+                ],
+                "temperature": temperature,
+                "max_tokens": 3072,
+                "stream": false,
+                "enable_thinking": false
+            })
+        } else {
+            json!({
+                "model": self.model_name,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a logical reasoning agent in the TuringOS Thermodynamic Sandbox. You can output <think>...</think> and reason freely without any length limits. However, you MUST conclude your entire reasoning with exactly [State: ...]."
+                    },
+                    { "role": "user", "content": prompt }
+                ],
+                "temperature": temperature,
+                "max_tokens": 3072,
+                "stream": false
+            })
+        };
 
         let mut request_builder = self.client.post(&self.api_url)
             // Use resilient timeout internally as well, ignoring global client timeout for these heavy requests

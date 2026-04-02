@@ -1,0 +1,10 @@
+{
+  "swarm_size": 15,
+  "math_count": 5,
+  "bull_count": 5,
+  "bear_count": 5,
+  "max_tx": 300,
+  "model": "Qwen/Qwen2.5-14B-Instruct",
+  "provider": "siliconflow",
+  "description": "14B on SiliconFlow (should be faster than Aliyun). Branch-dedup + append-only. 7B benchmark: depth=14."
+}

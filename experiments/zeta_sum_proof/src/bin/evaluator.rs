@@ -16,16 +16,17 @@ use turingosv3::sdk::actor::{MinerTx, build_chain_from_snapshot, view_node};
 use turingosv3::sdk::protocol::parse_agent_output;
 use turingosv3::sdk::prompt;
 use turingosv3::sdk::tools::search::SearchTool;
+use turingosv3::sdk::tools::librarian::LibrarianTool;
 use turingosv3::bus::{TuringBus, ThermodynamicHeartbeatTool};
 use zeta_sum_proof::math_membrane::MathStepMembrane;
 
-const SWARM_SIZE: usize = 90;
-const MAX_TRANSACTIONS: u64 = 6000;
-
-// Architect 2026-04-01: Role trifecta (scaled to 90)
-const MATH_COUNT: usize = 30;  // Agent 0-29:   proof builders
-const BULL_COUNT: usize = 30;  // Agent 30-59:  YES investors (做多)
-const BEAR_COUNT: usize = 30;  // Agent 60-89:  NO shorters (做空)
+// AutoResearch: configurable via env vars, defaults to 30 equal
+fn env_usize(key: &str, default: usize) -> usize {
+    std::env::var(key).ok().and_then(|s| s.parse().ok()).unwrap_or(default)
+}
+fn env_u64(key: &str, default: u64) -> u64 {
+    std::env::var(key).ok().and_then(|s| s.parse().ok()).unwrap_or(default)
+}
 
 const PROBLEM: &str = r#"PROVE: 1 + 2 + 3 + 4 + ... = -1/12 (in the sense of regularization)
 
@@ -68,8 +69,19 @@ fn epoch_secs() -> u64 {
 async fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
-    info!("=== ζ-Sum Regularization Proof — Role Trifecta (5M/5B+/5B-) ===");
-    info!("N={}, Max Tx={}", SWARM_SIZE, MAX_TRANSACTIONS);
+    // AutoResearch: all params configurable via env vars
+    let swarm_size = env_usize("SWARM_SIZE", 15);
+    let max_transactions = env_u64("MAX_TX", u64::MAX); // No limit — run until OMEGA
+    let math_count = env_usize("MATH_COUNT", 5);
+    let bull_count = env_usize("BULL_COUNT", 5);
+    let bear_count = env_usize("BEAR_COUNT", 5);
+
+    info!("=== ζ-Sum AutoResearch — {}M/{}B+/{}B- ===", math_count, bull_count, bear_count);
+    info!("N={}, Max Tx={}", swarm_size, max_transactions);
+
+    // --- Skills dir (needed by Librarian + Role seeding) ---
+    let skills_dir = std::env::var("AGENT_SKILLS_DIR")
+        .unwrap_or_else(|_| "/tmp/turingos_zeta_skills".to_string());
 
     // --- Initialize Bus + Tools ---
     let kernel = Kernel::new();
@@ -78,8 +90,10 @@ async fn main() {
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
     bus.mount_tool(Box::new(WalletTool::new()));
     bus.mount_tool(Box::new(MathStepMembrane::new()));
+    // Librarian: compress tape → learned.md every 100 appends
+    bus.mount_tool(Box::new(LibrarianTool::new(&skills_dir, swarm_size, 100)));
 
-    let agent_ids: Vec<String> = (0..SWARM_SIZE).map(|i| format!("Agent_{}", i)).collect();
+    let agent_ids: Vec<String> = (0..swarm_size).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
 
     // --- Create Channels ---
@@ -88,14 +102,37 @@ async fn main() {
     let (tx_state, rx_state) = watch::channel(init_snap);
     let (tx_mempool, mut rx_mempool) = mpsc::channel::<MinerTx>(1000);
 
-    // --- Build Client: WEAK MODEL (Architect: 从 Qwen3.5-9B 开始) ---
-    let sf_url = "https://api.siliconflow.cn/v1/chat/completions";
-    let key_sf = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
+    // --- Build Client: configurable provider via LLM_PROVIDER env ---
+    let provider = std::env::var("LLM_PROVIDER").unwrap_or_else(|_| "aliyun".to_string());
+    let clients: Vec<Arc<ResilientLLMClient>> = match provider.as_str() {
+        "aliyun" | "dashscope" => {
+            let url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+            let key = std::env::var("DASHSCOPE_API_KEY").expect("DASHSCOPE_API_KEY required");
+            let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "qwen3-8b".to_string());
+            info!("Provider: Aliyun DashScope | Model: {}", model);
+            vec![Arc::new(ResilientLLMClient::with_key(url, &model, &key))]
+        }
+        "siliconflow" | "sf" => {
+            let url = "https://api.siliconflow.cn/v1/chat/completions";
+            let key = std::env::var("SILICONFLOW_API_KEY").expect("SILICONFLOW_API_KEY required");
+            let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "Pro/Qwen/Qwen2.5-7B-Instruct".to_string());
+            info!("Provider: SiliconFlow | Model: {}", model);
+            vec![Arc::new(ResilientLLMClient::with_key(url, &model, &key))]
+        }
+        _ => panic!("Unknown LLM_PROVIDER: {}. Use 'aliyun' or 'siliconflow'.", provider),
+    };
 
-    let clients: Vec<Arc<ResilientLLMClient>> = vec![
-        Arc::new(ResilientLLMClient::with_key(sf_url, "Pro/Qwen/Qwen2.5-7B-Instruct", &key_sf)),
-    ];
-    info!("Weak model: Pro/Qwen2.5-7B-Instruct (SiliconFlow Pro) — all 15 agents same model");
+    // --- DeepSeek Oracle: only called when [COMPLETE] node price >= 90% ---
+    let ds_url = "https://api.deepseek.com/chat/completions";
+    let ds_key = std::env::var("DEEPSEEK_API_KEY").unwrap_or_default();
+    let deepseek_oracle = if !ds_key.is_empty() {
+        let client = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &ds_key));
+        info!("DeepSeek Oracle: ARMED (deepseek-reasoner, triggers at P >= 90%)");
+        Some(client)
+    } else {
+        warn!("DeepSeek Oracle: DISABLED (no DEEPSEEK_API_KEY)");
+        None
+    };
 
     // --- Search Tool ---
     let search_tool = Arc::new(SearchTool::new(vec![
@@ -108,15 +145,17 @@ async fn main() {
     // --- Per-agent rejection feedback ---
     let agent_rejections: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
 
+    // --- Global bulletin board: common errors visible to ALL agents ---
+    // Deduped by error prefix. Max 5 entries. All agents learn from others' mistakes.
+    let global_bulletin: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+
     // --- Engine 4: Seed Role Trifecta ---
-    let skills_dir = std::env::var("AGENT_SKILLS_DIR")
-        .unwrap_or_else(|_| "/tmp/turingos_zeta_skills".to_string());
-    for i in 0..SWARM_SIZE {
+    for i in 0..swarm_size {
         let agent_dir = format!("{}/agent_{}", skills_dir, i);
         let _ = std::fs::create_dir_all(&agent_dir);
 
         let role_path = format!("{}/learned.md", agent_dir);
-        let (role_name, role_content) = if i < MATH_COUNT {
+        let (role_name, role_content) = if i < math_count {
             ("Mathematician", "\
 # ROLE: Mathematician (Proof Builder)\n\
 Your PRIMARY mission is constructing correct proof steps.\n\n\
@@ -127,7 +166,7 @@ YOUR APPROACH:\n\
 4. You MAY invest/short when you see clearly correct or flawed steps,\n\
    but your comparative advantage is BUILDING, not trading.\n\
 5. Seek DIFFERENT angles — if many steps use one approach, try another.\n")
-        } else if i < MATH_COUNT + BULL_COUNT {
+        } else if i < math_count + bull_count {
             ("Bull", "\
 # ROLE: Bull Investor (做多 · YES Advocate)\n\
 Your PRIMARY mission is discovering and funding correct proof steps.\n\n\
@@ -151,10 +190,10 @@ YOUR APPROACH:\n\
         let _ = std::fs::write(&role_path, role_content);
         info!(">>> [ROLE] Agent_{} seeded as {}", i, role_name);
     }
-    info!(">>> [ENGINE 4] Role trifecta: {}M/{}B+/{}B-", MATH_COUNT, BULL_COUNT, BEAR_COUNT);
+    info!(">>> [ENGINE 4] Role trifecta: {}M/{}B+/{}B-", math_count, bull_count, bear_count);
 
     // --- Spawn Agent Loops ---
-    for i in 0..SWARM_SIZE {
+    for i in 0..swarm_size {
         let client = clients[i % clients.len()].clone();
         let mut rx = rx_state.clone();
         let tx = tx_mempool.clone();
@@ -165,9 +204,10 @@ YOUR APPROACH:\n\
         let heartbeat = free_action_epoch.clone();
         let agent_skill_dir = format!("{}/agent_{}", skills_dir, i);
         let rejections = agent_rejections.clone();
+        let bulletin = global_bulletin.clone();
 
-        let agent_role = if i < MATH_COUNT { "MATH" }
-            else if i < MATH_COUNT + BULL_COUNT { "BULL" }
+        let agent_role = if i < math_count { "MATH" }
+            else if i < math_count + bull_count { "BULL" }
             else { "BEAR" };
         info!(">>> [SPAWN] Agent {} → {} [{}]", i, client.model_name(), agent_role);
 
@@ -193,7 +233,7 @@ YOUR APPROACH:\n\
                 let graveyard = snapshot.tombstones.values()
                     .take(3).cloned().collect::<Vec<_>>().join("\n");
 
-                // Read last rejection feedback
+                // Read last rejection feedback (personal)
                 let last_rejection = rejections.lock().unwrap()
                     .get(&agent_name).cloned().unwrap_or_default();
                 let feedback = if last_rejection.is_empty() {
@@ -204,16 +244,27 @@ YOUR APPROACH:\n\
                     format!("\n=== YOUR LAST SUBMISSION WAS REJECTED ===\n{}\n===\n", last_rejection)
                 };
 
+                // Read global bulletin (common errors from ALL agents)
+                let bulletin_text = {
+                    let b = bulletin.lock().unwrap();
+                    if b.is_empty() {
+                        String::new()
+                    } else {
+                        format!("\n=== BULLETIN BOARD (common errors — learn from others) ===\n{}\n===\n",
+                            b.join("\n"))
+                    }
+                };
+
                 let p = prompt::build_agent_prompt(
                     &chain,
                     &format!("{}\n{}", skill, agent_skill),
                     &snapshot.market_ticker,
-                    &format!("{}\n{}\n{}", graveyard, private, feedback),
+                    &format!("{}\n{}\n{}\n{}", graveyard, private, feedback, bulletin_text),
                     balance,
                     "append: {\"tool\":\"append\",\"tactic\":\"your step\"} (FREE)\ninvest: {\"tool\":\"invest\",\"tactic\":\"your step\",\"amount\":PRICE} (creates node + buys YES)\nbet: {\"tool\":\"invest\",\"node\":\"node_id\",\"amount\":PRICE} (buy YES on existing)\nshort: {\"tool\":\"short\",\"node\":\"node_id\",\"amount\":PRICE} (buy NO)\nsearch: {\"tool\":\"search\",\"query\":\"term\"} (FREE)\nview: {\"tool\":\"view_node\",\"query\":\"node_id\"} (FREE)",
                 );
 
-                let temp = 0.2 + 0.6 * (i as f32 / SWARM_SIZE.max(1) as f32);
+                let temp = 0.2 + 0.6 * (i as f32 / swarm_size.max(1) as f32);
                 match client.resilient_generate(&p, i, temp).await {
                     Ok(raw) => {
                         if let Some(action) = parse_agent_output(&raw) {
@@ -293,9 +344,9 @@ YOUR APPROACH:\n\
                         })
                         .collect::<Vec<_>>().join("\n");
 
-                    let role_bias = if i < MATH_COUNT {
+                    let role_bias = if i < math_count {
                         "You are a proof builder. Only invest when you see clearly correct or flawed steps. Prefer PASS if unsure."
-                    } else if i < MATH_COUNT + BULL_COUNT {
+                    } else if i < math_count + bull_count {
                         "You are a BULL investor. Invest YES aggressively (20-100 Coins) on sound reasoning. SHORT only when a flaw is undeniable. DO NOT pass lightly — capital deployment is your mission."
                     } else {
                         "You are a BEAR investor. SHORT aggressively (20-100 Coins) on gaps, errors, and hand-waving. Invest YES only when correctness is beyond doubt. DO NOT pass lightly — skepticism is your weapon."
@@ -368,11 +419,12 @@ YOUR APPROACH:\n\
     }
     drop(tx_mempool);
 
-    let agent_names: Vec<String> = (0..SWARM_SIZE).map(|i| format!("Agent_{}", i)).collect();
-    info!(">>> TuringOS v3 ζ-Sum Booted. {} agents (5M/5B+/5B-). <<<", SWARM_SIZE);
+    let agent_names: Vec<String> = (0..swarm_size).map(|i| format!("Agent_{}", i)).collect();
+    info!(">>> TuringOS v3 ζ-Sum Booted. {} agents (5M/5B+/5B-). <<<", swarm_size);
 
     // --- Reactor Loop ---
-    let mut tx_count: u64 = 0;
+    let mut tx_count: u64 = 0;       // all tx (for node ID)
+    let mut append_count: u64 = 0;   // only successful appends (for budget)
     let mut generation: u32 = 1;
     let mut last_invest_epoch = epoch_secs();
 
@@ -385,7 +437,9 @@ YOUR APPROACH:\n\
                 if tx.action_type == "invest" || tx.action_type == "short" {
                     last_invest_epoch = epoch_secs();
                 }
-                tx_count += 1;
+                // tx_count only increments on successful append (not invest/reject)
+                // Investment tx should NOT consume the build budget
+                tx_count += 1; // still used for node ID generation
 
                 let file = File {
                     id: format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", "")),
@@ -399,22 +453,113 @@ YOUR APPROACH:\n\
 
                 match bus.append(file) {
                     Ok(_) => {
-                        info!("[Tx {}] {} ({}) → Appended", tx_count, tx.agent_id, tx.model_name);
+                        append_count += 1;
+                        info!("[Tx {} Append #{}] {} ({}) → Appended", tx_count, append_count, tx.agent_id, tx.model_name);
                         bus.tick_map_reduce();
 
-                        if tx.payload.contains("[OMEGA]") || tx.payload.contains("[COMPLETE]") {
+                        // --- Librarian periodic compression ---
+                        for t in &mut bus.tools {
+                            if t.manifest() == "core.tool.librarian" {
+                                if let Some(lib) = t.as_any_mut().downcast_mut::<LibrarianTool>() {
+                                    if lib.should_compress() {
+                                        lib.compress(&bus.kernel.tape);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
+                        // --- DeepSeek Halt Gate ---
+                        // [COMPLETE] nodes don't auto-trigger OMEGA.
+                        // Only when market price >= 90% do we call DeepSeek to verify.
+                        if tx.payload.contains("[COMPLETE]") {
                             let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
-                            info!("OMEGA at Tx {}!", tx_count);
-                            bus.halt_and_settle(&file_id);
-                            break;
+                            let price = bus.kernel.tape.files.get(&file_id)
+                                .map(|n| n.price).unwrap_or(0.0);
+                            info!(">>> [COMPLETE CLAIMED] {} at {} (P={:.1}%). Need 90% for DeepSeek verification.",
+                                tx.agent_id, file_id, price * 100.0);
+                        }
+
+                        // Check ALL [COMPLETE] nodes for price threshold
+                        let mut omega_candidate: Option<String> = None;
+                        for (nid, node) in &bus.kernel.tape.files {
+                            if node.payload.contains("[COMPLETE]") && node.price >= 0.9 {
+                                info!(">>> [PRICE GATE] {} reached P={:.1}% — invoking DeepSeek Oracle!",
+                                    nid, node.price * 100.0);
+                                omega_candidate = Some(nid.clone());
+                                break;
+                            }
+                        }
+
+                        if let Some(ref candidate_id) = omega_candidate {
+                            if let Some(ref oracle) = deepseek_oracle {
+                                // Build the full proof chain for DeepSeek to verify
+                                let chain = bus.kernel.trace_golden_path(candidate_id);
+                                let mut proof_text = format!("PROBLEM: {}\n\nPROOF CHAIN ({} steps):\n", PROBLEM, chain.len());
+                                for (i, nid) in chain.iter().rev().enumerate() {
+                                    if let Some(n) = bus.kernel.tape.files.get(nid) {
+                                        proof_text.push_str(&format!("Step {}: {}\n", i+1, n.payload.trim()));
+                                    }
+                                }
+                                proof_text.push_str("\nIS THIS PROOF MATHEMATICALLY CORRECT AND COMPLETE? Answer YES or NO with brief justification.");
+
+                                info!(">>> [DEEPSEEK ORACLE] Verifying {} ({} steps)...", candidate_id, chain.len());
+                                match oracle.resilient_generate(&proof_text, 0, 0.1).await {
+                                    Ok(response) => {
+                                        let verdict = response.to_uppercase();
+                                        if verdict.contains("YES") && !verdict.starts_with("NO") {
+                                            info!(">>> [DEEPSEEK VERDICT] ✓ PROOF ACCEPTED! OMEGA!");
+                                            bus.halt_and_settle(candidate_id);
+                                            break;
+                                        } else {
+                                            warn!(">>> [DEEPSEEK VERDICT] ✗ PROOF REJECTED: {}", &response[..response.len().min(200)]);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!(">>> [DEEPSEEK ERROR] Oracle failed: {:?}. Continuing without halt.", e);
+                                    }
+                                }
+                            } else {
+                                // No DeepSeek key — fallback to old behavior
+                                info!(">>> [OMEGA] No DeepSeek Oracle, accepting [COMPLETE] at P >= 90%");
+                                bus.halt_and_settle(candidate_id);
+                                break;
+                            }
                         }
                     }
                     Err(e) => {
                         let preview: String = tx.payload.chars().take(100).collect();
                         warn!("[Tx {}] {} REJECTED: {} | {}", tx_count, tx.agent_id, e, preview.replace('\n', " "));
-                        // Feed rejection back to agent
+                        // Feed rejection back to agent (personal)
                         agent_rejections.lock().unwrap()
                             .insert(tx.agent_id.clone(), format!("{}", e));
+                        // Post to global bulletin (all agents learn from this)
+                        {
+                            let err_msg = format!("{}", e);
+                            let short_err: String = err_msg.chars().take(80).collect();
+                            let mut b = global_bulletin.lock().unwrap();
+                            let already = b.iter().any(|existing| {
+                                let prefix: String = existing.chars().take(30).collect();
+                                short_err.starts_with(&prefix)
+                            });
+                            if !already {
+                                b.push(short_err);
+                                if b.len() > 5 { b.remove(0); }
+                            }
+                        }
+                        // Record rejection in Librarian (long-term memory)
+                        for t in &mut bus.tools {
+                            if t.manifest() == "core.tool.librarian" {
+                                if let Some(lib) = t.as_any_mut().downcast_mut::<LibrarianTool>() {
+                                    lib.record_rejection(&tx.agent_id, &format!("{}", e));
+                                    // Periodic compression check
+                                    if lib.should_compress() {
+                                        lib.compress(&bus.kernel.tape);
+                                    }
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -422,10 +567,7 @@ YOUR APPROACH:\n\
                 snap.generation = generation;
                 let _ = tx_state.send(snap);
 
-                if tx_count >= MAX_TRANSACTIONS {
-                    info!("Max transactions ({}) reached.", MAX_TRANSACTIONS);
-                    break;
-                }
+                // No tx limit — run until OMEGA or manual stop (architect directive 2026-04-02)
             }
             Ok(None) => {
                 info!("All senders dropped. Universe terminated.");
@@ -446,7 +588,7 @@ YOUR APPROACH:\n\
                 if all_bankrupt || absolute_stagnation {
                     let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };
                     error!("==== [MACROECONOMICS] {}! Gen {} perished. Solvent: {}/{} ====",
-                        reason, generation, solvent_count, SWARM_SIZE);
+                        reason, generation, solvent_count, swarm_size);
 
                     for name in &agent_names {
                         let bal = bus.get_agent_balance(name);
@@ -469,7 +611,7 @@ YOUR APPROACH:\n\
                             secs_since_invest, secs_since_free);
                     } else {
                         info!("[TIMEOUT] 30s idle. Solvent: {}/{}. Invest: {}s, Free: {}s.",
-                            solvent_count, SWARM_SIZE, secs_since_invest, secs_since_free);
+                            solvent_count, swarm_size, secs_since_invest, secs_since_free);
                     }
                 }
             }
@@ -477,7 +619,7 @@ YOUR APPROACH:\n\
     }
 
     // --- Final Output ---
-    info!("==== EVALUATION COMPLETE ({} tx, {} generations) ====", tx_count, generation);
+    info!("==== EVALUATION COMPLETE ({} appends, {} total tx, {} generations) ====", append_count, tx_count, generation);
     bus.kernel.refresh_prices();
 
     if let Some(omega) = bus.kernel.tape.files.values()
@@ -512,7 +654,9 @@ YOUR APPROACH:\n\
         let _ = writeln!(f, "# zeta_sum_proof — Full Tape Dump (Role Trifecta)\n");
         let _ = writeln!(f, "**Transactions**: {} | **Generations**: {} | **Nodes**: {}\n",
             tx_count, generation, bus.kernel.tape.files.len());
-        let _ = writeln!(f, "**Model**: Pro/Qwen2.5-7B-Instruct (SiliconFlow Pro) — all agents same model\n");
+        let _ = writeln!(f, "**Provider**: {} | **Model**: {}\n",
+            std::env::var("LLM_PROVIDER").unwrap_or_else(|_| "aliyun".into()),
+            clients[0].model_name());
         let _ = writeln!(f, "**Roles**: 5 Math (0-4) / 5 Bull (5-9) / 5 Bear (10-14)\n");
 
         if let Some(omega) = bus.kernel.tape.files.values()

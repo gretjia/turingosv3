@@ -1,67 +1,68 @@
 # TuringOS v3 — Handover State
-**Updated**: 2026-04-01
-**Session Summary**: vGaia 意识森林 + WAL 持久化 + AIME P15 run (1000tx) + 双审计 + 对照组实验 + DAG 可视化 + 数据修正
+**Updated**: 2026-04-02
+**Session Summary**: AutoResearch (Karpathy 式) 20 实验 + 三层架构修复 (dedup/budget/bulletin) + Librarian Engine + DeepSeek Halt Gate
 
 ## Current State
-- **vGaia Conscious Forest: DEPLOYED** — P2P Transfer, 冥想替代尸检, 三生态位 prompt
-- **WAL Tape Persistence: DEPLOYED** — 每 tx 快照, 重启恢复. 已验证 (376KB, 1000tx)
-- **AIME 2025 I P15: NOT PROVED** (1000 tx 完成, 8 OMEGA 失败)
-- **zeta_sum_proof: PROVED (不变)**
-- **AIME 2025 I P1: PROVED (不变)**
-- **Model: Qwen3-32B → SF-DeepSeek-R1** (活跃度大幅提升)
+- **AutoResearch 框架: DEPLOYED** — `autoresearch/zeta/` 含 program.md, run_experiment.py, librarian.py, results.tsv
+- **Branch-aware Dedup: DEPLOYED** — bus.rs Phase 3b, 同分支去重, 跨分支允许复用
+- **Append-only Budget: DEPLOYED** — max_tx 只计 append, 投资不挤压建树
+- **Global Bulletin: DEPLOYED** — 全局公告板, 所有 agent 可见 common errors
+- **Librarian Tool: DEPLOYED** — 每 100 appends 压缩 tape → learned.md (Engine 4)
+- **DeepSeek Halt Gate: DEPLOYED** — [COMPLETE] 需 P>=90% + DeepSeek 验证才触发 OMEGA
+- **LLM Provider 可配**: env var 切换 Aliyun/SiliconFlow, 模型可配
+- **zeta_sum_proof: 未证明** (20 实验, 无 OMEGA — dedup 暴露 7B 真实深度 ~12-14)
 
 ## Changes This Session
 
-### Commits (15 commits on humanity branch, merged to main)
-- `ecb03b5` **vGaia 意识森林** — Transfer P2P + meditation + 三生态位 + Codex/Gemini 三重审计
-- `c1c4ae6` **WAL 持久化 + 模型切换** — serde derives + save/restore_wal + SF-DeepSeek-R1
-- `693ef94` **AIME P15 vGaia 双审计** — Gemini math 6/10, econ 5/10
-- `c9e2576` **Zeta 对照组** — 3 单 LLM 全部一次性解出 (zeta 太简单)
-- `00a55e8` **AIME P15 对照组** — 0/3 模型正确解出 (Chat 截断, Reasoner 耗尽, R1 答案 637≠735)
-- `6307195`→`4777247` **DAG 可视化迭代** — 从字符图→横版→树格式→数据修正 (8 commits)
+### Committed (3 commits)
+- `48d03d5` Role Trifecta (Math/Bull/Bear) + 弱模型实验 (Run 3-4)
+- `f8a17cf` 90-agent scaling + OMEGA (Run 5-6, 6000tx)
+- `7a57598` Control group — single 7B vs 90-agent swarm
 
-### Data Bug Fixed
-- `4777247` **Zeta pricing 数据修正** — tape node ID ≠ log node ID. 之前几乎全部显示 (50%) 是因为 ID 匹配错误. 修正后 26/61 节点有真实交易数据. tx_57 ★ 从"零交易宝石"变成"被做空的洞察"(BEAR 20Y/70N).
+### Uncommitted (major)
+- **src/bus.rs**: Branch-aware dedup (Phase 3b) — 40-char 前缀, 分支内去重
+- **src/drivers/llm_http.rs**: `enable_thinking: false` for Qwen3 + max_tokens 3072
+- **src/sdk/tools/librarian.rs**: NEW — Librarian Tool (tape → memory 压缩)
+- **src/sdk/tools/mod.rs**: 注册 librarian 模块
+- **evaluator.rs**: env var 配置 + DeepSeek halt gate + global bulletin + append-only budget + Librarian 挂载
+- **math_membrane.rs**: [COMPLETE] 不再自动 OMEGA, 交给 DeepSeek 验证
+- **autoresearch/zeta/**: 完整 Karpathy 式 AutoResearch 框架
 
-### Codex 审计修复 (in vGaia commit)
-- [HIGH] credit_agent_balance 静默失败 → bool 返回 + rollback
-- [HIGH] NaN 防御 → is_finite() 检查
-- [MED] Target 不存在 → 只 credit 已有 agent
+### Aliyun API 接入
+- `.env` 新增 `DASHSCOPE_API_KEY`
+- evaluator 支持 `LLM_PROVIDER=aliyun|siliconflow` + `LLM_MODEL` env var
+- 测试: Aliyun qwen2.5-14b-instruct 30 并发 OK, 但长 prompt 慢 (~47s/tx)
 
 ## Key Decisions
-- **Transfer 在 bus.rs 而非 kernel.rs**: 余额在 wallet.rs, bus.rs 已有先例
-- **WAL = 全量快照**: 简单可靠, 原子写入 (tmp+rename)
-- **Qwen3-32B → SF-DeepSeek-R1**: Qwen 仅 5% tx, R1 后提速 2.5→3.3 tx/min
-- **codex exec = 外部审计, /codex:rescue = 插件协作**: 两者互补非替代
-- **DAG 可视化用树格式 ├── └──**: 架构师指定格式, 每节点标注分类+pricing
-
-## Key Findings (Audit)
-- **Zeta 市场评分 2/10**: 26/61 交易, 3/4 GP 零投资, tx_57 ★被做空(比看不见更糟)
-- **AIME 市场评分 5/10**: 杀错 10/10, 评深度 0/10, tx_615 error-detection=60.2% 最高价
-- **对照组结论**: Zeta 3/3 模型秒解(太简单), AIME 0/3 正确(太难). 验证 swarm 在前沿问题上的价值空间
-- **数据完整性教训**: tape export ID ≠ log ID, 导致整个 Zeta pricing 分析错误. 未来必须先验证 ID 一致性
+- **5/5/5 均衡最优**: AutoResearch 20 实验确认, 偏比例配置都不如均衡 (depth 下降)
+- **Dedup 必须分支感知**: 全局去重杀死跨分支复用 (depth 9→14)
+- **投资与建树分离计数**: 95% tx 被投资消耗是之前的隐藏瓶颈
+- **DeepSeek 做 halt 仲裁**: Agent 声称 [COMPLETE] → 市场定价 → P>=90% → DeepSeek 验证 → OMEGA
+- **Librarian 是 Engine 4 基础设施**: 不是实验工具, 是架构级记忆压缩管道
 
 ## Architect Insights (本次会话)
-- **vGaia 意识森林**: Transfer P2P 合宪 (1:1 零和), 三生态位 → `handover/directives/2026-03-31_vgaia-conscious-forest.md`
-- 本次会话无新口头洞察归档
+- **角色分化 5/5/5**: 经济活动不足+重复节点 → 分角色对抗 → `2026-04-01_role-differentiation-15agents.md`
+- **7 条苦涩教训**: 假深度/投资挤压/指标 bug/14B 分散 等 → `2026-04-02_autoresearch-bitter-lessons.md`
+- **Librarian 记忆压缩**: Tape=原始日志, Memory=压缩智慧, 成功失败分开 → `2026-04-02_librarian-memory-compression.md`
+- **Librarian 架构级定位**: Engine 4 的记忆基础设施, 不是 autoresearch 工具 → `2026-04-02_librarian-architecture.md`
 
 ## Next Steps
-1. **[OPEN] Qwen3-8B 弱模型对照组** — 已启动但未完成, Qwen3-8B 放弃了 hint 公式 (42K reasoning 后退回标准 ζ 函数)
-2. **AIME P15 深度链策略** — 审计发现 swarm 广度有余深度不足, 需要"Hensel lifting 专用 agent"
-3. **LP=1000 参数调优** — Gemini 审计指出 APMM 过度稳定, 考虑降低 LP
-4. **MiniF2F 244 题 baseline** — 批量测试基础设施已就绪
-5. **更新 run2_math_audit_non_golden_path.md** — 该文件的 pricing 也需要用修正后的数据更新
+1. **[OPEN] Commit 所有未提交变更** — 大量架构改动未 commit
+2. **[OPEN] 14B + Librarian + DeepSeek Gate 首次完整 run** — 全套新架构跑 zeta
+3. **14B 深度引导** — 14B 太分散 (depth=4, roots=9), 需要 Boltzmann 偏好深链
+4. **MiniF2F 迁移** — 当前架构改进应用到真正的定理证明任务
+5. **Librarian 跨 run 测试** — 验证 learned.md 压缩记忆在下一次 run 中是否被 agent 利用
 
 ## Warnings
-- **W1**: Zeta tape export 的 node ID 和 log 的 node ID 使用不同编号系统! 未来分析 MUST 先验证 ID 一致性. AIME (WAL) 无此问题.
-- **W2**: WAL 是全量覆盖快照, 随 tape 增长文件变大 (1000tx = 376KB, 可接受)
-- **W3**: Transfer 机制尚未被 agent 自发使用 (无人破产=无需救助)
-- **W4**: AIME P15 formalization 含 Finset.range (三层防御已有)
-- **W5**: `run2_math_audit_non_golden_path.md` 文件中的 pricing 数据尚未更新为修正版 (dag_visual.md 已修正)
+- **W1**: Run 6 tape 已永久丢失 (被后续实验覆盖). run_experiment.py 已加自动 persist, 但 evaluator 直接运行时仍需手动备份
+- **W2**: Aliyun qwen2.5-14b-instruct 长 prompt 极慢 (~47s/tx), 建议用 SiliconFlow
+- **W3**: Aliyun qwen2.5-math-7b-instruct 不可用 (冷启动无响应)
+- **W4**: max_tokens 已从 8192 降至 3072 (兼容 math 模型), 可能影响长输出
+- **W5**: 20 个 AutoResearch 实验的 results.tsv 存在, 但前 12 个实验使用了有 bug 的 novelty 指标 (parse_tape 空行 bug)
+- **W6**: SiliconFlow TPM 限流在高并发 (>30 agents) 时会触发, 需要控制 agent 数量或错峰
 
 ## Audit Trail
-- Gemini Plan: 9/10, Code: 9/10 (vGaia)
-- Codex Code: 6/10→fixed (vGaia)
-- Gemini Math: 6/10, Econ: 5/10 (AIME P15)
-- Zeta/AIME 对照组: `experiments/*/audit/control_group_single_llm.md`
-- DAG 可视化: `experiments/*/audit/*_dag_visual.md`
+- AutoResearch: 20 experiments, `autoresearch/zeta/results.tsv`
+- Bitter Lessons: `handover/architect-insights/2026-04-02_autoresearch-bitter-lessons.md`
+- Run 3-6 DAGs: `experiments/zeta_sum_proof/audit/run{3,4,5,6}*.md`
+- Control group: `experiments/zeta_sum_proof/audit/run6_control_single_7b.md`

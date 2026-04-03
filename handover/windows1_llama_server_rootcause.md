@@ -37,5 +37,27 @@ SSH 退出后进程存活。GPU 上下文保持有效。
 - Win1 (AMD 128GB): `--parallel 2 -c 8192` → 32 tok/s, 108GB 空闲
 - **避免 `--parallel 4+` + 大 context**: 会导致 KV cache 分割降低单 slot 速度
 
+## 最终解决方案: NSSM (2026-04-03 更新)
+
+**根因回溯**: TuringOS v1 用 Ollama (Go 服务管理器)，自带进程守护。v2 不用 Win1。
+v3 直接用裸 llama-server.exe → SSH 断开就死。
+
+**NSSM (Non-Sucking Service Manager)** 把 llama-server 注册为 Windows 服务:
+```cmd
+choco install nssm -y
+nssm install llama-server C:\Users\jiazi\work\models\llama-server.exe
+nssm set llama-server AppParameters "-m C:\Users\jiazi\work\models\Qwen3.5-9B-Q4_K_M.gguf --host 0.0.0.0 --port 8081 -c 8192 --parallel 2 --threads 16"
+nssm set llama-server AppDirectory C:\Users\jiazi\work\models
+nssm set llama-server AppStdout C:\Users\jiazi\work\llama_svc_out.log
+nssm set llama-server AppStderr C:\Users\jiazi\work\llama_svc_err.log
+nssm set llama-server Type SERVICE_INTERACTIVE_PROCESS
+nssm start llama-server
+```
+
+- SERVICE_INTERACTIVE_PROCESS → Vulkan GPU 访问 ✓
+- 开机自动启动 ✓
+- SSH 断开后存活 ✓
+- nssm restart llama-server 可远程重启 ✓
+
 ## 日期
 2026-04-03

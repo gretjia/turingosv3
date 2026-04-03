@@ -1,8 +1,16 @@
 Prove that 1+2+3+... = -1/12 using regularization techniques.
 
 **CRITICAL REQUIREMENTS:**
-1. **Depth over restatement:** Do not simply state the known result. You must explicitly compute at least one regularization step (e.g., zeta function analytic continuation, Ramanujan summation, or Abel/Cesàro regularization). Show intermediate calculations.
-2. **Novelty:** Explore connections to physics (e.g., Casimir effect, string theory) or other mathematical frameworks (e.g., divergent series summation methods).
-3. **Focus:** Stay on topic—avoid unrelated mathematical digressions.
+1. **Depth over restatement:** You must perform explicit, step-by-step calculations. Do NOT just state the result or quote known formulas without derivation. For example:
+   - If using zeta regularization: Start from the Dirichlet series for ζ(s), derive its analytic continuation via the eta function (η(s) = Σ (-1)^{n-1} n^{-s}), show the relation ζ(s) = η(s)/(1-2^{1-s}), compute η(-1) explicitly via analytic continuation of η(s) (e.g., using the alternating harmonic series extended to s=-1), then solve for ζ(-1). Show all intermediate algebra and series manipulations.
+   - If using Ramanujan summation: Derive the Ramanujan summation formula for Σ n from first principles (e.g., via the Euler-Maclaurin summation formula with remainder terms) and compute the constant term explicitly.
+   - If using cutoff regularization: Introduce a cutoff parameter (e.g., e^{-εn}), compute the sum as a function of ε, expand in powers of ε, isolate the divergent term, and apply a specific subtraction scheme (e.g., minimal subtraction) to extract the finite part -1/12.
 
-**Evaluation:** Proofs will be ranked by depth (number of computational steps), novelty (unique connections), and focus. The highest ERS score will come from deep, original, and on-topic derivations.
+2. **Mandatory explicit computation:** For any chosen method, you must include at least one detailed integral evaluation, series expansion, or limit calculation. For example:
+   - Compute ∫_0^∞ x^{s-1}/(e^x+1) dx for η(s) by splitting at x=1 and using substitution u=1/x.
+   - Expand ∑_{n=1}^∞ n e^{-εn} = 1/ε^2 - 1/12 + O(ε) and show the steps.
+   - Derive the functional equation for η(s) from its integral representation.
+
+3. **Avoid high-level statements:** Do not skip to "by analytic continuation, ζ(-1) = -1/12." Instead, show the actual continuation process.
+
+4. **Encourage multiple approaches:** Agents may explore different regularization methods (zeta, Ramanujan, cutoff, etc.) but each must meet the depth requirement above.

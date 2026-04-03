@@ -176,6 +176,10 @@ impl LibrarianTool {
             prompt.push_str("(no rejections recorded)\n");
         }
 
+        // Log depth to evaluator output (Ground Truth — sweep reads this for ERS)
+        info!(">>> [LIBRARIAN] STATS: {} nodes, deepest chain = {} steps (leaf: {}), {} rejections",
+            tape.files.len(), max_depth, deepest_leaf, total_rejections);
+
         prompt.push_str(&format!("\n## STATS: {} total nodes, deepest chain = {} steps (leaf: {}), {} total rejections\n",
             tape.files.len(), max_depth, deepest_leaf, total_rejections));
 

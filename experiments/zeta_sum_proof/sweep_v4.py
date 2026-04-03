@@ -36,7 +36,8 @@ DEFAULT_CONFIG = {
     "SWARM_SIZE": 10, "MATH_COUNT": 6, "BULL_COUNT": 2, "BEAR_COUNT": 2,
     "FRONTIER_CAP": 30, "DEPTH_WEIGHT": 1.0, "PRICE_GATE_ALPHA": 0.05,
     "GLOBAL_DEDUP": "true", "THINKING_MODE": "off",
-    "LLM_MODEL": "qwen3.5-9b", "LIBRARIAN_INTERVAL": 999,
+    "LLM_MODEL": "qwen3.5-9b",
+    "LIBRARIAN_INTERVAL": 20,  # Must run within 10 min budget. Librarian = Ground Truth authority for depth.
 }
 
 
@@ -92,10 +93,27 @@ def run_experiment(label, config, base_env):
     return output, elapsed
 
 
+def compute_depth_from_log(log):
+    """Extract depth. Librarian "deepest chain" is the AUTHORITATIVE source (Ground Truth).
+    Fallback sources exist but are degraded — if Librarian didn't run, that's a config bug."""
+
+    # PRIMARY: Librarian output (Ground Truth authority)
+    depths = [int(d) for d in re.findall(r"deepest chain.*?(\d+) steps", log)]
+    if depths:
+        return max(depths)
+
+    # FALLBACK 1: "Step N" in proof chain display (from Boltzmann chain)
+    steps = [int(s) for s in re.findall(r"Step (\d+) \[Price:", log)]
+    if steps:
+        return max(steps)
+
+    # FALLBACK 2: if nothing found, depth=0 (Librarian likely didn't run — check LIBRARIAN_INTERVAL)
+    return 0
+
+
 def compute_ers(log):
     """ERS = (depth/20)² × novelty × focus. Single scalar."""
-    depths = [int(d) for d in re.findall(r"deepest chain.*?(\d+) steps", log)]
-    depth = max(depths, default=0)
+    depth = compute_depth_from_log(log)
     appends = len(re.findall(r"Appended", log))
     dedup = len(re.findall(r"DEDUP\]|GLOBAL-DEDUP", log))
     novelty = max(0, appends - dedup) / max(appends, 1)
@@ -108,7 +126,6 @@ def compute_ers(log):
 def extract_summary(log):
     """Concise summary for LLM search agent."""
     appends = len(re.findall(r"Appended", log))
-    depths = [int(d) for d in re.findall(r"deepest chain.*?(\d+) steps", log)]
     frontiers = [int(f) for f in re.findall(r"from (\d+) frontier", log)]
 
     # Actual math content from tape
@@ -125,7 +142,7 @@ def extract_summary(log):
 
     return {
         "appends": appends,
-        "depth": max(depths, default=0),
+        "depth": compute_depth_from_log(log),
         "max_frontier": max(frontiers, default=0),
         "dedup": len(re.findall(r"DEDUP\]|GLOBAL-DEDUP", log)),
         "bankrupt": len(set(re.findall(r"Bankrupt.*?(Agent_\d+)", log))),

@@ -1,85 +1,71 @@
 # TuringOS v3 — Handover State
 **Updated**: 2026-04-03
-**Session Summary**: 6 大架构升级 + Karpathy AutoResearch v4 框架 + 本地双节点推理 + DeepSeek 数学/经济双审计
+**Session Summary**: AutoResearch v4 运行 16 实验 (best ERS=0.058, depth=5) + Win1 NSSM 永久修复 + Living Harness 部署
 
 ## Current State
-- **AutoResearch v4: RUNNING** — sweep_v4.py (PID 668993) 在后台运行 Phase 1 (Prompt Search)
-  - Baseline 完成: ERS=0, depth=0, 30 appends/10min
-  - Exp 1 运行中: DeepSeek 自主编辑了 problem.txt (去掉 toolkit, 要求 depth over restatement)
-  - TSV 记录: `experiments/zeta_sum_proof/audit/autoresearch_v4.tsv`
-- **本地推理双节点: ONLINE**
-  - Mac (18080): Qwen3.5-9B, llama.cpp --parallel 2, ~33 tok/s
-  - Win1 (18081): Qwen3.5-9B, llama.cpp --parallel 2 via SSH 持久会话, ~28 tok/s
-  - 无 rate limit, 无 API 费用
-- **zeta_sum_proof: 未证明** — 但 agents 首次产出真正的代数推导 (Bernoulli 展开, 虚部消去)
+- **AutoResearch v4: RUNNING** (PID 718134) — Phase 1 Prompt Search
+  - 16 实验完成, 2 次 KEEP, best ERS=0.05847 (depth=5)
+  - DeepSeek V3 持续编辑 problem.txt, 当前 prompt 包含三路径 zeta 证明详细脚手架
+  - TSV: `experiments/zeta_sum_proof/audit/autoresearch_v4.tsv`
+- **本地推理双节点**:
+  - Mac (18080): llama.cpp Qwen3.5-9B, --parallel 2, ~33 tok/s ✓ 稳定
+  - Win1 (18081): **NSSM Windows 服务**, Vulkan GPU, 永久存活 ✓ **已修复**
+- **Cron 监控**: 每 30 min 自动检测 + 重启 (`monitor.sh`)
+- **Living Harness**: 12 条规则 + 宪法检查器 + 3 hook + 2 skill 已部署
 
-## Changes This Session (未提交)
+## Changes This Session
 
-### 1. Frontier Price Gate (actor.rs)
-- 子不如父则父不退位: `child.price > parent.price × (1 + α/depth)` 才 mask
-- 前沿从 2 节点爆到 190 (α=0 时)，加 depth-boost 后可控
-- Source: architect directive 2026-04-02
+### Committed
+- `cc16921` feat: AutoResearch v4 + 6 architecture upgrades + dual local inference
+- `393474c` feat: Living Harness — self-improving constitutional guardian
 
-### 2. Global Dedup (bus.rs)
-- 跨分支内容去重: 40-char 前缀全 DAG 唯一
-- 754 branch dedup + 跨分支结论复制 → 全局拦截
-- Env: GLOBAL_DEDUP=true/false
+### Uncommitted (5 files, +69/-10)
+- **sweep_v4.py**: ERS depth 计算修复 — Librarian STATS 日志为权威来源
+- **librarian.rs**: 添加 `info!(">>> [LIBRARIAN] STATS: ...")` 输出 depth 到 evaluator 日志
+- **prompt/problem.txt**: DeepSeek 搜索代理自主编辑的最新版本
+- **windows1_llama_server_rootcause.md**: NSSM 解决方案文档化
+- **monitor.sh**: NSSM 服务模式替代 nohup ssh
 
-### 3. Lineage Score + Depth Weight (actor.rs)
-- Boltzmann 选择按血统链加权: `score × log(depth+1)^weight`
-- BoltzmannParams 全可配 (FRONTIER_CAP, DEPTH_WEIGHT, PRICE_GATE_ALPHA)
+### Bug Fixes
+1. **ERS 恒为 0**: LIBRARIAN_INTERVAL=999 禁用了 Librarian → 无 depth 数据 → ERS=0
+   - Fix: LIBRARIAN_INTERVAL=20, Librarian 打 depth 到日志
+2. **Win1 SSH 断开后死亡**: 裸 llama-server.exe 无法在 Session 0 存活
+   - 根因: v1 用 Ollama (自带守护), v2 不用 Win1, v3 直接用裸 binary
+   - Fix: NSSM + SERVICE_INTERACTIVE_PROCESS → Vulkan GPU 可用 + 永久存活
 
-### 4. Ground Truth 日志 (librarian.rs + evaluator.rs)
-- success.jsonl / failure.jsonl — append-only JSONL, 不可删
-- Librarian 从文件读取完整 rejection 分类 (不再被 top 5 截断)
-- Source: architect "log = Ground Truth 不可篡改"
-
-### 5. Librarian → DeepSeek V3 管理层 (librarian.rs)
-- 压缩引擎从本地规则 → DeepSeek V3 (chat) API 调用
-- Oracle (验证) = DeepSeek Reasoner, Librarian (压缩) = DeepSeek Chat
-- 每 50 appends 触发, 15/15 agents 更新 learned.md
-- `</think>` 标签自动剥离
-
-### 6. Prompt 可变文件 + AutoResearch v4 (evaluator.rs + sweep_v4.py)
-- problem.txt / skill.txt / context.txt 从编译时 const → 运行时文件加载
-- DeepSeek V3 作为搜索代理: 读实验结果 → 编辑 prompt 或改参数
-- 固定 600s wall clock, ERS 单一指标, greedy keep/discard
-- Karpathy 核心对齐: "LLM IS the search algorithm"
-
-### 7. Thinking Mode 控制 (llm_http.rs)
-- THINKING_MODE env var: on / off / budget:N
-- Qwen3.5 的 /no_think 通过 system prompt 注入 (llama.cpp 不支持 API 参数)
-- 根因: thinking ON 生成 1000+ 隐藏 tokens → 12 tok/s; OFF → 33 tok/s
-
-### 8. Local LLM Provider (evaluator.rs + llm_http.rs)
-- LLM_PROVIDER=local, LLM_URLS 支持多端点 round-robin
-- Mac + Win1 双节点并发, agents 自动分配
+### Violation Found & Fixed
+- **Ground Truth 违规**: LIBRARIAN_INTERVAL=999 在 sweep 中 bypass 了 Librarian → 违反 "log = Ground Truth" 指令
+  - Fix: LIBRARIAN_INTERVAL=20 (必须在实验预算内触发)
 
 ## Key Decisions
-- **Global Dedup 启用**: DeepSeek 经济审计发现 cross-branch 结论复制是主要浪费源
-- **Append Cost = 0 不可变**: DeepSeek 建议 dynamic append cost → 否决 (违反 Law 1)
-- **Depth Rewards/Bounty 否决**: 违反 Rule 19 (零印钞)
-- **Price Decay 否决**: 违反 Law 2 精神 (价格 = 贝叶斯概率)
-- **Hint 公式正确**: DeepSeek Reasoner 审计声称 limit=1/2, 手动验证证明是 -1/12 (审计员出错)
-- **Thinking OFF 为默认**: 本地推理下 thinking 太慢, 但纳入 AutoResearch 参数空间待研究
+- **Karpathy 核心对齐**: sweep_v3 (random mutation) → sweep_v4 (DeepSeek IS the search)
+- **Prompt 为可变工件**: problem.txt/skill.txt/context.txt 从编译时 const → 运行时文件加载
+- **固定 600s wall clock**: 不再按 thinking 模式变 timeout — comparable experiments
+- **NSSM 取代 nohup ssh**: Windows 服务是 Win1 的正确持久化方案
+- **Ollama 对 Qwen3.5 不兼容**: 架构师确认, 必须用 llama.cpp
 
 ## Architect Insights (本次会话)
-- **Librarian = 管理层 Agent**: 用最强模型(DeepSeek)压缩 → `2026-04-02_librarian-management-layer.md`
-- **Log = Ground Truth**: 不可篡改, 反幻觉锚点 → `2026-04-02_log-as-ground-truth.md`
-- **子不如父则父不退位**: Frontier Price Gate → `2026-04-02_frontier-price-gate.md`
-- **Log 未履行 Ground Truth 职责**: compression 截断导致信息丢失 → `2026-04-02_log-ground-truth-violation.md`
-- **根因分析强制令**: 禁止"可能是", 必须找到根因 → feedback memory
+- **根因分析强制令**: 禁止 "可能是", 必须找根因 → fix → document → improve harness
+- 已归档到 memory: `feedback_root_cause_mandate.md`
+（其余洞察在上一 session 已归档）
 
-## DeepSeek 双审计结果 (2026-04-03)
-- **数学审计**: Grade F — agents 只空断言不推导 (但 hint 公式经手动验证正确)
-- **经济审计**: 10/15 破产 = Bulls/Bears 无信息优势; 前沿 190 = Price Gate 太宽松; 资本集中 = 泡沫不是发现; 宽度替代深度因为 append 免费 + 投资回报与深度无关
+## AutoResearch Progress
+| 指标 | 数值 |
+|------|------|
+| 总实验 | 16 |
+| Best ERS | 0.05847 (depth=5, Exp 10) |
+| KEEP | 2 次 |
+| ERS=0 | ~40% (Librarian 未触发或 appends 太少) |
+| 频率 | ~6/小时 |
 
-## Research Plan (Active)
+DeepSeek 搜索策略: 持续编辑 problem.txt, 从泛泛要求逐步优化到三路径 + 分步计算详细脚手架。Phase 1 仍在进行。
+
+## Research Plan
 见 `experiments/zeta_sum_proof/RESEARCH_PLAN.md`
-- **Phase 1 (当前)**: Prompt Search — DeepSeek 编辑 prompt, ~50 实验过夜
-- Phase 2: Thinking Mode sweep
+- **Phase 1 (当前)**: Prompt Search — 目标 depth > 10
+- Phase 2: Thinking Mode sweep (off/on/budget)
 - Phase 3: Economic mechanism tuning
-- Phase 4: 27B model scaling
+- Phase 4: 27B model on Win1
 
 ## Living Harness Deployed (2026-04-03)
 - **12 条数据驱动规则** (rules/active/*.yaml): 5 block + 7 warn
@@ -91,14 +77,13 @@
 - 全部 hook 语法验证通过, 规则引擎 5 场景烟测通过
 
 ## Next Steps
-1. **监控 AutoResearch v4 过夜运行** — 检查 ERS 趋势, prompt 编辑历史
-2. **Win1 SSH 持久化** — nohup ssh -t 方式需要改进 (进程可能在隧道断开时死亡)
-3. **[OPEN SPRINT] 提交本次会话代码** — 670 行 + Living Harness 变更待 commit
-4. **Phase 2 启动条件**: Phase 1 找到 depth > 10 的 prompt 后切换到 thinking sweep
+1. **继续 AutoResearch v4 过夜** — Cron + NSSM 确保稳定性
+2. **[OPEN SPRINT] 提交未 commit 的 5 个文件**
+3. **Phase 2 启动条件**: depth > 10 的 prompt 稳定后
+4. **Win1 Thinking 问题**: NSSM 服务中 Qwen3.5 thinking 太慢, 需要 evaluator 的 /no_think 通过 API 生效
 5. **首次 /harness-reflect**: 建立 Harness Health Score 基线
 
 ## Warnings
-- **Win1 llama-server 不稳定**: SSH Session 0 无 Vulkan GPU 上下文, 必须用 `nohup ssh -t` 前台方式启动. 隧道断开后进程可能死亡. 详见 `handover/windows1_llama_server_rootcause.md`
-- **Qwen3.5 默认 thinking**: 不加 /no_think 则每请求 60s+. THINKING_MODE env var 控制
-- **670 行未提交代码**: actor.rs, bus.rs, librarian.rs, evaluator.rs, llm_http.rs 均有重大变更
-- **ERS baseline = 0**: depth 从 log 中 grep "deepest chain" 得到, 如果 Librarian 禁用 (LIBRARIAN_INTERVAL=999) 则无 depth 数据 → ERS 恒为 0. 可能需要修复 ERS 计算
+- **Qwen3.5 thinking**: 本地 llama.cpp 不支持 `enable_thinking: false` API 参数, 只能靠 system prompt `/no_think`. 在 NSSM 服务中可能行为不一致
+- **ERS=0 频率 40%**: 部分 DeepSeek prompt 编辑导致 appends < 20 → Librarian 不触发 → depth=0. 可能需要 LIBRARIAN_INTERVAL 进一步降低
+- **SSH 隧道仍需重建**: NSSM 服务永久运行但 omega-vm→Win1 的 SSH 隧道在 omega-vm 重启后需重建. Cron monitor.sh 处理此问题

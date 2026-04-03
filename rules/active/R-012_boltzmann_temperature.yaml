@@ -1,0 +1,14 @@
+id: "R-012"
+name: "boltzmann_temperature"
+source_incidents: []
+axiom: "Boltzmann routing temperature controls exploration/exploitation tradeoff"
+trigger: "pre_edit"
+check:
+  type: "grep"
+  pattern: "temperature.*=|BOLTZMANN|softmax.*temp|T.*=.*0\\."
+file_glob: "src/sdk/actor.rs"
+enforcement: "warn"
+message: "WARNING: Boltzmann temperature change — affects exploration/exploitation balance in routing"
+stats:
+  times_triggered: 0
+  last_triggered: "never"

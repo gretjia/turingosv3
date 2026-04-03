@@ -1,0 +1,86 @@
+# TuringOS v3 Rule Engine — Rule Schema Definition
+# Adapted from omega_pure_v2 harness for Rust/constitutional context
+#
+# Each rule YAML in rules/active/ must conform to this schema.
+
+schema_version: "1.0"
+
+fields:
+  id:
+    type: string
+    required: true
+    description: "Unique rule identifier (e.g. R-001)"
+    pattern: "^R-\\d{3}$"
+
+  name:
+    type: string
+    required: true
+    description: "Human-readable rule name (snake_case)"
+
+  source_incidents:
+    type: list[string]
+    required: false
+    description: "Incident IDs that motivated this rule (e.g. V-001, V-004)"
+
+  axiom:
+    type: string
+    required: true
+    description: "Constitutional law or principle this rule enforces"
+
+  trigger:
+    type: string
+    required: true
+    enum: [pre_edit, post_edit, pre_bash, post_bash]
+    description: "Hook phase when rule fires"
+
+  check:
+    type: object
+    required: true
+    description: "How to detect violation"
+    fields:
+      type:
+        type: string
+        enum: [grep, grep_inverse, compound]
+        description: >
+          grep: pattern found = violation.
+          grep_inverse: pattern NOT found = violation.
+          compound: both grep AND grep_inverse patterns evaluated.
+      pattern:
+        type: string
+        description: "Perl-compatible regex (for grep -P). Required for grep/grep_inverse."
+      grep_pattern:
+        type: string
+        description: "Compound only: pattern that MUST NOT appear."
+      grep_inverse_pattern:
+        type: string
+        description: "Compound only: pattern that MUST appear (absence = violation)."
+
+  file_glob:
+    type: string
+    required: true
+    description: "Glob pattern(s) for files this rule applies to (pipe-delimited for multiple)"
+
+  enforcement:
+    type: string
+    required: true
+    enum: [block, warn]
+    description: >
+      block: reject the edit (exit 2).
+      warn: allow but emit stderr warning (exit 0).
+
+  message:
+    type: string
+    required: true
+    description: "Human-readable message shown on violation (Chinese or English)"
+
+  stats:
+    type: object
+    required: true
+    description: "Auto-maintained counters"
+    fields:
+      times_triggered:
+        type: integer
+        default: 0
+      last_triggered:
+        type: string
+        default: "never"

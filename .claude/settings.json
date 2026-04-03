@@ -10,6 +10,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/rule-engine.sh\"",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -20,6 +30,16 @@
             "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/post-edit-validate.sh\"",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/pipeline-quality-gate.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/post-lesson-trigger.sh\"",
+            "timeout": 5
           }
         ]
       }
@@ -35,5 +55,8 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "codex@openai-codex": true
   }
 }

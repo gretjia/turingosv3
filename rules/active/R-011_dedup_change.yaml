@@ -1,0 +1,14 @@
+id: "R-011"
+name: "dedup_change"
+source_incidents: []
+axiom: "Dedup logic is a major behavioral lever — changes propagate widely"
+trigger: "pre_edit"
+check:
+  type: "grep"
+  pattern: "dedup|global_dedup|branch.*dedup|novelty"
+file_glob: "src/*.rs|src/sdk/*.rs"
+enforcement: "warn"
+message: "WARNING: Dedup logic change detected — this affects global agent behavior, review carefully"
+stats:
+  times_triggered: 0
+  last_triggered: "never"

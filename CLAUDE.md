@@ -95,3 +95,14 @@ Silicon-Native Microkernel for LLM Formal Verification Swarm.
 ### Rule #23 — Generator ≠ Evaluator (生成者 ≠ 评估者)
 
 28. **外部审计强制执行** — 写代码的 AI 不可作为唯一审计者。dev-cycle Stage 8b 外部审计为 MANDATORY。数学审计交 Gemini，代码审计交 Codex。外部审计发现必须**原文呈现**给用户，生成者不可摘要、降级或否决外部发现。教训: 同一 AI 写代码并审计自己的代码，导致 `fund_agent` 印钞被 4 次内部审计标注"可接受"、Oracle 中间步骤拦截未被质疑、`decide` 暴力搜索未被发现、`Finset.range` 形式化缺陷未被识别。参考: Anthropic 工程文章 "tuning a standalone evaluator to be skeptical turns out to be far more tractable than making a generator critical of its own work"。
+
+### Living Harness — 自我进化的有机体（详见 `LIVING_HARNESS.md`）
+
+> 灵感: MIT Meta-Harness (raw traces >> summaries) + Karpathy autoresearch + Omega Pure V3 落地经验
+
+29. **三层架构**: 记忆层 (`incidents/`) → 执法层 (`rules/active/*.yaml`) → 进化层 (`/harness-reflect`)
+30. **宪法守护**: `scripts/constitutional_check.sh` 自动验证 Law 1-3 + Engine 分离 + Rule 21-22
+31. **数据驱动规则**: 12 条 YAML 规则由 `rule-engine.sh` 动态加载, 添加 YAML 即生效
+32. **违规→规则自动转化**: 新违规记录后, `/lesson-to-rule` 自动提议可执行规则
+33. **自省循环**: `/harness-reflect` 评估规则效果 + 宪法健康 + AutoResearch 状态
+34. **Session 结束前**: (a) 更新 VIA_NEGATIVA (b) 自动 /lesson-to-rule (c) /harness-reflect 简报

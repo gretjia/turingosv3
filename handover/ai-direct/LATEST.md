@@ -81,11 +81,21 @@
 - Phase 3: Economic mechanism tuning
 - Phase 4: 27B model scaling
 
+## Living Harness Deployed (2026-04-03)
+- **12 条数据驱动规则** (rules/active/*.yaml): 5 block + 7 warn
+- **6 个完整违规 trace** (incidents/): V-001~V-006
+- **宪法对齐检查器** (scripts/constitutional_check.sh): 10 项检查, 当前 PASS
+- **3 个新 hook**: rule-engine.sh + pipeline-quality-gate.sh + post-lesson-trigger.sh
+- **2 个新 skill**: /lesson-to-rule + /harness-reflect
+- **架构文档**: LIVING_HARNESS.md
+- 全部 hook 语法验证通过, 规则引擎 5 场景烟测通过
+
 ## Next Steps
 1. **监控 AutoResearch v4 过夜运行** — 检查 ERS 趋势, prompt 编辑历史
 2. **Win1 SSH 持久化** — nohup ssh -t 方式需要改进 (进程可能在隧道断开时死亡)
-3. **[OPEN SPRINT] 提交本次会话代码** — 670 行变更待 commit
+3. **[OPEN SPRINT] 提交本次会话代码** — 670 行 + Living Harness 变更待 commit
 4. **Phase 2 启动条件**: Phase 1 找到 depth > 10 的 prompt 后切换到 thinking sweep
+5. **首次 /harness-reflect**: 建立 Harness Health Score 基线
 
 ## Warnings
 - **Win1 llama-server 不稳定**: SSH Session 0 无 Vulkan GPU 上下文, 必须用 `nohup ssh -t` 前台方式启动. 隧道断开后进程可能死亡. 详见 `handover/windows1_llama_server_rootcause.md`

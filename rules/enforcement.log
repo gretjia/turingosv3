@@ -1,0 +1,14 @@
+2026-04-03T08:35:10Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-03T08:35:10Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-03T08:35:11Z | block | R-002 | /home/zephryj/projects/turingosv3/src/test.rs | BLOCKED: Coin minting / free balance detected — economy is invest-only (Law 2, V-001/V-002)
+2026-04-03T08:35:11Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-03T08:35:49Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-03T08:36:19Z | block | R-001 | /home/zephryj/projects/turingosv3/src/kernel.rs | BLOCKED: Domain-specific term detected in kernel.rs — kernel must remain pure topology (Law 1)
+2026-04-03T08:36:19Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-03T08:36:19Z | block | R-004 | /home/zephryj/projects/turingosv3/experiments/zeta_sum_proof/prompt/problem.txt | BLOCKED: Lean 4 syntax detected in prompt file — prompts must use traditional math only (Rule 22)
+2026-04-03T10:19:07Z | block | R-001 | /home/zephryj/projects/turingosv3/src/kernel.rs | BLOCKED: Domain-specific term detected in kernel.rs — kernel must remain pure topology (Law 1)
+2026-04-03T10:19:07Z | block | R-002 | /home/zephryj/projects/turingosv3/src/test.rs | BLOCKED: Coin minting / free balance detected — economy is invest-only (Law 2, V-001/V-002)
+2026-04-03T10:19:08Z | block | R-004 | /home/zephryj/projects/turingosv3/experiments/zeta_sum_proof/prompt/problem.txt | BLOCKED: Lean 4 syntax detected in prompt file — prompts must use traditional math only (Rule 22)
+2026-04-03T10:21:27Z | block | R-001 | /home/zephryj/projects/turingosv3/src/kernel.rs | BLOCKED: Domain-specific term detected in kernel.rs — kernel must remain pure topology (Law 1)
+2026-04-03T10:21:28Z | block | R-002 | /home/zephryj/projects/turingosv3/src/test.rs | BLOCKED: Coin minting / free balance detected — economy is invest-only (Law 2, V-001/V-002)
+2026-04-03T10:21:28Z | block | R-004 | /home/zephryj/projects/turingosv3/experiments/test/prompt/p.txt | BLOCKED: Lean 4 syntax detected in prompt file — prompts must use traditional math only (Rule 22)

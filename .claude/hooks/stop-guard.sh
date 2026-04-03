@@ -25,7 +25,16 @@ if [ -n "$DIRTY_FILES" ]; then
     done
     echo ""
     echo "Consider committing before ending session."
-    echo "Run /handover-update to save session state."
 fi
+
+# Living Harness reminders
+if [ -f "rules/enforcement.log" ]; then
+    TRIGGERS=$(wc -l < rules/enforcement.log 2>/dev/null || echo 0)
+    if [ "$TRIGGERS" -gt 0 ]; then
+        echo "📊 Rule engine triggered $TRIGGERS times this session."
+    fi
+fi
+echo "→ /handover-update to save session state"
+echo "→ /harness-reflect if new violations were logged (Living Harness)"
 
 exit 0

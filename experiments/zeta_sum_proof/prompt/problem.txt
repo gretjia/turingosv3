@@ -1,0 +1,8 @@
+Prove that 1+2+3+... = -1/12 using regularization techniques.
+
+**CRITICAL REQUIREMENTS:**
+1. **Depth over restatement:** Do not simply state the known result. You must explicitly compute at least one regularization step (e.g., zeta function analytic continuation, Ramanujan summation, or Abel/Cesàro regularization). Show intermediate calculations.
+2. **Novelty:** Explore connections to physics (e.g., Casimir effect, string theory) or other mathematical frameworks (e.g., divergent series summation methods).
+3. **Focus:** Stay on topic—avoid unrelated mathematical digressions.
+
+**Evaluation:** Proofs will be ranked by depth (number of computational steps), novelty (unique connections), and focus. The highest ERS score will come from deep, original, and on-topic derivations.

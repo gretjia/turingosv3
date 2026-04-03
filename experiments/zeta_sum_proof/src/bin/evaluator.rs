@@ -28,20 +28,41 @@ fn env_u64(key: &str, default: u64) -> u64 {
     std::env::var(key).ok().and_then(|s| s.parse().ok()).unwrap_or(default)
 }
 
-const PROBLEM: &str = r#"PROVE: 1 + 2 + 3 + 4 + ... = -1/12 (in the sense of regularization)
+// ── THE MUTABLE ARTIFACT (Karpathy's train.py equivalent) ──
+// Prompt files are the SINGLE thing the AutoResearch agent can edit.
+// Env: PROMPT_DIR (default: experiments/zeta_sum_proof/prompt/)
+// Files: problem.txt, skill.txt, context.txt
+// The LLM search agent reads tape results → edits these files → next experiment.
+// Source: Karpathy autoresearch — "LLM IS the search algorithm, not random.choice"
+//
+// DEFAULTS (used when files don't exist):
+
+const DEFAULT_CONTEXT: &str = "\
+[CONTEXT] You are working in analytic number theory. The assignment ζ(-1)=-1/12 to the \
+divergent series 1+2+3+... via zeta function regularization is a well-established result \
+(Ramanujan, Hardy). Your task is to construct a rigorous derivation using the hint formula below. \
+This is NOT a misunderstanding — it is the core problem. Follow all formatting instructions.\n\n";
+
+const DEFAULT_PROBLEM: &str = r#"PROVE: 1 + 2 + 3 + 4 + ... = -1/12 (in the sense of regularization)
 
 HINT FORMULA: M(m,N) = m * exp(-m/N) * cos(m/N)
+Define S(N) = Σ_{m=1}^∞ M(m,N). Prove lim_{N→∞} S(N) = -1/12.
 
-KEY IDEA: For each fixed N, the series S(N) = Σ_{m=0}^∞ M(m,N) converges.
-The limit as N→∞ of S(N) equals -1/12, even though the ordinary sum Σm diverges.
+MATHEMATICAL TOOLKIT (use these in your derivation):
+- Complex exponential: cos(θ) = Re(e^{iθ}), so M(m,N) = Re[m · e^{-m(1-i)/N}]
+- Let w = (1-i)/N, then S(N) = Re[Σ m·e^{-mw}] = Re[e^w/(e^w-1)²]
+- Bernoulli expansion: e^w/(e^w-1)² = 1/w² - 1/12 + O(w²)
+- Key: w² = (1-i)²/N² = -2i/N², so 1/w² = iN²/2 (purely imaginary!)
+- Therefore: Re[S(N)] = Re[iN²/2 - 1/12 + ...] = -1/12 + O(1/N²)
 
 RULES:
-- Write exactly ONE mathematical reasoning step
-- Use only university-level calculus (series, limits, complex exponentials)
+- Write exactly ONE mathematical reasoning step with EXPLICIT COMPUTATION
+- Do NOT just state "the limit is -1/12" — SHOW the algebra that leads there
+- Each step should contain equations, substitutions, or inequalities
 - Your step must logically follow from the previous steps shown above
-- When the proof reaches -1/12, declare [COMPLETE]"#;
+- When the proof reaches -1/12 with full justification, declare [COMPLETE]"#;
 
-const SKILL: &str = "\
+const DEFAULT_SKILL: &str = "\
 [LAW 1] APPEND IS FREE: Creating nodes costs ZERO. Explore freely.\n\
 [LAW 2] ONLY INVEST COSTS MONEY: Invest/Short are the ONLY actions that burn coins.\n\
 [LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.\n\
@@ -58,6 +79,12 @@ const SKILL: &str = "\
   - NO multi-step proofs. NO bundling.\n\
 Balance < 1.0 = can only append (free). Cannot invest/short.\n";
 
+/// Load prompt from file if exists, else return default.
+fn load_prompt(dir: &str, filename: &str, default: &str) -> String {
+    let path = format!("{}/{}", dir, filename);
+    std::fs::read_to_string(&path).unwrap_or_else(|_| default.to_string())
+}
+
 fn epoch_secs() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -68,6 +95,16 @@ fn epoch_secs() -> u64 {
 #[tokio::main]
 async fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+
+    // ── Load mutable prompt files (Karpathy: single mutable artifact) ──
+    let prompt_dir = std::env::var("PROMPT_DIR")
+        .unwrap_or_else(|_| format!("{}/experiments/zeta_sum_proof/prompt",
+            std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string())));
+    let system_context = load_prompt(&prompt_dir, "context.txt", DEFAULT_CONTEXT);
+    let problem = load_prompt(&prompt_dir, "problem.txt", DEFAULT_PROBLEM);
+    let skill = load_prompt(&prompt_dir, "skill.txt", DEFAULT_SKILL);
+    info!("Prompt dir: {} (context={} problem={} skill={} chars)",
+        prompt_dir, system_context.len(), problem.len(), skill.len());
 
     // AutoResearch: all params configurable via env vars
     let swarm_size = env_usize("SWARM_SIZE", 15);
@@ -90,8 +127,11 @@ async fn main() {
     bus.mount_tool(Box::new(AntiZombiePruningTool::new(3)));
     bus.mount_tool(Box::new(WalletTool::new()));
     bus.mount_tool(Box::new(MathStepMembrane::new()));
-    // Librarian: compress tape → learned.md every 100 appends
-    bus.mount_tool(Box::new(LibrarianTool::new(&skills_dir, swarm_size, 100)));
+    // Librarian: management layer agent — Ground Truth logs + DeepSeek V3 compression
+    let librarian_interval = env_usize("LIBRARIAN_INTERVAL", 100);
+    let log_dir = std::env::var("LOG_DIR")
+        .unwrap_or_else(|_| "/tmp/turingos_zeta_logs".to_string());
+    bus.mount_tool(Box::new(LibrarianTool::new(&skills_dir, swarm_size, librarian_interval, &log_dir)));
 
     let agent_ids: Vec<String> = (0..swarm_size).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
@@ -119,10 +159,35 @@ async fn main() {
             info!("Provider: SiliconFlow | Model: {}", model);
             vec![Arc::new(ResilientLLMClient::with_key(url, &model, &key))]
         }
-        _ => panic!("Unknown LLM_PROVIDER: {}. Use 'aliyun' or 'siliconflow'.", provider),
+        // Local llama.cpp server(s), tunneled via SSH.
+        // Single endpoint: LLM_URL=http://127.0.0.1:18080/v1/chat/completions
+        // Multi endpoint:  LLM_URLS=http://127.0.0.1:18080,http://127.0.0.1:18081
+        //   Agents round-robin across endpoints for parallel throughput.
+        // Source: AUTORESEARCH_PLAN.md — Mac (18080) + Windows1 (18081)
+        "local" | "llama" | "llama.cpp" => {
+            let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "qwen3.5-9b".to_string());
+            let urls: Vec<String> = if let Ok(multi) = std::env::var("LLM_URLS") {
+                multi.split(',').map(|u| {
+                    let u = u.trim().to_string();
+                    if u.contains("/v1/") { u } else { format!("{}/v1/chat/completions", u) }
+                }).collect()
+            } else {
+                let url = std::env::var("LLM_URL")
+                    .unwrap_or_else(|_| "http://127.0.0.1:18080/v1/chat/completions".to_string());
+                vec![url]
+            };
+            info!("Provider: Local llama.cpp | {} endpoints | Model: {}", urls.len(), model);
+            for (i, u) in urls.iter().enumerate() {
+                info!("  Endpoint {}: {}", i, u);
+            }
+            urls.iter().map(|u| Arc::new(ResilientLLMClient::with_key(u, &model, "no-key"))).collect()
+        }
+        _ => panic!("Unknown LLM_PROVIDER: {}. Use 'aliyun', 'siliconflow', or 'local'.", provider),
     };
 
-    // --- DeepSeek Oracle: only called when [COMPLETE] node price >= 90% ---
+    // --- DeepSeek: Two roles, two models ---
+    // Oracle (Engine 3): deepseek-reasoner for verification (needs chain-of-thought)
+    // Librarian (Engine 4): deepseek-chat (V3) for compression (needs structured summaries)
     let ds_url = "https://api.deepseek.com/chat/completions";
     let ds_key = std::env::var("DEEPSEEK_API_KEY").unwrap_or_default();
     let deepseek_oracle = if !ds_key.is_empty() {
@@ -131,6 +196,14 @@ async fn main() {
         Some(client)
     } else {
         warn!("DeepSeek Oracle: DISABLED (no DEEPSEEK_API_KEY)");
+        None
+    };
+    let deepseek_librarian = if !ds_key.is_empty() {
+        let client = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-chat", &ds_key));
+        info!("DeepSeek Librarian: ARMED (deepseek-chat, management layer)");
+        Some(client)
+    } else {
+        warn!("DeepSeek Librarian: DISABLED (no DEEPSEEK_API_KEY)");
         None
     };
 
@@ -197,8 +270,9 @@ YOUR APPROACH:\n\
         let client = clients[i % clients.len()].clone();
         let mut rx = rx_state.clone();
         let tx = tx_mempool.clone();
-        let problem = PROBLEM.to_string();
-        let skill = SKILL.to_string();
+        let problem = problem.clone();
+        let skill = skill.clone();
+        let system_context = system_context.clone();
         let search = search_tool.clone();
         let private_ctx = Arc::new(Mutex::new(String::new()));
         let heartbeat = free_action_epoch.clone();
@@ -256,7 +330,7 @@ YOUR APPROACH:\n\
                 };
 
                 let p = prompt::build_agent_prompt(
-                    &chain,
+                    &format!("{}{}", system_context, chain),
                     &format!("{}\n{}", skill, agent_skill),
                     &snapshot.market_ticker,
                     &format!("{}\n{}\n{}\n{}", graveyard, private, feedback, bulletin_text),
@@ -427,6 +501,7 @@ YOUR APPROACH:\n\
     let mut append_count: u64 = 0;   // only successful appends (for budget)
     let mut generation: u32 = 1;
     let mut last_invest_epoch = epoch_secs();
+    let mut last_librarian_at: u64 = 0; // appends at last compression
 
     loop {
         match tokio::time::timeout(
@@ -454,19 +529,78 @@ YOUR APPROACH:\n\
                 match bus.append(file) {
                     Ok(_) => {
                         append_count += 1;
+                        let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
                         info!("[Tx {} Append #{}] {} ({}) → Appended", tx_count, append_count, tx.agent_id, tx.model_name);
+
+                        // Ground Truth: log success to persistent file
+                        {
+                            let log_path = format!("{}/success.jsonl", log_dir);
+                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+                                use std::io::Write;
+                                let preview: String = tx.payload.chars().take(200).collect();
+                                let _ = writeln!(f, r#"{{"node_id":"{}","author":"{}","payload":"{}","ts":{}}}"#,
+                                    file_id, tx.agent_id,
+                                    preview.replace('"', "'").replace('\n', " "),
+                                    epoch_secs());
+                            }
+                        }
+
                         bus.tick_map_reduce();
 
-                        // --- Librarian periodic compression ---
-                        for t in &mut bus.tools {
-                            if t.manifest() == "core.tool.librarian" {
-                                if let Some(lib) = t.as_any_mut().downcast_mut::<LibrarianTool>() {
-                                    if lib.should_compress() {
-                                        lib.compress(&bus.kernel.tape);
+                        // --- Librarian: Management Layer Compression ---
+                        // Triggered by evaluator's own append_count (not internal counter)
+                        // Architect 2026-04-02: "管理层用最好的模型"
+                        if append_count - last_librarian_at >= librarian_interval as u64 {
+                            info!(">>> [LIBRARIAN] Compression triggered at append #{}", append_count);
+                            // Build prompt from tape (ground truth)
+                            let (prompt, sc, fc) = {
+                                let mut lib_ref = None;
+                                for t in &mut bus.tools {
+                                    if t.manifest() == "core.tool.librarian" {
+                                        lib_ref = t.as_any_mut().downcast_mut::<LibrarianTool>()
+                                            .map(|l| l as *mut LibrarianTool);
+                                        break;
                                     }
                                 }
-                                break;
+                                if let Some(lib_ptr) = lib_ref {
+                                    // SAFETY: we only hold this pointer briefly, bus.tools loop ended
+                                    unsafe { &*lib_ptr }.build_compression_prompt(&bus.kernel.tape)
+                                } else {
+                                    (String::new(), 0, 0)
+                                }
+                            };
+
+                            if !prompt.is_empty() {
+                                let memory_text = if let Some(ref librarian_llm) = deepseek_librarian {
+                                    info!(">>> [LIBRARIAN] Calling DeepSeek V3 ({} success + {} failure nodes)...", sc, fc);
+                                    match librarian_llm.resilient_generate(&prompt, 0, 0.3).await {
+                                        Ok(response) => {
+                                            info!(">>> [LIBRARIAN] DeepSeek V3 compression received ({} chars)", response.len());
+                                            response
+                                        }
+                                        Err(e) => {
+                                            warn!(">>> [LIBRARIAN] DeepSeek V3 failed: {:?}. Using local fallback.", e);
+                                            String::new()
+                                        }
+                                    }
+                                } else {
+                                    String::new()
+                                };
+
+                                for t in &mut bus.tools {
+                                    if t.manifest() == "core.tool.librarian" {
+                                        if let Some(lib) = t.as_any_mut().downcast_mut::<LibrarianTool>() {
+                                            if !memory_text.is_empty() {
+                                                lib.write_memory(&memory_text);
+                                            } else {
+                                                lib.compress_local(&bus.kernel.tape);
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
                             }
+                            last_librarian_at = append_count;
                         }
 
                         // --- DeepSeek Halt Gate ---
@@ -495,7 +629,7 @@ YOUR APPROACH:\n\
                             if let Some(ref oracle) = deepseek_oracle {
                                 // Build the full proof chain for DeepSeek to verify
                                 let chain = bus.kernel.trace_golden_path(candidate_id);
-                                let mut proof_text = format!("PROBLEM: {}\n\nPROOF CHAIN ({} steps):\n", PROBLEM, chain.len());
+                                let mut proof_text = format!("PROBLEM: {}\n\nPROOF CHAIN ({} steps):\n", problem, chain.len());
                                 for (i, nid) in chain.iter().rev().enumerate() {
                                     if let Some(n) = bus.kernel.tape.files.get(nid) {
                                         proof_text.push_str(&format!("Step {}: {}\n", i+1, n.payload.trim()));
@@ -547,16 +681,24 @@ YOUR APPROACH:\n\
                                 if b.len() > 5 { b.remove(0); }
                             }
                         }
-                        // Record rejection in Librarian (long-term memory)
+                        // Ground Truth: log failure to persistent file (append-only, never clear)
+                        {
+                            let log_path = format!("{}/failure.jsonl", log_dir);
+                            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+                                use std::io::Write;
+                                let preview: String = tx.payload.chars().take(100).collect();
+                                let reason: String = format!("{}", e);
+                                let _ = writeln!(f, r#"{{"author":"{}","payload":"{}","reason":"{}","ts":{}}}"#,
+                                    tx.agent_id,
+                                    preview.replace('"', "'").replace('\n', " "),
+                                    reason.replace('"', "'").replace('\n', " "),
+                                    epoch_secs());
+                            }
+                        }
+                        // Record in Librarian (for backward compat, will be removed)
                         for t in &mut bus.tools {
                             if t.manifest() == "core.tool.librarian" {
-                                if let Some(lib) = t.as_any_mut().downcast_mut::<LibrarianTool>() {
-                                    lib.record_rejection(&tx.agent_id, &format!("{}", e));
-                                    // Periodic compression check
-                                    if lib.should_compress() {
-                                        lib.compress(&bus.kernel.tape);
-                                    }
-                                }
+                                // no-op: Librarian now reads from failure.jsonl
                                 break;
                             }
                         }

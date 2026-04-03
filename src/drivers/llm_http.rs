@@ -51,37 +51,55 @@ impl ResilientLLMClient {
 
     /// 执行具备热力学韧性与指数退避的网络请求
     pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, temperature: f32) -> Result<String, DriverError> {
-        let needs_thinking_off = self.api_url.contains("dashscope") || self.model_name.contains("qwen3");
-        let payload = if needs_thinking_off {
-            json!({
-                "model": self.model_name,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a logical reasoning agent in the TuringOS Thermodynamic Sandbox. You can output <think>...</think> and reason freely without any length limits. However, you MUST conclude your entire reasoning with exactly [State: ...]."
-                    },
-                    { "role": "user", "content": prompt }
-                ],
-                "temperature": temperature,
-                "max_tokens": 3072,
-                "stream": false,
-                "enable_thinking": false
-            })
+        // Qwen3.5 thinking mode control:
+        //   Env: THINKING_MODE = "on" | "off" | "budget:N"
+        //     "on"       → full thinking (high quality, slow: ~60s/request on local 9B)
+        //     "off"      → /no_think directive (lower quality, fast: ~5s/request)
+        //     "budget:N" → thinking with max_tokens=N total (thinking+output compete)
+        //   Default: "off" (for speed on local inference)
+        //   Source: AutoResearch sweep — thinking mode is a tunable parameter
+        //   Root cause analysis 2026-04-03:
+        //     thinking ON  → detailed algebra, but 1000+ hidden tokens → 60s latency
+        //     thinking OFF → terse summaries, but 5s latency → 12x faster sweeps
+        let is_qwen3 = self.model_name.contains("qwen3");
+        let is_dashscope = self.api_url.contains("dashscope");
+        let is_local = self.api_url.contains("127.0.0.1") || self.api_url.contains("localhost");
+
+        let thinking_mode = std::env::var("THINKING_MODE").unwrap_or_else(|_| "off".to_string());
+
+        let (system_prefix, max_tok) = if is_qwen3 {
+            match thinking_mode.as_str() {
+                "on" => ("", 3072_u32),                    // full thinking
+                s if s.starts_with("budget:") => {
+                    let n: u32 = s[7..].parse().unwrap_or(1500);
+                    ("", n)                                // budget-capped thinking
+                }
+                _ => ("/no_think\n", 3072_u32),            // off (default)
+            }
         } else {
-            json!({
-                "model": self.model_name,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a logical reasoning agent in the TuringOS Thermodynamic Sandbox. You can output <think>...</think> and reason freely without any length limits. However, you MUST conclude your entire reasoning with exactly [State: ...]."
-                    },
-                    { "role": "user", "content": prompt }
-                ],
-                "temperature": temperature,
-                "max_tokens": 3072,
-                "stream": false
-            })
+            ("", 3072)  // non-Qwen3: no thinking control needed
         };
+
+        let system_msg = format!(
+            "{}You are a reasoning agent. Follow all formatting instructions exactly.",
+            system_prefix
+        );
+
+        let mut payload = json!({
+            "model": self.model_name,
+            "messages": [
+                { "role": "system", "content": system_msg },
+                { "role": "user", "content": prompt }
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tok,
+            "stream": false
+        });
+
+        // DashScope-specific: disable thinking via API parameter
+        if is_qwen3 && is_dashscope && thinking_mode == "off" {
+            payload["enable_thinking"] = json!(false);
+        }
 
         let mut request_builder = self.client.post(&self.api_url)
             // Use resilient timeout internally as well, ignoring global client timeout for these heavy requests

@@ -633,19 +633,23 @@ impl TuringBus {
         // ── Phase 3: Citations are FREE (Magna Carta: topology decoupled from finance) ──
         // No citation purchase. DAG connectivity costs nothing.
 
-        // ── Phase 3b: Branch-aware content deduplication ──
-        // Only dedup within the same branch (ancestors + siblings), NOT globally.
-        // Different proof strategies CAN reuse the same reasoning step (e.g., DCT in branch A and B).
-        // Same branch CANNOT repeat the same step (forces depth novelty).
+        // ── Phase 3b: Content deduplication (branch + global) ──
+        // Branch dedup: same branch cannot repeat (forces depth novelty).
+        // Global dedup: exact same conclusion rejected DAG-wide.
+        //   Source: DeepSeek econ audit 2026-04-02 §6.3 — "agents duplicate content
+        //   across branches to capture investment in multiple markets for the same step"
+        //   Architect directive 2026-04-02: "log没有履行ground Truth的职责" — 754 branch
+        //   dedup + massive cross-branch waste detected.
+        //   Env: GLOBAL_DEDUP (default true, "false" to disable)
         {
             let new_prefix: String = file.payload.chars()
                 .filter(|c| !c.is_whitespace())
                 .take(40)
                 .collect::<String>()
                 .to_lowercase();
+            // branch_nodes: ancestors + siblings (for branch dedup + global dedup skip)
+            let mut branch_nodes: Vec<String> = Vec::new();
             if new_prefix.len() >= 20 {
-                // Collect ancestors: trace citations back to root
-                let mut branch_nodes: Vec<String> = Vec::new();
                 if let Some(parent_id) = file.citations.first().cloned() {
                     let mut cur = parent_id.clone();
                     while let Some(node) = self.kernel.tape.files.get(&cur) {
@@ -690,6 +694,44 @@ impl TuringBus {
                             }
                             return Err(reason);
                         }
+                    }
+                }
+            }
+
+            // Global dedup: reject exact same 40-char prefix anywhere in DAG.
+            // Source: PARAMS.md — GLOBAL_DEDUP
+            // This prevents conclusion-spamming across branches (e.g., "limit=-1/12" in 50+ nodes).
+            // Different from branch dedup: catches cross-branch copies, not just within-chain.
+            let global_dedup = std::env::var("GLOBAL_DEDUP")
+                .map(|v| v != "false" && v != "0")
+                .unwrap_or(true); // default: enabled
+            if global_dedup {
+                for (existing_nid, existing) in &self.kernel.tape.files {
+                    if branch_nodes.contains(existing_nid) { continue; } // already checked above
+                    let existing_prefix: String = existing.payload.chars()
+                        .filter(|c| !c.is_whitespace())
+                        .take(40)
+                        .collect::<String>()
+                        .to_lowercase();
+                    if new_prefix == existing_prefix {
+                        let reason = format!(
+                            "Global duplicate — same conclusion already exists at {}. Build something NEW.",
+                            existing.id
+                        );
+                        log::warn!(">>> [GLOBAL-DEDUP] {} rejected: matches {} (cross-branch)", file.author, existing.id);
+                        if final_reward > 0.0 {
+                            use crate::sdk::tools::wallet::WalletTool;
+                            for t in &mut self.tools {
+                                if t.manifest() == "core.tool.crypto_wallet" {
+                                    if let Some(wallet) = t.as_any_mut().downcast_mut::<WalletTool>() {
+                                        *wallet.balances.entry(file.author.clone()).or_insert(0.0) += final_reward;
+                                        log::info!(">>> [REFUND] {} refunded {:.2} after global dedup", file.author, final_reward);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        return Err(reason);
                     }
                 }
             }

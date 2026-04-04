@@ -7,7 +7,7 @@ set -e
 PROJECT="/home/zephryj/projects/turingosv3"
 LOG="/tmp/autoresearch_monitor.log"
 V4_LOG="/tmp/autoresearch_v4.log"
-TSV="$PROJECT/experiments/zeta_sum_proof/audit/autoresearch_v4.tsv"
+TSV="$PROJECT/experiments/zeta_sum_proof/audit/autoresearch_v4_phase2.tsv"
 
 echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) Monitor ===" >> "$LOG"
 
@@ -37,26 +37,26 @@ else
     echo "  [RESTART] Mac restarted" >> "$LOG"
 fi
 
-# 3. Check Win1 endpoint — NSSM Windows service (persistent, survives SSH disconnect)
-# Root cause: SSH Session 0 has no Vulkan GPU. Fix: NSSM SERVICE_INTERACTIVE_PROCESS.
-# Service registered: nssm install llama-server + nssm set Type SERVICE_INTERACTIVE_PROCESS
+# 3. Check Win1 endpoint — User-session llama-server with Vulkan GPU (-ngl 99)
+# Root cause: NSSM Session 0 has no Vulkan GPU access. Fix: Start-Process in user session.
 WIN1_HEALTH=$(timeout 5 curl -s http://127.0.0.1:18081/health 2>/dev/null || echo "DEAD")
 if echo "$WIN1_HEALTH" | grep -q "ok"; then
-    echo "  [OK] Win1 endpoint healthy (NSSM service)" >> "$LOG"
+    echo "  [OK] Win1 endpoint healthy" >> "$LOG"
 else
-    echo "  [RESTART] Win1 tunnel dead, rebuilding..." >> "$LOG"
-    # Service should be auto-running. Just rebuild SSH tunnel.
+    echo "  [RESTART] Win1 endpoint dead, rebuilding..." >> "$LOG"
+    # Restart llama-server in user session with GPU (-ngl 99)
+    ssh windows1-w1 "taskkill /F /IM llama-server.exe 2>NUL" 2>/dev/null || true
+    sleep 2
+    ssh windows1-w1 "powershell -c \"Start-Process -FilePath 'C:\\Users\\jiazi\\work\\models\\llama-server.exe' -ArgumentList '-m','C:\\Users\\jiazi\\work\\models\\Qwen3.5-9B-Q4_K_M.gguf','--host','0.0.0.0','--port','8081','-ngl','99','-c','8192','--parallel','2','--threads','16' -WindowStyle Hidden\"" 2>/dev/null || true
+    sleep 10
+    # Rebuild SSH tunnel
     fuser -k 18081/tcp 2>/dev/null || true
     sleep 1
-    # Restart NSSM service if needed
-    ssh windows1-w1 "nssm status llama-server 2>nul" 2>/dev/null | grep -q "RUNNING" || \
-        ssh windows1-w1 "nssm restart llama-server 2>nul" 2>/dev/null
-    sleep 10
     ssh -f -N -L 18081:127.0.0.1:8081 windows1-w1 2>/dev/null || true
     sleep 2
     WIN1_CHECK=$(timeout 5 curl -s http://127.0.0.1:18081/health 2>/dev/null || echo "DEAD")
     if echo "$WIN1_CHECK" | grep -q "ok"; then
-        echo "  [RESTART] Win1 tunnel recovered (NSSM service running)" >> "$LOG"
+        echo "  [RESTART] Win1 recovered (user-session, Vulkan GPU)" >> "$LOG"
     else
         echo "  [FAIL] Win1 recovery failed" >> "$LOG"
     fi

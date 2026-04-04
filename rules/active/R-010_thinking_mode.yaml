@@ -10,5 +10,5 @@ file_glob: "*.rs|*.py"
 enforcement: "warn"
 message: "WARNING: Thinking mode configuration change — verify performance and cost implications"
 stats:
-  times_triggered: 0
-  last_triggered: "never"
+  times_triggered: 9
+  last_triggered: "2026-04-04T05:03:46Z"

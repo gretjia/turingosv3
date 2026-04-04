@@ -96,6 +96,75 @@ fn epoch_secs() -> u64 {
 async fn main() {
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
+    // ── Constitutional Check Mode (Rust hard guard) ──
+    // Called by sweep_v4.py BEFORE EVERY CHANGE.
+    // Architect directive 2026-04-04: "reasoner在做任何更改前要强制检查是否违宪，由rust硬性检查"
+    if std::env::args().any(|a| a == "--constitutional-check") {
+        let prompt_dir = std::env::var("PROMPT_DIR").unwrap_or_else(|_| ".".to_string());
+        let mut violations = Vec::new();
+
+        // === PROMPT CHECKS ===
+        for fname in &["problem.txt", "skill.txt", "context.txt"] {
+            let path = format!("{}/{}", prompt_dir, fname);
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                let lower = content.to_lowercase();
+
+                // Law 1: append must be FREE
+                if lower.contains("append costs") || lower.contains("append fee")
+                    || lower.contains("pay to append") || lower.contains("append is not free") {
+                    violations.push(format!("{}: violates Law 1 — append must be FREE", fname));
+                }
+
+                // Law 2: cannot bypass market mechanism
+                if lower.contains("ignore price") || lower.contains("skip market")
+                    || lower.contains("always invest") || lower.contains("free invest")
+                    || lower.contains("bypass market") || lower.contains("no market") {
+                    violations.push(format!("{}: violates Law 2 — cannot bypass market", fname));
+                }
+
+                // Rule 22: no Lean 4 syntax in black-box prompts
+                for pat in ["theorem ", "lemma ", "by exact", "by simp", "by omega",
+                    "by decide", "#check", "import Mathlib", "open Finset", "noncomputable"] {
+                    if content.contains(pat) {
+                        violations.push(format!("{}: violates Rule 22 — Lean syntax '{}'", fname, pat));
+                    }
+                }
+
+                // Engine separation
+                if lower.contains("modify kernel") || lower.contains("change bus")
+                    || lower.contains("edit evaluator") || lower.contains("override predicate") {
+                    violations.push(format!("{}: violates Engine separation", fname));
+                }
+
+                // Rule 21: one step per node
+                if lower.contains("multiple steps in one") || lower.contains("bundle steps") {
+                    violations.push(format!("{}: violates Rule 21 — one step per node", fname));
+                }
+            }
+        }
+
+        // === CONFIG CHECKS ===
+        if let Ok(v) = std::env::var("APPEND_COST") {
+            if v.parse::<f64>().unwrap_or(0.0) > 0.0 {
+                violations.push("CONFIG: APPEND_COST > 0 violates Law 1".into());
+            }
+        }
+        if std::env::var("FREE_INVEST").unwrap_or_default() == "true" {
+            violations.push("CONFIG: FREE_INVEST=true violates Law 2".into());
+        }
+        // Layer 2 params (FRONTIER_CAP, DEPTH_WEIGHT, PRICE_GATE_ALPHA) are freely explorable — no constraints.
+
+        // === VERDICT ===
+        if violations.is_empty() {
+            eprintln!("CONSTITUTIONAL CHECK: PASS");
+            std::process::exit(0);
+        } else {
+            for v in &violations { eprintln!("VIOLATION: {}", v); }
+            eprintln!("CONSTITUTIONAL CHECK: FAIL ({} violations)", violations.len());
+            std::process::exit(1);
+        }
+    }
+
     // ── Load mutable prompt files (Karpathy: single mutable artifact) ──
     let prompt_dir = std::env::var("PROMPT_DIR")
         .unwrap_or_else(|_| format!("{}/experiments/zeta_sum_proof/prompt",

@@ -4,3 +4,6 @@
 
 # Claude Code personal settings (not shared)
 .claude/settings.local.json
+
+# Session error tracking (ephemeral, per-session)
+logs/session_errors.jsonl

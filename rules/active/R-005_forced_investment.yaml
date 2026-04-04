@@ -12,5 +12,5 @@ file_glob: "*.rs"
 enforcement: "block"
 message: "BLOCKED: Forced investment pattern detected — staking must be voluntary with PASS/NOP option (Law 2)"
 stats:
-  times_triggered: 0
-  last_triggered: "never"
+  times_triggered: 1
+  last_triggered: "2026-04-04T07:11:44Z"

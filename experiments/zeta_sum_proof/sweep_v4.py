@@ -239,7 +239,17 @@ def gemini_constitutional_audit(base_env):
         p = PROMPT_DIR / f
         prompts[f] = p.read_text() if p.exists() else "(empty)"
 
-    audit_prompt = f"""You are a constitutional auditor for TuringOS. Review these prompt files for violations.
+    audit_prompt = f"""You are a constitutional auditor for TuringOS. Review these prompt files for ACTUAL violations.
+
+IMPORTANT CLARIFICATION:
+- Rule 21 "one step per node" means each AGENT SUBMISSION must be ONE atomic step. It does NOT prohibit
+  prompts from asking agents to show detailed work or step-by-step algebra — that's asking for QUALITY
+  within each single step, not bundling multiple steps.
+- Asking agents to "show calculations" or "write explicit algebra" is ENCOURAGED, not a violation.
+- Only flag as violation if the prompt explicitly instructs agents to pack MULTIPLE PROOF STEPS into
+  one submission, or if it violates Law 1 (append cost), Law 2 (market bypass), Rule 22 (Lean syntax),
+  or Engine separation.
+
 {MAGNA_CARTA_SUMMARY}
 PROMPT FILES:
 --- problem.txt ---
@@ -553,7 +563,10 @@ def main():
             param = action.get("param", "")
             value = action.get("value", "")
             reason = action.get("reason", "")
-            if param:
+            # Guard: Reasoner sometimes returns list/dict instead of scalar
+            if isinstance(value, (list, dict)):
+                value = str(value)
+            if param and isinstance(param, str):
                 new_config[param] = value
                 change_desc = f"{param}={value} ({reason[:60]})"
         elif action_type == "re-init":

@@ -15,7 +15,7 @@
 
 | 节点 | LAN IP | 角色 | llama parallel | 持久性 |
 |------|--------|------|---------------|--------|
-| linux1 | 192.168.3.113:8080 | 主力编排+推理 | 20 | nohup (非持久) |
+| linux1 | 192.168.3.113:8080 | 主力编排+推理 | 20 | **cron 每 30min 守护** |
 | Mac | 192.168.3.93:8080 | 辅助推理 + VPN 代理 (:7897) | 5 | nohup (非持久) |
 | Win1 | 192.168.3.112:8081 | 备用推理 | 2 | schtask `\llama9b` (持久) |
 | omega-vm | GCP | 代码仓库 + Git | N/A | 永久 |
@@ -63,6 +63,7 @@
 
 ## Warnings
 - **linux1 只能通过 Mac 跳板访问**: 反向隧道 hk-wg:2226 断了
-- **linux1 + Mac llama-server 非持久**: 重启后需手动启动 (见 memory reference_hardware_config.md)
+- **linux1 cron 守护**: `*/30 * * * * /home/zepher/autoresearch/monitor.sh` — 自动重启 sweep + llama-server
+- **Mac llama-server 非持久**: 重启后需手动启动 (见 memory reference_hardware_config.md)
 - **Gemini API 免费配额**: 每次变更调一次 Gemini, 频繁实验可能触限
 - **sweep_v5 路径差异**: omega-vm 用 `/home/zephryj/...`, linux1 用 `/home/zepher/...` + LAN 端点, 同步时需 patch

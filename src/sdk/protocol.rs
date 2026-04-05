@@ -39,7 +39,15 @@ fn parse_action_json(raw: &str) -> Option<AgentAction> {
     let start = raw.rfind(tag_open)?;
     let json_start = start + tag_open.len();
     let end = raw[json_start..].find(tag_close)?;
-    let json_str = raw[json_start..json_start + end].trim();
+    let inner = raw[json_start..json_start + end].trim();
+
+    // LLMs sometimes prefix JSON with the tool name: <action>append: {...}</action>
+    // Find the first '{' to extract just the JSON object.
+    let json_str = if let Some(brace) = inner.find('{') {
+        &inner[brace..]
+    } else {
+        inner
+    };
 
     let v: Value = serde_json::from_str(json_str).ok()?;
 

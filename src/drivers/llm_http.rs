@@ -90,76 +90,104 @@ impl ResilientLLMClient {
         }
 
         if self.use_curl {
-            self.call_via_curl(&payload, agent_id).await
+            self.call_via_python(&payload, agent_id).await
         } else {
             self.call_via_reqwest(&payload, agent_id).await
         }
     }
 
-    /// Cloud APIs: use curl subprocess (reqwest + rustls hangs on Chinese HTTPS endpoints)
-    async fn call_via_curl(&self, payload: &serde_json::Value, agent_id: usize) -> Result<String, DriverError> {
-        let payload_str = serde_json::to_string(payload).map_err(|e| DriverError::JsonParseError)?;
+    /// Cloud APIs: use Python OpenAI SDK (reqwest hangs on Chinese HTTPS, curl SSE unreliable)
+    async fn call_via_python(&self, payload: &serde_json::Value, agent_id: usize) -> Result<String, DriverError> {
+        // Determine provider from URL
+        let provider = if self.api_url.contains("dashscope") { "aliyun" }
+            else if self.api_url.contains("siliconflow") { "siliconflow" }
+            else if self.api_url.contains("deepseek") { "deepseek" }
+            else if self.api_url.contains("volces") || self.api_url.contains("volcengine") { "volcengine" }
+            else if self.api_url.contains("nvidia") { "nvidia" }
+            else { "aliyun" };
 
-        let mut args = vec![
-            "-s".to_string(),
-            "--connect-timeout".to_string(), "30".to_string(),
-            "-m".to_string(), "300".to_string(),
-            "-X".to_string(), "POST".to_string(),
-            self.api_url.clone(),
-            "-H".to_string(), "Content-Type: application/json".to_string(),
-        ];
+        let thinking_mode = std::env::var("THINKING_MODE").unwrap_or_else(|_| "off".to_string());
 
-        if let Some(ref key) = self.api_key {
-            args.push("-H".to_string());
-            args.push(format!("Authorization: Bearer {}", key));
-        }
+        let py_input = json!({
+            "provider": provider,
+            "model": self.model_name,
+            "prompt": payload["messages"][1]["content"],
+            "system": payload["messages"][0]["content"],
+            "temperature": payload["temperature"],
+            "max_tokens": payload["max_tokens"],
+            "enable_thinking": thinking_mode == "on",
+        });
 
-        args.push("-d".to_string());
-        args.push(payload_str);
+        // Find llm_call.py relative to binary or in known locations
+        let script = std::env::var("LLM_CALL_PY").unwrap_or_else(|_| {
+            let candidates = [
+                "src/drivers/llm_call.py",
+                "../src/drivers/llm_call.py",
+                "llm_call.py",
+            ];
+            for c in &candidates {
+                if std::path::Path::new(c).exists() { return c.to_string(); }
+            }
+            "src/drivers/llm_call.py".to_string()
+        });
 
-        let output = tokio::process::Command::new("curl")
-            .args(&args)
-            .output()
-            .await
-            .map_err(|e| DriverError::NetworkFracture(format!("curl exec failed: {}", e)))?;
+        info!("[Driver {}] python → {} via {} (model={})", agent_id, provider, script, self.model_name);
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            warn!("[Driver {}] curl failed (exit {}): {}", agent_id, output.status, stderr);
-            return Err(DriverError::NetworkFracture(format!("curl exit {}", output.status)));
-        }
+        // Synchronous try_wait polling — avoids tokio pipe/async deadlocks
+        let tmp_path = format!("/tmp/llm_call_{}.json", agent_id);
+        std::fs::write(&tmp_path, serde_json::to_string(&py_input).unwrap_or_default())
+            .map_err(|e| DriverError::NetworkFracture(format!("write: {}", e)))?;
 
-        let body = String::from_utf8_lossy(&output.stdout);
+        use std::io::Read;
+        let mut child = std::process::Command::new("python3")
+            .arg(&script)
+            .arg(&tmp_path)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| DriverError::NetworkFracture(format!("python3 spawn: {}", e)))?;
 
-        // Handle streaming SSE response (DashScope Qwen3)
-        if payload.get("stream").and_then(|v| v.as_bool()) == Some(true) {
-            let mut content = String::new();
-            for line in body.lines() {
-                if let Some(data) = line.strip_prefix("data: ") {
-                    if data == "[DONE]" { break; }
-                    if let Ok(chunk) = serde_json::from_str::<serde_json::Value>(data) {
-                        if let Some(delta) = chunk.get("choices")
-                            .and_then(|c| c.get(0))
-                            .and_then(|c| c.get("delta")) {
-                            if let Some(c) = delta.get("content").and_then(|v| v.as_str()) {
-                                content.push_str(c);
-                            }
-                            if let Some(r) = delta.get("reasoning_content").and_then(|v| v.as_str()) {
-                                content.push_str(r);
-                            }
-                        }
+        let start = std::time::Instant::now();
+        let timeout = std::time::Duration::from_secs(120);
+
+        let result = loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let mut stdout_buf = Vec::new();
+                    let mut stderr_buf = Vec::new();
+                    if let Some(mut out) = child.stdout.take() { let _ = out.read_to_end(&mut stdout_buf); }
+                    if let Some(mut err) = child.stderr.take() { let _ = err.read_to_end(&mut stderr_buf); }
+
+                    if !status.success() {
+                        let stderr = String::from_utf8_lossy(&stderr_buf);
+                        warn!("[Driver {}] python failed (exit {}): {}", agent_id, status, stderr.trim());
+                        break Err(DriverError::BackendError(stderr.trim().to_string()));
                     }
+
+                    let content = String::from_utf8_lossy(&stdout_buf).trim().to_string();
+                    if content.is_empty() {
+                        let stderr = String::from_utf8_lossy(&stderr_buf);
+                        error!("[Driver {}] python empty. stderr: {}", agent_id, stderr.trim());
+                        break Err(DriverError::JsonParseError);
+                    }
+                    break Ok(content);
+                }
+                Ok(None) => {
+                    if start.elapsed() > timeout {
+                        let _ = child.kill();
+                        warn!("[Driver {}] Python timeout (120s)", agent_id);
+                        break Err(DriverError::Timeout);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+                Err(e) => {
+                    break Err(DriverError::NetworkFracture(format!("poll: {}", e)));
                 }
             }
-            if !content.is_empty() {
-                return Ok(content);
-            }
-            error!("[Driver {}] SSE stream empty", agent_id);
-            return Err(DriverError::JsonParseError);
-        }
+        };
 
-        // Non-streaming JSON response
-        self.parse_json_response(&body, agent_id)
+        let _ = std::fs::remove_file(&tmp_path);
+        result
     }
 
     /// Local llama.cpp: use reqwest (works for local HTTP, no TLS issues)

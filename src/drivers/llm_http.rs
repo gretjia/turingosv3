@@ -87,6 +87,11 @@ impl ResilientLLMClient {
             system_prefix
         );
 
+        // DashScope Qwen3 open-source models ONLY support streaming.
+        // Official doc: "Qwen3 开源版仅支持流式输出方式调用"
+        // stream:false → server hangs indefinitely (no response, no error).
+        let force_stream = is_qwen3 && is_dashscope;
+
         let mut payload = json!({
             "model": self.model_name,
             "messages": [
@@ -95,17 +100,15 @@ impl ResilientLLMClient {
             ],
             "temperature": temperature,
             "max_tokens": max_tok,
-            "stream": false
+            "stream": force_stream
         });
 
-        // DashScope-specific: disable thinking via API parameter
         if is_qwen3 && is_dashscope && thinking_mode == "off" {
             payload["enable_thinking"] = json!(false);
         }
 
         let mut request_builder = self.client.post(&self.api_url)
-            // Use resilient timeout internally as well, ignoring global client timeout for these heavy requests
-            .timeout(Duration::from_secs(1200))
+            .timeout(Duration::from_secs(300))
             .json(&payload);
 
         if let Some(ref key) = self.api_key {
@@ -116,34 +119,77 @@ impl ResilientLLMClient {
 
         match request {
             Ok(response) if response.status().is_success() => {
-                if let Ok(json_body) = response.json::<serde_json::Value>().await {
+                if force_stream {
+                    // SSE streaming: parse chunks, accumulate content
+                    use futures_util::StreamExt;
                     let mut final_content = String::new();
-                    
-                    // Parse OpenAI (llama.cpp) or native Ollama formats
-                    if let Some(choices) = json_body.get("choices") {
-                        let message = &choices[0]["message"];
-                        if let Some(reasoning) = message.get("reasoning_content").and_then(|v| v.as_str()) {
-                            final_content.push_str(reasoning);
-                            final_content.push('\n');
-                        }
-                        if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
-                            final_content.push_str(content);
-                        }
-                    } else if let Some(message) = json_body.get("message") {
-                        if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
-                            final_content.push_str(content);
+                    let mut stream = response.bytes_stream();
+                    let mut buf = String::new();
+                    while let Some(chunk) = stream.next().await {
+                        match chunk {
+                            Ok(bytes) => {
+                                buf.push_str(&String::from_utf8_lossy(&bytes));
+                                while let Some(newline_pos) = buf.find('\n') {
+                                    let line = buf[..newline_pos].trim().to_string();
+                                    buf = buf[newline_pos + 1..].to_string();
+                                    if line.starts_with("data: ") {
+                                        let data = &line[6..];
+                                        if data == "[DONE]" { break; }
+                                        if let Ok(chunk_json) = serde_json::from_str::<serde_json::Value>(data) {
+                                            if let Some(delta) = chunk_json.get("choices")
+                                                .and_then(|c| c.get(0))
+                                                .and_then(|c| c.get("delta")) {
+                                                if let Some(c) = delta.get("content").and_then(|v| v.as_str()) {
+                                                    final_content.push_str(c);
+                                                }
+                                                if let Some(r) = delta.get("reasoning_content").and_then(|v| v.as_str()) {
+                                                    final_content.push_str(r);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                warn!("[Driver {}] Stream error: {}", agent_id, e);
+                                break;
+                            }
                         }
                     }
-
                     if !final_content.is_empty() {
                         return Ok(final_content);
                     } else {
-                        error!("[Driver {}] API Response parsed but no content found. Body: {}", agent_id, json_body);
+                        error!("[Driver {}] Streaming response empty", agent_id);
                         return Err(DriverError::JsonParseError);
                     }
                 } else {
-                    error!("[Driver {}] JSON Parse Fault. Backend returned malformed data.", agent_id);
-                    return Err(DriverError::JsonParseError);
+                    // Non-streaming: parse full JSON response
+                    if let Ok(json_body) = response.json::<serde_json::Value>().await {
+                        let mut final_content = String::new();
+                        if let Some(choices) = json_body.get("choices") {
+                            let message = &choices[0]["message"];
+                            if let Some(reasoning) = message.get("reasoning_content").and_then(|v| v.as_str()) {
+                                final_content.push_str(reasoning);
+                                final_content.push('\n');
+                            }
+                            if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
+                                final_content.push_str(content);
+                            }
+                        } else if let Some(message) = json_body.get("message") {
+                            if let Some(content) = message.get("content").and_then(|v| v.as_str()) {
+                                final_content.push_str(content);
+                            }
+                        }
+                        if !final_content.is_empty() {
+                            return Ok(final_content);
+                        } else {
+                            error!("[Driver {}] No content in response: {}", agent_id, json_body);
+                            return Err(DriverError::JsonParseError);
+                        }
+                    } else {
+                        error!("[Driver {}] JSON parse fault", agent_id);
+                        return Err(DriverError::JsonParseError);
+                    }
                 }
             }
             Ok(response) => {

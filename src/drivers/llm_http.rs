@@ -29,6 +29,7 @@ impl ResilientLLMClient {
         };
         Self {
             client: Client::builder()
+                .http1_only()  // Force HTTP/1.1 — Chinese APIs (DashScope/SiliconFlow) hang on H2 ALPN
                 .build()
                 .unwrap(),
             api_url: api_url.to_string(),

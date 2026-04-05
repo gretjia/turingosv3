@@ -149,6 +149,7 @@ impl ResilientLLMClient {
             .spawn()
             .map_err(|e| DriverError::NetworkFracture(format!("python3 spawn: {}", e)))?;
 
+        info!("[Driver {}] python3 spawned PID={}", agent_id, child.id());
         let start = std::time::Instant::now();
         let timeout = std::time::Duration::from_secs(120);
 

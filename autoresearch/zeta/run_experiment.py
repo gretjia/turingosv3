@@ -87,11 +87,16 @@ def run_evaluator(cfg, base_env, run_id, timeout_secs=600):
     env["BEAR_COUNT"] = str(cfg["bear_count"])
     env["LIBRARIAN_INTERVAL"] = str(cfg.get("librarian_interval", 8))
 
-    # Provider config — default Aliyun
+    # Provider config — default Aliyun (via proxy on Mac, direct on Linux)
     provider = cfg.get("provider", "aliyun")
     model = cfg.get("model", "qwen3-8b")
     env["LLM_PROVIDER"] = provider
     env["LLM_MODEL"] = model
+
+    # Proxy mode: set LLM_URL for local HTTP proxy (V-007: Mac needs proxy for TLS)
+    if provider == "proxy":
+        proxy_url = cfg.get("proxy_url", "http://127.0.0.1:8088/v1/chat/completions")
+        env["LLM_URL"] = proxy_url
 
     # Per-run isolation: WAL, tape dump, JSONL logs, skills
     env["WAL_PATH"] = str(wal_path)

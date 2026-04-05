@@ -3,9 +3,10 @@
   "math_count": 3,
   "bull_count": 1,
   "bear_count": 1,
-  "provider": "aliyun",
+  "provider": "proxy",
+  "proxy_url": "http://127.0.0.1:8088/v1/chat/completions",
   "model": "qwen3-8b",
   "wall_clock": 300,
   "librarian_interval": 8,
-  "description": "baseline: smallest viable swarm (5 agents, qwen3-8b Aliyun)"
+  "description": "baseline: smallest viable swarm (5 agents, qwen3-8b via Aliyun proxy)"
 }

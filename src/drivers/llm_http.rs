@@ -42,7 +42,10 @@ impl ResilientLLMClient {
     /// Construct with explicit API key — for multi-account routing
     pub fn with_key(api_url: &str, model_name: &str, api_key: &str) -> Self {
         Self {
-            client: Client::builder().build().unwrap(),
+            client: Client::builder()
+                .http1_only()
+                .no_proxy()
+                .build().unwrap(),
             api_url: api_url.to_string(),
             model_name: model_name.to_string(),
             api_key: Some(api_key.to_string()),

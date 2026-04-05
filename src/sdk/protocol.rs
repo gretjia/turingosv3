@@ -49,7 +49,12 @@ fn parse_action_json(raw: &str) -> Option<AgentAction> {
         inner
     };
 
-    let v: Value = serde_json::from_str(json_str).ok()?;
+    // Try strict parse first; if it fails (e.g. LaTeX backslashes like \cdot, \cos),
+    // fix invalid escape sequences by replacing lone backslashes.
+    let v: Value = serde_json::from_str(json_str).or_else(|_| {
+        let fixed = fix_json_escapes(json_str);
+        serde_json::from_str(&fixed)
+    }).ok()?;
 
     let tool = v.get("tool")?.as_str()?.to_string();
     let tactic = v.get("tactic").and_then(|t| t.as_str()).map(|s| s.replace("\\n", "\n"));
@@ -133,6 +138,34 @@ fn parse_legacy_format(raw: &str) -> Option<AgentAction> {
         node: None,
         query: None,
     })
+}
+
+/// Fix invalid JSON escape sequences produced by LLMs (e.g. LaTeX \cdot, \cos, \to).
+/// Replaces backslashes NOT followed by valid JSON escape chars with double backslash.
+fn fix_json_escapes(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '\\' && i + 1 < chars.len() {
+            let next = chars[i + 1];
+            // Valid JSON escapes: " \ / b f n r t u
+            if matches!(next, '"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' | 'u') {
+                result.push('\\');
+                result.push(next);
+                i += 2;
+            } else {
+                // Invalid escape — double the backslash to make it literal
+                result.push('\\');
+                result.push('\\');
+                i += 1;
+            }
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
 }
 
 fn parse_wallet_tag(tool_call: &str) -> Option<(String, f64)> {

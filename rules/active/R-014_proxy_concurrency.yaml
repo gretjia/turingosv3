@@ -1,0 +1,18 @@
+id: "R-014"
+name: "proxy_concurrency"
+source_incidents:
+  - "V-008"
+axiom: "Bitter Lesson — never single-thread a service serving concurrent agents"
+trigger: "pre_edit"
+check:
+  type: "grep"
+  pattern: "HTTPServer|BaseHTTPRequestHandler|http.server"
+file_glob: "*.py"
+enforcement: "warn"
+message: |
+  WARNING: HTTP server code detected. V-008 lesson: BaseHTTPRequestHandler is single-threaded.
+  ANY HTTP server serving agents MUST use ThreadingMixIn or async.
+  Single-threaded proxy + N concurrent agents = (N-1) silent 502s.
+stats:
+  times_triggered: 0
+  last_triggered: null

@@ -19,7 +19,7 @@
 │  └─────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │  Layer 2: 执法层 (Enforcement)                           │   │
-│  │  rule-engine.sh — 12 条数据驱动规则 (YAML, 动态加载)    │   │
+│  │  rule-engine.sh — 14 条数据驱动规则 (YAML, 动态加载)    │   │
 │  │  block-destructive.sh — WAL/数据保护 + git 安全          │   │
 │  │  post-edit-validate.sh — cargo check 自动验证            │   │
 │  │  pipeline-quality-gate.sh — Insight 完整性检查           │   │
@@ -27,7 +27,7 @@
 │  └─────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │  Layer 1: 记忆层 (Memory)                                │   │
-│  │  incidents/ — Trace Vault (6 个完整违规上下文)           │   │
+│  │  incidents/ — Trace Vault (9 个完整违规上下文)           │   │
 │  │  VIA_NEGATIVA.md — 失败路径记录 (人可读)                │   │
 │  │  rules/active/*.yaml — 规则定义 (自描述, 含效果统计)    │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -76,7 +76,7 @@ bash scripts/constitutional_check.sh
 
 ## 4. 规则引擎
 
-### 活跃规则 (12 条)
+### 活跃规则 (14 条)
 
 | ID | 名称 | 级别 | 守护对象 |
 |---|---|---|---|
@@ -92,6 +92,8 @@ bash scripts/constitutional_check.sh
 | R-010 | thinking mode 变更 | warn | 性能 |
 | R-011 | dedup 逻辑变更 | warn | 行为影响 |
 | R-012 | Boltzmann 温度变更 | warn | 探索-利用 |
+| R-013 | LLM 输出格式契约变更 | warn | Bitter Lesson (V-009) |
+| R-014 | HTTP Server 并发检测 | warn | Bitter Lesson (V-008) |
 
 ### 添加新规则
 
@@ -105,7 +107,7 @@ vim rules/active/R-013_new_rule.yaml
 
 ## 5. Trace Vault
 
-### 已迁移违规 (6 个)
+### 已迁移违规 (9 个)
 
 | ID | 违规 | 严重性 | 执法状态 |
 |---|---|---|---|
@@ -115,6 +117,9 @@ vim rules/active/R-013_new_rule.yaml
 | V-004 | kernel.rs 硬编码 [OMEGA] | critical | R-001 (block) |
 | V-005 | ArgMax 贪婪路由 | high | 设计已替换 (Boltzmann) |
 | V-006 | Falsifier 买 YES | high | R-005 (block) |
+| V-007 | reqwest+rustls macOS HTTPS 死锁 | high | llm_proxy.py (物理替换) |
+| V-008 | 单线程 proxy 502 | medium | ThreadingMixIn |
+| V-009 | LLM 输出格式契约静默失败 | critical | protocol.rs 三层容错 |
 
 ### 目录结构
 

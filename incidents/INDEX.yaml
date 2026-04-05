@@ -1,6 +1,6 @@
 index_version: "1.0"
-last_updated: "2026-04-03"
-total_incidents: 6
+last_updated: "2026-04-05"
+total_incidents: 9
 
 incidents:
   - id: V-001
@@ -51,10 +51,34 @@ incidents:
     date: "2026-03-28"
     dir: V-006_falsifier_buying_yes/
 
+  - id: V-007
+    title: "reqwest+rustls hangs on Chinese HTTPS endpoints (macOS pipe deadlock)"
+    pattern: api_failure
+    axiom: "Bitter Lesson"
+    severity: high
+    date: "2026-04-05"
+    dir: V-007_reqwest_tls_macos_deadlock/
+
+  - id: V-008
+    title: "Single-threaded HTTP proxy returns 502 under 15 concurrent agent requests"
+    pattern: api_failure
+    axiom: "Bitter Lesson"
+    severity: medium
+    date: "2026-04-05"
+    dir: V-008_proxy_single_thread_502/
+
+  - id: V-009
+    title: "LLM output format contract breaks silently — 3 layers of parse failure"
+    pattern: api_failure
+    axiom: "Bitter Lesson"
+    severity: critical
+    date: "2026-04-05"
+    dir: V-009_format_contract_fragility/
+
 by_severity:
-  critical: [V-001, V-002, V-003, V-004]
-  high: [V-005, V-006]
-  medium: []
+  critical: [V-001, V-002, V-003, V-004, V-009]
+  high: [V-005, V-006, V-007]
+  medium: [V-008]
   low: []
 
 by_axiom:
@@ -62,3 +86,4 @@ by_axiom:
   "Law 2": [V-001, V-002, V-006]
   "Engine separation": [V-003]
   "Exploration-exploitation": [V-005]
+  "Bitter Lesson": [V-007, V-008, V-009]

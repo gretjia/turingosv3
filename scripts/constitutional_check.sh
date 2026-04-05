@@ -156,6 +156,49 @@ fi
 echo ""
 
 # ════════════════════════════════════════════════════════════
+# V-009: FORMAT CONTRACT RESILIENCE (protocol.rs)
+# ════════════════════════════════════════════════════════════
+echo "=== V-009: LLM Output Parser Resilience ==="
+
+# Check that protocol.rs has the three tolerance layers
+if grep -q "fix_json_escapes" src/sdk/protocol.rs 2>/dev/null; then
+    pass "LaTeX escape handler present (fix_json_escapes)"
+else
+    fail "Missing LaTeX escape handler in protocol.rs (V-009 regression)"
+fi
+
+if grep -qP 'find\(.*\{' src/sdk/protocol.rs 2>/dev/null; then
+    pass "JSON prefix tolerance present (find '{')"
+else
+    fail "Missing JSON prefix tolerance in protocol.rs (V-009 regression)"
+fi
+
+if grep -q "preceding" src/sdk/protocol.rs 2>/dev/null || grep -q "bare.*tool\|tool_name.*trim" src/sdk/protocol.rs 2>/dev/null; then
+    pass "Bare action tag fallback present"
+else
+    warn "Bare action tag fallback may be missing in protocol.rs"
+fi
+
+echo ""
+
+# ════════════════════════════════════════════════════════════
+# V-008: PROXY CONCURRENCY
+# ════════════════════════════════════════════════════════════
+echo "=== V-008: Proxy Concurrency ==="
+
+if [ -f src/drivers/llm_proxy.py ]; then
+    if grep -q "ThreadingMixIn" src/drivers/llm_proxy.py 2>/dev/null; then
+        pass "llm_proxy.py uses ThreadingMixIn (concurrent)"
+    else
+        fail "llm_proxy.py is single-threaded — will 502 under concurrent agents (V-008)"
+    fi
+else
+    warn "llm_proxy.py not found (proxy may not be needed if using local llama.cpp only)"
+fi
+
+echo ""
+
+# ════════════════════════════════════════════════════════════
 # COMPILATION CHECK
 # ════════════════════════════════════════════════════════════
 echo "=== COMPILATION ==="

@@ -150,42 +150,23 @@ impl ResilientLLMClient {
             .map_err(|e| DriverError::NetworkFracture(format!("python3 spawn: {}", e)))?;
 
         info!("[Driver {}] python3 spawned PID={}", agent_id, child.id());
-        let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(120);
+        // Direct wait — Python completes in 1-10s. Blocks this tokio worker thread
+        // but that's OK with multi-thread runtime + few agents.
+        let output = child.wait_with_output()
+            .map_err(|e| DriverError::NetworkFracture(format!("wait: {}", e)))?;
 
-        let result = loop {
-            match child.try_wait() {
-                Ok(Some(status)) => {
-                    let mut stdout_buf = Vec::new();
-                    let mut stderr_buf = Vec::new();
-                    if let Some(mut out) = child.stdout.take() { let _ = out.read_to_end(&mut stdout_buf); }
-                    if let Some(mut err) = child.stderr.take() { let _ = err.read_to_end(&mut stderr_buf); }
-
-                    if !status.success() {
-                        let stderr = String::from_utf8_lossy(&stderr_buf);
-                        warn!("[Driver {}] python failed (exit {}): {}", agent_id, status, stderr.trim());
-                        break Err(DriverError::BackendError(stderr.trim().to_string()));
-                    }
-
-                    let content = String::from_utf8_lossy(&stdout_buf).trim().to_string();
-                    if content.is_empty() {
-                        let stderr = String::from_utf8_lossy(&stderr_buf);
-                        error!("[Driver {}] python empty. stderr: {}", agent_id, stderr.trim());
-                        break Err(DriverError::JsonParseError);
-                    }
-                    break Ok(content);
-                }
-                Ok(None) => {
-                    if start.elapsed() > timeout {
-                        let _ = child.kill();
-                        warn!("[Driver {}] Python timeout (120s)", agent_id);
-                        break Err(DriverError::Timeout);
-                    }
-                    std::thread::sleep(std::time::Duration::from_millis(100));
-                }
-                Err(e) => {
-                    break Err(DriverError::NetworkFracture(format!("poll: {}", e)));
-                }
+        let result = if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            warn!("[Driver {}] python failed (exit {}): {}", agent_id, output.status, stderr.trim());
+            Err(DriverError::BackendError(stderr.trim().to_string()))
+        } else {
+            let content = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if content.is_empty() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                error!("[Driver {}] python empty. stderr: {}", agent_id, stderr.trim());
+                Err(DriverError::JsonParseError)
+            } else {
+                Ok(content)
             }
         };
 

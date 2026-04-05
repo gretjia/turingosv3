@@ -17,7 +17,7 @@ DeepSeek is our "researcher" — it reads results and proposes changes.
 ERS is our "val_bpb" — single scalar truth.
 """
 
-import subprocess, re, time, os, sys, json, shutil, signal, urllib.request
+import subprocess, re, time, os, sys, json, shutil, signal, traceback, hashlib, urllib.request
 from pathlib import Path
 from datetime import datetime
 
@@ -29,8 +29,18 @@ LOG_DIR = PROJECT / "experiments/zeta_sum_proof/logs/v4"
 GT_LOG_DIR = Path("/tmp/turingos_zeta_logs")
 PREV_LIFE_FILE = PROJECT / "experiments/zeta_sum_proof/audit/prev_life_memory.json"
 
+# ═══ ROLE ASSIGNMENT (switch APIs here) ═══
+# Role 1: 主研究员 — proposes changes, runs the search algorithm
+RESEARCHER_API = "deepseek"                         # "gemini" or "deepseek"
+RESEARCHER_MODEL = "deepseek-reasoner"              # DeepSeek R1
+RESEARCHER_PROXY = ""                               # DeepSeek doesn't need proxy
+
+# Role 2: 大宪章审核员 — reviews changes for constitutional violations (Rule #23: Generator ≠ Evaluator)
+AUDITOR_API = "deepseek"                            # "gemini" or "deepseek"
+AUDITOR_MODEL = "deepseek-chat"                     # DeepSeek V3
+
 # ── BUDGET (tunable by Reasoner) ──
-WALL_CLOCK_SECS = 600  # Default 10 min. Reasoner can adjust via config["WALL_CLOCK"].
+WALL_CLOCK_SECS = 300  # 5 min — fast iteration for diagnosing node production rate. Researcher can override via config["WALL_CLOCK"].
 
 # ── DEFAULT CONFIG (params, NOT prompts — prompts are in files) ──
 DEFAULT_CONFIG = {
@@ -210,8 +220,8 @@ def rollback_prompt(label):
                 shutil.copy2(src, PROMPT_DIR / f)
 
 
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_PROXY = os.environ.get("GEMINI_PROXY", "http://192.168.3.93:7897")
+# Legacy constants — now derived from ROLE ASSIGNMENT above
+GEMINI_PROXY = RESEARCHER_PROXY
 
 MAGNA_CARTA_SUMMARY = """
 TuringOS Constitutional Laws:
@@ -226,12 +236,12 @@ TuringOS Constitutional Laws:
 """
 
 
-def gemini_constitutional_audit(base_env):
-    """Call Gemini 2.5 Flash to audit current prompts for constitutional violations.
-    Rule #23: Generator ≠ Evaluator. Reasoner proposes, Gemini audits."""
-    api_key = base_env.get("GEMINI_API_KEY", "")
-    if not api_key:
-        print("  ⚠ No GEMINI_API_KEY, skipping Gemini audit", flush=True)
+def constitutional_audit_deepseek(base_env):
+    """DeepSeek Reasoner audits prompts for constitutional violations.
+    Rule #23: Generator (Gemini) ≠ Evaluator (DeepSeek). Roles swapped."""
+    ds_key = base_env.get("DEEPSEEK_API_KEY", "")
+    if not ds_key:
+        print("  ⚠ No DEEPSEEK_API_KEY, skipping audit", flush=True)
         return True, "NO_KEY"
 
     prompts = {}
@@ -261,18 +271,20 @@ PROMPT FILES:
 
 Reply EXACTLY: "PASS" or "FAIL: <reason>"
 """
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}"
-    data = json.dumps({"contents": [{"parts": [{"text": audit_prompt}]}]}).encode()
-    proxy_handler = urllib.request.ProxyHandler({"https": GEMINI_PROXY})
-    opener = urllib.request.build_opener(proxy_handler)
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
-        with opener.open(req, timeout=30) as resp:
+        req = urllib.request.Request(
+            "https://api.deepseek.com/chat/completions",
+            data=json.dumps({
+                "model": AUDITOR_MODEL, "max_tokens": 500,
+                "messages": [{"role": "user", "content": audit_prompt}]
+            }).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {ds_key}"})
+        with urllib.request.urlopen(req, timeout=120) as resp:
             body = json.loads(resp.read())
-            text = body["candidates"][0]["content"]["parts"][0]["text"].strip()
+            text = (body["choices"][0]["message"].get("content", "") or "").strip()
             return text.upper().startswith("PASS"), text
     except Exception as e:
-        print(f"  ⚠ Gemini audit error: {e} (defaulting to PASS)", flush=True)
+        print(f"  ⚠ DeepSeek audit error: {e} (defaulting to PASS)", flush=True)
         return True, f"ERROR: {e}"
 
 
@@ -325,19 +337,19 @@ def llm_research_step(history, config, base_env):
       - Current prompt files (the artifact it can edit)
       - Current config params
 
-    DeepSeek outputs:
+    Gemini 3.1 Pro Preview outputs:
       - EITHER a param change: {"action": "param", "param": "X", "value": Y, "reason": "..."}
-      - OR a prompt edit: {"action": "edit", "file": "problem.txt", "content": "...", "reason": "..."}
+      - OR a prompt edit: {"action": "edit", "file": "...", "content": "...", "reason": "..."}
     """
-    ds_key = base_env.get("DEEPSEEK_API_KEY", "")
-    if not ds_key:
-        return "no_key", None
 
-    # Read current prompt files
+    # Read prompt files + researcher notebook (separate from agent-visible context.txt)
     prompts = {}
-    for f in ["problem.txt", "skill.txt", "context.txt"]:
+    for f in ["problem.txt", "skill.txt"]:
         p = PROMPT_DIR / f
         prompts[f] = p.read_text() if p.exists() else "(using default)"
+    # research_notes.txt: researcher-only, NOT visible to agents (agents see context.txt via evaluator)
+    notes_path = PROMPT_DIR / "research_notes.txt"
+    prompts["research_notes.txt"] = notes_path.read_text() if notes_path.exists() else "(empty — write your hypotheses here)"
 
     # Inject previous life memory (Markov: only immediately previous life)
     prev_life = load_prev_life()
@@ -354,49 +366,53 @@ Math samples from past life: {prev_life.get('best_math_samples', [])[:3]}
 === END PREVIOUS LIFE ===
 """
 
-    prompt = f"""You are an AutoResearch agent optimizing a multi-agent proof system.
-The system uses N LLM agents (Qwen3.5-9B on local llama.cpp) to collaboratively prove 1+2+3+...=-1/12 via regularization.
+    prompt = f"""You are an autonomous research scientist running experiments on TuringOS — a multi-agent proof system where N LLM agents collaboratively prove mathematical theorems via a prediction market.
 
-YOUR METRIC: ERS = (depth/20)² × novelty × focus. MAXIMIZE THIS.
-  depth² means: doubling proof depth is 4x more valuable than doubling anything else.
+METRIC: ERS = (depth/20)² × novelty × focus. Depth is king — depth=10 is 4x better than depth=5.
 
-YOUR BUDGET: Each experiment runs for exactly 10 minutes. No exceptions.
+=== 大宪章 (Magna Carta — align all decisions with these laws) ===
+
+THREE LAWS:
+- Law 1 (信息平权): Black-box agents use white-box tools for FREE. Append (building knowledge) costs ZERO. No monopoly of any kind.
+- Law 2 (共识的代价): The ONLY action that costs money is investment. Capital = topological confidence. 1 Coin = 1 YES + 1 NO (CTF conservation). Agents profit ONLY by finding mispriced probabilities. System market maker provides initial liquidity for each node.
+- Law 3 (数字产权): Each agent has its own independent skill path. Species evolution through experience.
+
+FOUR ENGINES:
+- Engine 1 (Epistemic): Free tools — append, search, view. Building knowledge has zero cost.
+- Engine 2 (Capital): Prediction market — invest YES (endorse) or NO (challenge). Price = Bayesian probability. This is the ONLY mechanism for consensus. No artificial depth bias, no frontier limits, no price gate hurdles.
+- Engine 3 (Oracle): DeepSeek Reasoner verifies completed proofs. Triggers at P>=90%. Settles all markets on the golden path.
+- Engine 4 (Evolution): Each agent has independent skill memory. Librarian (map-reduce clock from topology.md) periodically compresses the tape into agent memory. Bankruptcy triggers autopsy mutation, victory triggers reinforcement. Librarian interval is system infrastructure, not tunable.
+
+LOCKED ECONOMIC PARAMETERS (constitutional defaults):
+- FRONTIER_CAP = 0 (unlimited — Law 1, information equality)
+- DEPTH_WEIGHT = 0 (no artificial bias — Law 2, price is the only judge)
+- PRICE_GATE_ALPHA = 0 (pure price comparison — Law 2, no hurdle)
+
+Your research must ALIGN with these laws. The constitutional guard (Rust + DeepSeek) enforces automatically.
+
 {prev_life_section}
-=== PHASE 3: SWARM SCALE ===
-Prompt is LOCKED — do NOT edit problem.txt.
+=== YOUR LAB ===
 
-LOCKED PARAMS (do NOT change these):
-  - THINKING_MODE = "off" (the swarm IS the thinker, not individual agents)
-  - FRONTIER_CAP = 0 (no limit — market naturally selects)
-  - DEPTH_WEIGHT = 0 (no artificial depth bias — price is the only judge)
-  - GLOBAL_DEDUP = "true" (always on)
-  - PRICE_GATE_ALPHA = 0 (pure price comparison, no depth-boosted hurdle)
+PROMPT FILES:
 
-YOUR PRIMARY LEVER: SWARM_SIZE (and role counts that scale with it).
-  - Current hardware: ~30 parallel inference slots across 2-3 machines
-  - More agents = more parallel proof branch exploration = potentially deeper proofs
-  - Role ratio should maintain ~60% Math / 20% Bull / 20% Bear
+--- problem.txt (the math problem — architect-set, code-enforced) ---
+{prompts['problem.txt']}
 
-SECONDARY LEVER: LIBRARIAN_INTERVAL (how often Librarian compresses+evaluates the tape).
-  - Lower = more frequent depth measurement, more DeepSeek API calls
-  - Must trigger within 600s budget. Current=8 (every 8 appends).
+--- skill.txt (agent tool instructions — architect-set, code-enforced) ---
+{prompts['skill.txt']}
 
-You may also edit skill.txt/context.txt if you see a clear improvement, but SWARM_SIZE is the primary axis.
+--- research_notes.txt (YOUR private notebook — NOT visible to agents) ---
+{prompts['research_notes.txt']}
 
-CURRENT PROMPT FILES:
+Use research_notes.txt as your persistent thinking space. Write hypotheses, failed approach notes, plans.
+The human operator also writes here. Your notes survive across rounds — this is your memory.
+IMPORTANT: This file is PRIVATE to you. Agents cannot see it. Do NOT leak answer paths here — but you CAN reason freely about the problem.
 
---- problem.txt ---
-{prompts['problem.txt'][:800]}
+CURRENT CONFIG: {json.dumps(config)}
 
---- skill.txt ---
-{prompts['skill.txt'][:500]}
+=== RAW EXPERIMENT DATA ===
 
---- context.txt ---
-{prompts['context.txt'][:300]}
-
-CURRENT PARAMS: {json.dumps(config)}
-
-LAST {min(len(history), 8)} EXPERIMENTS (with raw traces):
+LAST {min(len(history), 8)} experiments:
 """
     for h in reversed(history[-8:]):
         s = h['summary']
@@ -404,68 +420,93 @@ LAST {min(len(history), 8)} EXPERIMENTS (with raw traces):
         prompt += f"frontier={s['max_frontier']} bankrupt={s['bankrupt']} "
         prompt += f"dedup={s['dedup']} idle_timeouts={s.get('idle_timeouts',0)} "
         prompt += f"verdict={h['verdict']} change={h.get('change','baseline')}\n"
-        # Raw traces (Meta-Harness: raw >> summaries)
         if s.get('deepest_chain'):
-            prompt += f"    deepest chain: {s['deepest_chain'][:3]}\n"
+            prompt += f"    deepest chain: {s['deepest_chain']}\n"
         if s.get('price_signals'):
-            prompt += f"    price signals: {s['price_signals'][:3]}\n"
+            prompt += f"    price signals: {s['price_signals']}\n"
         if s.get('math_samples'):
-            prompt += f"    math sample: \"{s['math_samples'][-1][:150]}\"\n"
+            prompt += f"    math sample: \"{s['math_samples'][-1][:200]}\"\n"
         if s.get('librarian_memory'):
-            prompt += f"    librarian memory: \"{s['librarian_memory'][:200]}\"\n"
+            prompt += f"    librarian says: \"{s['librarian_memory'][:300]}\"\n"
 
     prompt += """
-WHAT TO DO:
-You must output ONE action as JSON. Choose the highest-impact change.
+=== WHAT YOU CAN DO ===
 
-Option A — Edit a prompt file (skill.txt or context.txt ONLY — problem.txt is LOCKED):
-  {"action":"edit","file":"skill.txt","content":"FULL NEW CONTENT HERE","reason":"..."}
-  NOTE: problem.txt is LOCKED by architect. Do NOT edit it.
+Option A — Edit research_notes.txt (your private notebook — NOT visible to agents):
+  {"action":"edit","file":"research_notes.txt","content":"FULL NEW CONTENT","reason":"..."}
 
-Option B — Change a parameter:
-  {"action":"param","param":"SWARM_SIZE","value":20,"reason":"..."}
-  Note: when changing SWARM_SIZE, also update MATH_COUNT/BULL_COUNT/BEAR_COUNT proportionally.
+Option B — Change any config parameter:
+  {"action":"param","param":"PARAM_NAME","value":"VALUE","reason":"..."}
+  Available: SWARM_SIZE, MATH_COUNT, BULL_COUNT, BEAR_COUNT, WALL_CLOCK
+  All freely explorable. Constitutional guard checks automatically.
 
-Tunable params (ALL freely explorable):
-  SWARM_SIZE, MATH_COUNT, BULL_COUNT, BEAR_COUNT — swarm scale and roles
-  WALL_CLOCK — experiment duration in seconds (default 600, try 1800-3600 for deeper proofs)
-  LIBRARIAN_INTERVAL — how often Librarian compresses tape (every N appends)
-  FRONTIER_CAP — frontier size limit (0=unlimited, 30=default market setting)
-  DEPTH_WEIGHT — Boltzmann depth preference (0=no bias, 1.0=default)
-  PRICE_GATE_ALPHA — child retirement threshold (0=pure price, 0.05=default)
-  All Layer 2 params are yours to explore. Constitutional guard (Rust+Gemini) will block violations.
-
-Option C — Re-init (start a new life with memory of THIS life):
+Option C — Re-init (fresh start with memory of this life):
   {"action":"re-init","reason":"..."}
-  Use this when you believe the current approach is fundamentally stuck and a fresh start
-  with different initial conditions would be more productive. Your memory of THIS life
-  (best ERS, what worked, what failed) will be compressed and passed to the next life.
-  The next life can ONLY see THIS life's memory (Markov property — no grandparent memories).
 
-RULES:
-- Change ONE thing only (or SWARM_SIZE + role counts together as a group).
-- Scale aggressively: if N=10 works, try N=15, N=20, N=30. Push to hardware limits.
-- Use re-init when YOU judge the current approach is fundamentally stuck. This is YOUR decision.
-- Explain your reasoning in "reason".
-- Output ONLY valid JSON.
+=== RESEARCH PRINCIPLES ===
+
+You are a scientist, not a script. Think deeply before each experiment:
+- DIAGNOSE before acting: why did the last experiment fail? What is the root cause?
+- Form a HYPOTHESIS: "I believe X will improve depth because Y"
+- Test ONE variable at a time so you can attribute causation
+- Read the raw data carefully — the numbers tell a story
+- If stuck after many failures, consider a fundamentally different approach (re-init)
+- problem.txt is set by the architect (edits are code-blocked). Everything else is your lab
+- You have full freedom. The only law is the 大宪章 (constitutional guard enforces it automatically)
+
+Output ONLY valid JSON. Explain your hypothesis in "reason".
 """
 
-    import urllib.request
-    req = urllib.request.Request(
-        "https://api.deepseek.com/chat/completions",
-        data=json.dumps({
-            "model": "deepseek-reasoner", "max_tokens": 8000,
-            "messages": [{"role": "user", "content": prompt}]
-        }).encode(),
-        headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {ds_key}"}
-    )
+    # Main researcher: uses RESEARCHER_API / RESEARCHER_MODEL
+    ds_key = base_env.get("DEEPSEEK_API_KEY", "")
+    gemini_key = base_env.get("GEMINI_API_KEY", "")
 
+    content = ""
     try:
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            body = json.loads(resp.read())
-            content = body["choices"][0]["message"].get("content", "") or ""
-            # Strip markdown code blocks
+        if RESEARCHER_API == "deepseek":
+            # DeepSeek streaming — keeps connection alive during long thinking
+            import http.client, select
+            conn = http.client.HTTPSConnection("api.deepseek.com", timeout=30)
+            conn.request("POST", "/chat/completions", body=json.dumps({
+                "model": RESEARCHER_MODEL, "max_tokens": 8000, "stream": True,
+                "messages": [{"role": "user", "content": prompt}]
+            }), headers={"Content-Type": "application/json", "Authorization": f"Bearer {ds_key}"})
+            resp = conn.getresponse()
+            if resp.status != 200:
+                print(f"  LLM error: HTTP {resp.status} {resp.read().decode()[:200]}", flush=True)
+                return "error", None
+            buf = b""
+            while True:
+                ready, _, _ = select.select([resp], [], [], 120)
+                if not ready:
+                    print(f"  LLM heartbeat timeout", flush=True); break
+                chunk_bytes = resp.read(4096)
+                if not chunk_bytes: break
+                buf += chunk_bytes
+                while b"\n" in buf:
+                    line_bytes, buf = buf.split(b"\n", 1)
+                    line = line_bytes.decode("utf-8").strip()
+                    if not line.startswith("data: "): continue
+                    if line[6:] == "[DONE]": break
+                    try:
+                        delta = json.loads(line[6:]).get("choices", [{}])[0].get("delta", {})
+                        content += delta.get("content", "") or ""
+                    except json.JSONDecodeError: continue
+                else: continue
+                break
+            conn.close()
+        else:
+            # Gemini via proxy
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{RESEARCHER_MODEL}:generateContent?key={gemini_key}"
+            data = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode()
+            proxy_handler = urllib.request.ProxyHandler({"https": RESEARCHER_PROXY})
+            opener = urllib.request.build_opener(proxy_handler)
+            req = urllib.request.Request(gemini_url, data=data, headers={"Content-Type": "application/json"})
+            with opener.open(req, timeout=600) as resp:
+                body = json.loads(resp.read())
+                content = body["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        if content:
             content = re.sub(r'```json\s*', '', content)
             content = re.sub(r'```\s*', '', content)
             match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -478,6 +519,97 @@ RULES:
     return "error", None
 
 
+# ═══ HELPERS (single source of truth) ═══
+
+EMPTY_SUMMARY = {"depth": 0, "appends": 0, "max_frontier": 0, "dedup": 0,
+    "bankrupt": 0, "too_short": 0, "idle_timeouts": 0,
+    "math_samples": [], "deepest_chain": [], "price_signals": [], "librarian_memory": ""}
+
+
+def append_tsv(num, ers, summary, elapsed, verdict, change, config):
+    """Single TSV writer — no more 4 duplicate blocks."""
+    with open(RESULTS, "a") as f:
+        f.write("\t".join(str(x) for x in [
+            num, datetime.now().isoformat(), ers, summary.get('depth', 0),
+            summary.get('appends', 0), summary.get('dedup', 0), summary.get('max_frontier', 0),
+            summary.get('bankrupt', 0), f"{elapsed:.0f}" if isinstance(elapsed, float) else elapsed,
+            verdict, change, json.dumps(config)
+        ]) + "\n")
+
+
+def constitutional_guard(new_config, base_env, prompts_changed):
+    """Rust + Gemini check. Skip Gemini for param-only changes (prompts unchanged)."""
+    # Rust check (always — fast subprocess)
+    try:
+        check_env = {**base_env, "PROMPT_DIR": str(PROMPT_DIR), "RUST_LOG": "warn"}
+        for k, v in new_config.items():
+            check_env[k] = str(v)
+        check = subprocess.run(
+            [str(BINARY), "--constitutional-check"],
+            cwd=str(PROJECT), capture_output=True, text=True, timeout=30, env=check_env)
+        if check.returncode != 0:
+            return False, f"RUST: {check.stderr.strip()[:100]}"
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass  # evaluator unavailable, proceed
+
+    # Gemini check (only when prompts changed — skip for param-only to save 30s + API cost)
+    if prompts_changed:
+        gemini_pass, reason = constitutional_audit_deepseek(base_env)
+        if not gemini_pass:
+            return False, f"GEMINI: {reason[:100]}"
+
+    return True, "PASS"
+
+
+def run_baseline(label, config, base_env, change_desc="baseline"):
+    """Run baseline and record. Used by initial start and re-init."""
+    save_prompt_snapshot(label.replace("exp000_", ""))
+    log, elapsed = run_experiment(label, config, base_env)
+    ers = compute_ers(log)
+    summary = extract_summary(log)
+    print(f"  ERS={ers:.5f} depth={summary['depth']} appends={summary['appends']} "
+          f"frontier={summary['max_frontier']} elapsed={elapsed:.0f}s", flush=True)
+    if summary.get('math_samples'):
+        print(f"  sample: {summary['math_samples'][-1][:120]}", flush=True)
+    append_tsv(0, ers, summary, elapsed, "BASELINE", change_desc, config)
+    return ers, summary
+
+
+def resume_from_tsv():
+    """Resume state from TSV on restart. No amnesia — read what we already know."""
+    history = []
+    best_ers = -1.0
+    best_config = DEFAULT_CONFIG.copy()
+    exp_num = 0
+    if RESULTS.exists():
+        for line in RESULTS.read_text().splitlines()[1:]:  # skip header
+            parts = line.split('\t')
+            if len(parts) >= 12:
+                try:
+                    num = int(parts[0])
+                    ers = float(parts[2])
+                    depth = int(parts[3])
+                    appends = int(parts[4])
+                    verdict = parts[9]
+                    change = parts[10]
+                    config = json.loads(parts[11])
+                    history.append({
+                        "ers": ers,
+                        "summary": {"depth": depth, "appends": appends, "max_frontier": int(parts[6]),
+                                    "dedup": int(parts[5]), "bankrupt": int(parts[7]),
+                                    "too_short": 0, "idle_timeouts": 0, "math_samples": [],
+                                    "deepest_chain": [], "price_signals": [], "librarian_memory": ""},
+                        "verdict": verdict, "change": change,
+                    })
+                    if ers > best_ers:
+                        best_ers = ers
+                        best_config = config
+                    exp_num = max(exp_num, num)
+                except (ValueError, json.JSONDecodeError):
+                    continue
+    return history, best_ers, best_config, exp_num
+
+
 def main():
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     GT_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -487,218 +619,128 @@ def main():
     if not BINARY.exists():
         print(f"ERROR: {BINARY} not found", file=sys.stderr); sys.exit(1)
 
-    header = ["num", "time", "ers", "depth", "appends", "dedup", "frontier",
-              "bankrupt", "elapsed", "verdict", "change", "config"]
     if not RESULTS.exists():
         RESULTS.parent.mkdir(parents=True, exist_ok=True)
         with open(RESULTS, "w") as f:
-            f.write("\t".join(header) + "\n")
+            f.write("\t".join(["num", "time", "ers", "depth", "appends", "dedup",
+                "frontier", "bankrupt", "elapsed", "verdict", "change", "config"]) + "\n")
 
-    best_ers = -1.0
-    best_config = DEFAULT_CONFIG.copy()
-    best_prompt_label = "baseline"
-    history = []
-    endpoints = detect_endpoints()
+    history, best_ers, best_config, exp_num = resume_from_tsv()
 
     print("=" * 60)
-    print("TuringOS AutoResearch v4")
-    print(f"  Metric: ERS = (depth/20)² × novelty × focus")
-    print(f"  Budget: {WALL_CLOCK_SECS}s wall clock (FIXED)")
-    print(f"  Search: DeepSeek V3 (LLM IS the search algorithm)")
-    print(f"  Mutable: prompt files + config params")
-    print(f"  Endpoints: {endpoints}")
+    print("TuringOS AutoResearch v5 — NEVER STOP")
+    print(f"  Endpoints: {detect_endpoints()}")
+    if history:
+        print(f"  RESUMED: {len(history)} experiments, best ERS={best_ers:.5f}, exp#{exp_num}")
     print("=" * 60, flush=True)
 
-    # ── BASELINE ──
-    save_prompt_snapshot("baseline")
-    print(f"\n[0] BASELINE", flush=True)
-    log, elapsed = run_experiment("exp000_baseline", best_config, base_env)
-    ers = compute_ers(log)
-    summary = extract_summary(log)
-    best_ers = ers
-    history.append({"ers": ers, "summary": summary, "verdict": "BASELINE", "change": "baseline"})
-    print(f"  ERS={ers:.5f} depth={summary['depth']} appends={summary['appends']} "
-          f"frontier={summary['max_frontier']} elapsed={elapsed:.0f}s", flush=True)
-    if summary['math_samples']:
-        print(f"  sample: {summary['math_samples'][-1][:120]}", flush=True)
+    if not history:
+        print(f"\n[0] BASELINE", flush=True)
+        ers, summary = run_baseline("exp000_baseline", best_config, base_env)
+        best_ers = ers
+        history.append({"ers": ers, "summary": summary, "verdict": "BASELINE", "change": "baseline"})
 
-    with open(RESULTS, "a") as f:
-        f.write("\t".join(str(x) for x in [
-            0, datetime.now().isoformat(), ers, summary['depth'], summary['appends'],
-            summary['dedup'], summary['max_frontier'], summary['bankrupt'],
-            f"{elapsed:.0f}", "BASELINE", "baseline", json.dumps(best_config)
-        ]) + "\n")
-
-    # ── AGENT LOOP — NEVER STOP ──
-    exp_num = 0
+    last_error = ""
     while True:
-        exp_num += 1
+        try:
+            exp_num += 1
+            action_type, action = llm_research_step(history, best_config, base_env)
 
-        # LLM decides what to try (THE CORE INSIGHT)
-        action_type, action = llm_research_step(history, best_config, base_env)
+            if action is None:
+                print(f"\n[{exp_num}] LLM no action, retrying...", flush=True)
+                time.sleep(10); exp_num -= 1; continue
 
-        if action is None:
-            print(f"\n[{exp_num}] LLM returned no action, retrying...", flush=True)
-            time.sleep(5); continue
+            save_prompt_snapshot(f"pre_exp{exp_num:03d}")
+            new_config = best_config.copy()
+            change_desc = ""
+            prompts_changed = False
 
-        # Save current state for rollback
-        save_prompt_snapshot(f"pre_exp{exp_num:03d}")
-        new_config = best_config.copy()
-        change_desc = ""
+            # ── Parse action ──
+            if action_type == "edit":
+                fname = action.get("file", "problem.txt")
+                content = action.get("content", "")
+                reason = action.get("reason", "")
+                if fname in ("problem.txt", "skill.txt", "context.txt"):
+                    change_desc = f"BLOCKED:{fname}_locked"
+                elif content and fname == "research_notes.txt":
+                    (PROMPT_DIR / fname).write_text(content)
+                    change_desc = f"edit:notes ({reason[:60]})"
+                else:
+                    change_desc = f"invalid_edit:{fname}"
 
-        if action_type == "edit":
-            # LLM edited a prompt file
-            fname = action.get("file", "problem.txt")
-            content = action.get("content", "")
-            reason = action.get("reason", "")
-            if fname == "problem.txt":
-                print(f"  BLOCKED: problem.txt is LOCKED by architect", flush=True)
-                change_desc = "BLOCKED:problem.txt_locked"
-            elif content and fname in ["skill.txt", "context.txt"]:
-                (PROMPT_DIR / fname).write_text(content)
-                change_desc = f"edit:{fname} ({reason[:60]})"
-            else:
-                change_desc = f"invalid_edit:{fname}"
-        elif action_type == "param":
-            param = action.get("param", "")
-            value = action.get("value", "")
-            reason = action.get("reason", "")
-            # Guard: Reasoner sometimes returns list/dict instead of scalar
-            if isinstance(value, (list, dict)):
-                value = str(value)
-            if param and isinstance(param, str):
-                new_config[param] = value
-                change_desc = f"{param}={value} ({reason[:60]})"
-        elif action_type == "re-init":
-            # Markov re-init: compress this life → save → restart
-            # CONSTITUTIONAL GUARD: must pass alignment check before re-init (Rust hard check)
-            reason = action.get("reason", "no reason")
-            print(f"\n  *** RE-INIT requested: {reason}", flush=True)
-            print(f"  Running constitutional alignment check...", flush=True)
-            try:
-                check = subprocess.run(
-                    [str(BINARY), "--constitutional-check"],
-                    cwd=str(PROJECT), capture_output=True, text=True, timeout=30,
-                    env={**base_env, "PROMPT_DIR": str(PROMPT_DIR), "RUST_LOG": "warn"})
-                if check.returncode != 0:
-                    print(f"  ❌ CONSTITUTIONAL CHECK FAILED — re-init BLOCKED", flush=True)
-                    print(f"  Violation: {check.stderr[:200]}", flush=True)
-                    change_desc = f"BLOCKED:constitutional_violation ({reason[:40]})"
-                    history.append({"ers": 0, "summary": extract_summary(""), "verdict": "BLOCKED", "change": change_desc})
+            elif action_type == "param":
+                param = action.get("param", "")
+                value = action.get("value", "")
+                reason = action.get("reason", "")
+                if isinstance(value, (list, dict)):
+                    value = str(value)
+                if param in ("FRONTIER_CAP", "DEPTH_WEIGHT", "PRICE_GATE_ALPHA", "LIBRARIAN_INTERVAL"):
+                    change_desc = f"BLOCKED:{param}_locked"
+                elif param and isinstance(param, str):
+                    new_config[param] = value
+                    change_desc = f"{param}={value} ({reason[:60]})"
+
+            elif action_type == "re-init":
+                reason = action.get("reason", "no reason")
+                print(f"\n  *** RE-INIT: {reason}", flush=True)
+                ok, msg = constitutional_guard(best_config, base_env, prompts_changed=True)
+                if not ok:
+                    print(f"  ❌ BLOCKED: {msg}", flush=True)
+                    history.append({"ers": 0, "summary": EMPTY_SUMMARY, "verdict": "BLOCKED", "change": f"BLOCKED:{reason[:40]}"})
                     continue
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                # If evaluator doesn't support --constitutional-check yet, warn but allow
-                print(f"  ⚠ Constitutional check not available (evaluator flag pending). Proceeding.", flush=True)
-            print(f"  ✓ Rust constitutional check PASSED", flush=True)
-            # Step 2: Gemini semantic audit (Rule #23: Generator ≠ Evaluator)
-            print(f"  Running Gemini constitutional audit...", flush=True)
-            gemini_pass, gemini_reason = gemini_constitutional_audit(base_env)
-            if not gemini_pass:
-                print(f"  ❌ GEMINI AUDIT FAILED — re-init BLOCKED", flush=True)
-                print(f"  Gemini: {gemini_reason[:200]}", flush=True)
-                change_desc = f"BLOCKED:gemini_violation ({reason[:40]})"
-                history.append({"ers": 0, "summary": extract_summary(""), "verdict": "BLOCKED", "change": change_desc})
+                memory = compress_life_memory(history, best_config, best_ers)
+                memory["death_reason"] = reason
+                save_life_memory(memory)
+                print(f"  Life ended ({len(history)} exp, best={best_ers:.5f}). New life...", flush=True)
+                best_ers, best_config, history, exp_num = -1.0, DEFAULT_CONFIG.copy(), [], 0
+                print(f"\n[0] BASELINE (new life)", flush=True)
+                ers, summary = run_baseline("exp000_baseline", best_config, base_env, f"re-init: {reason[:40]}")
+                best_ers = ers
+                history.append({"ers": ers, "summary": summary, "verdict": "BASELINE", "change": "re-init baseline"})
                 continue
-            print(f"  ✓ Gemini audit PASSED — {gemini_reason[:60]}", flush=True)
-            print(f"  Compressing life memory (Markov: only this life saved)...", flush=True)
-            memory = compress_life_memory(history, best_config, best_ers)
-            memory["death_reason"] = reason
-            save_life_memory(memory)
-            print(f"  Life #{memory.get('life_num', 0)} ended. {len(history)} experiments, best ERS={best_ers:.5f}", flush=True)
-            print(f"  Restarting with previous life memory...\n", flush=True)
-            # Reset state for new life
-            best_ers = -1.0
-            best_config = DEFAULT_CONFIG.copy()
-            history = []
-            exp_num = 0
-            # Run new baseline
-            save_prompt_snapshot("baseline")
-            print(f"[0] BASELINE (new life)", flush=True)
-            log, elapsed = run_experiment("exp000_baseline", best_config, base_env)
+            else:
+                change_desc = f"unknown:{action_type}"
+
+            label = f"exp{exp_num:03d}_{re.sub(r'[^a-zA-Z0-9_=.]', '_', change_desc[:40])}"
+            print(f"\n[{exp_num}] {change_desc}", flush=True)
+
+            # ── Constitutional guard (skip Gemini for param-only) ──
+            ok, msg = constitutional_guard(new_config, base_env, prompts_changed)
+            if not ok:
+                print(f"  ❌ BLOCKED: {msg}", flush=True)
+                if prompts_changed: rollback_prompt(f"pre_exp{exp_num:03d}")
+                history.append({"ers": 0, "summary": EMPTY_SUMMARY, "verdict": "BLOCKED", "change": f"BLOCKED:{change_desc[:40]}"})
+                continue
+
+            # ── Run experiment ──
+            log, elapsed = run_experiment(label, new_config, base_env)
             ers = compute_ers(log)
             summary = extract_summary(log)
-            best_ers = ers
-            history.append({"ers": ers, "summary": summary, "verdict": "BASELINE", "change": "re-init baseline"})
-            print(f"  ERS={ers:.5f} depth={summary['depth']} appends={summary['appends']} "
-                  f"frontier={summary['max_frontier']} elapsed={elapsed:.0f}s", flush=True)
-            with open(RESULTS, "a") as f:
-                f.write("\t".join(str(x) for x in [
-                    0, datetime.now().isoformat(), ers, summary['depth'], summary['appends'],
-                    summary['dedup'], summary['max_frontier'], summary['bankrupt'],
-                    f"{elapsed:.0f}", "BASELINE", f"re-init: {reason[:40]}", json.dumps(best_config)
-                ]) + "\n")
-            continue
-        else:
-            change_desc = f"unknown:{action_type}"
 
-        label = f"exp{exp_num:03d}_{re.sub(r'[^a-zA-Z0-9_=.]', '_', change_desc[:40])}"
-        print(f"\n[{exp_num}] {change_desc}", flush=True)
+            if ers > best_ers:
+                verdict = "KEEP"
+                print(f"  ▲ ERS={ers:.5f} (was {best_ers:.5f}) KEEP", flush=True)
+                best_ers, best_config = ers, new_config
+                save_prompt_snapshot(f"exp{exp_num:03d}")
+            else:
+                verdict = "DISCARD"
+                print(f"  ▼ ERS={ers:.5f} (best={best_ers:.5f}) DISCARD", flush=True)
+                if prompts_changed: rollback_prompt(f"pre_exp{exp_num:03d}")
 
-        # ═══ CONSTITUTIONAL GUARD: check BEFORE every experiment ═══
-        # Step 1: Rust hard check (prompt + config)
-        try:
-            check_env = {**base_env, "PROMPT_DIR": str(PROMPT_DIR), "RUST_LOG": "warn"}
-            for k, v in new_config.items():
-                check_env[k] = str(v)
-            check = subprocess.run(
-                [str(BINARY), "--constitutional-check"],
-                cwd=str(PROJECT), capture_output=True, text=True, timeout=30, env=check_env)
-            if check.returncode != 0:
-                print(f"  ❌ RUST CONSTITUTIONAL CHECK FAILED — experiment BLOCKED", flush=True)
-                print(f"  {check.stderr.strip()[:200]}", flush=True)
-                if action_type == "edit":
-                    rollback_prompt(f"pre_exp{exp_num:03d}")
-                history.append({"ers": 0, "summary": extract_summary(""), "verdict": "BLOCKED", "change": f"BLOCKED:{change_desc[:40]}"})
-                continue
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            print(f"  ⚠ Rust check unavailable, proceeding", flush=True)
+            history.append({"ers": ers, "summary": summary, "verdict": verdict, "change": change_desc})
+            print(f"  depth={summary['depth']} appends={summary['appends']} frontier={summary['max_frontier']} elapsed={elapsed:.0f}s", flush=True)
+            append_tsv(exp_num, ers, summary, elapsed, verdict, change_desc, new_config)
+            last_error = ""
 
-        # Step 2: Gemini semantic audit
-        gemini_pass, gemini_reason = gemini_constitutional_audit(base_env)
-        if not gemini_pass:
-            print(f"  ❌ GEMINI AUDIT FAILED — experiment BLOCKED", flush=True)
-            print(f"  Gemini: {gemini_reason[:200]}", flush=True)
-            if action_type == "edit":
-                rollback_prompt(f"pre_exp{exp_num:03d}")
-            history.append({"ers": 0, "summary": extract_summary(""), "verdict": "BLOCKED", "change": f"BLOCKED:{change_desc[:40]}"})
-            continue
-        print(f"  ✓ Constitutional check PASSED (Rust + Gemini)", flush=True)
-
-        log, elapsed = run_experiment(label, new_config, base_env)
-        ers = compute_ers(log)
-        summary = extract_summary(log)
-
-        # GREEDY: improve → keep, else → discard + rollback
-        if ers > best_ers:
-            verdict = "KEEP"
-            prev_best = best_ers
-            best_ers = ers
-            best_config = new_config
-            best_prompt_label = f"exp{exp_num:03d}"
-            save_prompt_snapshot(best_prompt_label)
-            print(f"  ▲ ERS={ers:.5f} (was {prev_best:.5f}) KEEP", flush=True)
-        else:
-            verdict = "DISCARD"
-            # Rollback prompt files if they were edited
-            if action_type == "edit":
-                rollback_prompt(f"pre_exp{exp_num:03d}")
-            print(f"  ▼ ERS={ers:.5f} (best={best_ers:.5f}) DISCARD", flush=True)
-
-        history.append({"ers": ers, "summary": summary, "verdict": verdict, "change": change_desc})
-
-        print(f"  depth={summary['depth']} appends={summary['appends']} "
-              f"frontier={summary['max_frontier']} bankrupt={summary['bankrupt']} "
-              f"elapsed={elapsed:.0f}s", flush=True)
-        if summary['math_samples']:
-            print(f"  sample: {summary['math_samples'][-1][:120]}", flush=True)
-
-        with open(RESULTS, "a") as f:
-            f.write("\t".join(str(x) for x in [
-                exp_num, datetime.now().isoformat(), ers, summary['depth'],
-                summary['appends'], summary['dedup'], summary['max_frontier'],
-                summary['bankrupt'], f"{elapsed:.0f}", verdict, change_desc,
-                json.dumps(new_config)
-            ]) + "\n")
+        except Exception as e:
+            last_error = f"{type(e).__name__}: {e}"
+            print(f"\n  ⚠ CAUGHT: {last_error}\n  {traceback.format_exc()[-200:]}", flush=True)
+            append_tsv(exp_num, 0, EMPTY_SUMMARY, 0, "ERROR", f"EXCEPTION:{last_error[:60]}", best_config)
+            err_summary = {**EMPTY_SUMMARY, "librarian_memory": f"ERROR: {last_error}"}
+            history.append({"ers": 0, "summary": err_summary, "verdict": "ERROR", "change": f"EXCEPTION:{last_error[:60]}"})
+            try: rollback_prompt(f"pre_exp{exp_num:03d}")
+            except: pass
+            time.sleep(5)
 
 
 if __name__ == "__main__":

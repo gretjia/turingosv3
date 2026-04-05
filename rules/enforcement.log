@@ -22,3 +22,7 @@
 2026-04-04T04:12:16Z | warn | R-010 | /home/zephryj/projects/turingosv3/experiments/zeta_sum_proof/sweep_v4.py | WARNING: Thinking mode configuration change — verify performance and cost implications
 2026-04-04T05:03:46Z | warn | R-010 | /home/zephryj/projects/turingosv3/experiments/zeta_sum_proof/sweep_v4.py | WARNING: Thinking mode configuration change — verify performance and cost implications
 2026-04-04T07:11:44Z | block | R-005 | /home/zephryj/projects/turingosv3/experiments/zeta_sum_proof/src/bin/evaluator.rs | BLOCKED: Forced investment pattern detected — staking must be voluntary with PASS/NOP option (Law 2)
+2026-04-05T02:03:13Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-05T02:06:07Z | warn | R-008 | /home/zephryj/projects/turingosv3/src/bus.rs | WARNING: Market constant change detected — verify LP amounts and initial balances are intentional
+2026-04-05T02:08:58Z | warn | R-008 | /home/zephryj/projects/turingosv3/src/bus.rs | WARNING: Market constant change detected — verify LP amounts and initial balances are intentional
+2026-04-05T02:19:36Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计

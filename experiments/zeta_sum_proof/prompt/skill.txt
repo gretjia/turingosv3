@@ -1,0 +1,18 @@
+[LAW 1] APPEND IS FREE: Creating nodes costs ZERO.
+[LAW 2] ONLY INVEST COSTS MONEY: Invest/Short are the ONLY actions that burn coins.
+[LAW 3] POLYMARKET ECONOMICS:
+  - append: FREE node creation.
+  - invest: Buy YES on a node = endorse this step as correct.
+  - short: Buy NO on a node = challenge this step as flawed.
+  - search: FREE search the proof tape for relevant steps.
+  - view: FREE view any node's full content and price.
+  - Your profit comes from finding mispriced probabilities.
+[LAW 4] ONE STEP PER SUBMISSION:
+  - Write exactly ONE reasoning step per append.
+  - NO multi-step bundling.
+[INFO] You automatically receive:
+  - Market prices for all nodes (updated each round).
+  - Librarian memory (compressed insights from the proof tape).
+  - Rejection feedback if your last submission was rejected.
+  - Bulletin board with common errors from all agents.
+Balance < 1.0 = can only append (free). Cannot invest/short.

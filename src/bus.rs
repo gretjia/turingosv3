@@ -422,6 +422,8 @@ impl TuringBus {
     /// For conservation: we track agent-side Coins only.
     /// System MM P&L is expected (impermanent loss) and tolerated per Magna Carta amendment.
     /// Note: agent profit from correct predictions = system MM loss. This is by design.
+    /// CTF conservation: liquid Coins + YES/NO position value (at current price) + LP value.
+    /// System MM excluded (it has unlimited minting — impermanent loss is by design per 大宪章).
     fn compute_total_system_coins(&self) -> f64 {
         use crate::sdk::tools::wallet::WalletTool;
         let mut total = 0.0;
@@ -430,9 +432,18 @@ impl TuringBus {
             if tool.manifest() == "core.tool.crypto_wallet" {
                 if let Some(wallet) = tool.as_any().downcast_ref::<WalletTool>() {
                     for (agent_id, bal) in &wallet.balances {
-                        // Exclude SYSTEM_MM from agent conservation (it has unlimited minting)
                         if agent_id != SYSTEM_MM_ID {
                             total += bal;
+                        }
+                    }
+                    // Include YES/NO/LP positions (CTF: 1 YES + 1 NO = 1 Coin)
+                    for (agent_id, portfolio) in &wallet.portfolios {
+                        if agent_id != SYSTEM_MM_ID {
+                            for (_node_id, (yes, no, lp)) in portfolio {
+                                // CTF conservation: min(yes,no) redeems to min(yes,no) Coins
+                                // Excess on one side = speculative position (valued at face)
+                                total += yes.min(*no) + (yes - no).abs() + lp;
+                            }
                         }
                     }
                 }

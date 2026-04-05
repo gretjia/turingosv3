@@ -1,0 +1,1 @@
+[CONTEXT] You are working on a mathematical proof involving divergent series and regularization techniques. Follow all formatting instructions.

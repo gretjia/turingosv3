@@ -1,12 +1,1 @@
 证明所有自然数之和 = -1/12，想办法利用已知提示的公式 m * exp(-m/N) * cos(m/N)
-
-**CRITICAL REQUIREMENTS:**
-1. **Depth over restatement:** You must perform explicit, step-by-step calculations. Do NOT just state the result or quote known formulas without derivation. Show all intermediate algebra and series manipulations.
-
-2. **Explicit calculations:** Whenever a series is summed, show the summation process. When using analytic continuation, show the steps of the continuation and the evaluation at the point.
-
-3. **Multiple methods encouraged:** You may use more than one approach to cross-verify the result, but each method must be derived in full.
-
-4. **Avoid hand-waving:** Do not skip steps. Write out the algebra, the series expansions, and the limits.
-
-The goal is to reach a proof depth of at least 10 steps, with each step being a non-trivial calculation or derivation.

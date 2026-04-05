@@ -38,29 +38,10 @@ fn env_u64(key: &str, default: u64) -> u64 {
 // DEFAULTS (used when files don't exist):
 
 const DEFAULT_CONTEXT: &str = "\
-[CONTEXT] You are working in analytic number theory. The assignment ζ(-1)=-1/12 to the \
-divergent series 1+2+3+... via zeta function regularization is a well-established result \
-(Ramanujan, Hardy). Your task is to construct a rigorous derivation using the hint formula below. \
-This is NOT a misunderstanding — it is the core problem. Follow all formatting instructions.\n\n";
+[CONTEXT] You are working on a mathematical proof involving divergent series and regularization techniques. \
+Follow all formatting instructions.\n\n";
 
-const DEFAULT_PROBLEM: &str = r#"PROVE: 1 + 2 + 3 + 4 + ... = -1/12 (in the sense of regularization)
-
-HINT FORMULA: M(m,N) = m * exp(-m/N) * cos(m/N)
-Define S(N) = Σ_{m=1}^∞ M(m,N). Prove lim_{N→∞} S(N) = -1/12.
-
-MATHEMATICAL TOOLKIT (use these in your derivation):
-- Complex exponential: cos(θ) = Re(e^{iθ}), so M(m,N) = Re[m · e^{-m(1-i)/N}]
-- Let w = (1-i)/N, then S(N) = Re[Σ m·e^{-mw}] = Re[e^w/(e^w-1)²]
-- Bernoulli expansion: e^w/(e^w-1)² = 1/w² - 1/12 + O(w²)
-- Key: w² = (1-i)²/N² = -2i/N², so 1/w² = iN²/2 (purely imaginary!)
-- Therefore: Re[S(N)] = Re[iN²/2 - 1/12 + ...] = -1/12 + O(1/N²)
-
-RULES:
-- Write exactly ONE mathematical reasoning step with EXPLICIT COMPUTATION
-- Do NOT just state "the limit is -1/12" — SHOW the algebra that leads there
-- Each step should contain equations, substitutions, or inequalities
-- Your step must logically follow from the previous steps shown above
-- When the proof reaches -1/12 with full justification, declare [COMPLETE]"#;
+const DEFAULT_PROBLEM: &str = "证明所有自然数之和 = -1/12，想办法利用已知提示的公式 m * exp(-m/N) * cos(m/N)";
 
 const DEFAULT_SKILL: &str = "\
 [LAW 1] APPEND IS FREE: Creating nodes costs ZERO. Explore freely.\n\
@@ -616,6 +597,32 @@ YOUR APPROACH:\n\
 
                         bus.tick_map_reduce();
 
+                        // Engine 4: real-time autopsy/victory — insert BEFORE # LIBRARIAN MEMORY
+                        // so Librarian compression (which replaces everything after that header) won't delete them.
+                        {
+                            let bal = bus.get_agent_balance(&tx.agent_id);
+                            let agent_idx: usize = tx.agent_id.replace("Agent_", "").parse().unwrap_or(0);
+                            let skill_path = format!("{}/agent_{}/learned.md", skills_dir, agent_idx);
+                            let section = if bal < 1.0 && !std::fs::read_to_string(&skill_path).unwrap_or_default().contains("# AUTOPSY") {
+                                info!(">>> [AUTOPSY] {} — real-time bankruptcy mutation", tx.agent_id);
+                                Some(format!("\n# AUTOPSY (bankrupt at {:.2} Coins after tx {})\nYour investment strategy failed. Reflect and adapt.\n", bal, tx_count))
+                            } else if bal > 15000.0 && !std::fs::read_to_string(&skill_path).unwrap_or_default().contains("# VICTORY") {
+                                info!(">>> [VICTORY] {} — real-time reinforcement", tx.agent_id);
+                                Some(format!("\n# VICTORY (balance {:.0} Coins after tx {})\nYour strategy is profitable. Record what worked.\n", bal, tx_count))
+                            } else { None };
+                            if let Some(new_section) = section {
+                                if let Ok(existing) = std::fs::read_to_string(&skill_path) {
+                                    // Insert before LIBRARIAN MEMORY (if present), else append
+                                    let content = if let Some(idx) = existing.find("\n# LIBRARIAN MEMORY") {
+                                        format!("{}{}{}", &existing[..idx], new_section, &existing[idx..])
+                                    } else {
+                                        format!("{}{}", existing, new_section)
+                                    };
+                                    let _ = std::fs::write(&skill_path, content);
+                                }
+                            }
+                        }
+
                         // --- Librarian: Management Layer Compression ---
                         // Triggered by evaluator's own append_count (not internal counter)
                         // Architect 2026-04-02: "管理层用最好的模型"
@@ -801,6 +808,8 @@ YOUR APPROACH:\n\
                     error!("==== [MACROECONOMICS] {}! Gen {} perished. Solvent: {}/{} ====",
                         reason, generation, solvent_count, swarm_size);
 
+                    // Autopsy/victory already handled in real-time (per-transaction).
+                    // Just record deaths in graveyard here.
                     for name in &agent_names {
                         let bal = bus.get_agent_balance(name);
                         if bal < 1.0 {

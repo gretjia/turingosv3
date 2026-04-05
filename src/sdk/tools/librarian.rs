@@ -195,43 +195,43 @@ impl LibrarianTool {
         (prompt, sc, fc)
     }
 
-    /// Write compressed memory to all agents' learned.md files.
+    /// Write compressed memory to agents' learned.md files.
+    /// 大宪章 Law 3 (数字产权): each agent gets INDIVIDUAL memory, preserving their
+    /// existing skill content. The Librarian section is shared, but the agent's own
+    /// role description, autopsy notes, and victory records are preserved.
     pub fn write_memory(&mut self, memory_text: &str) {
-        // Strip reasoning trace
         let clean_text = if let Some(idx) = memory_text.rfind("</think>") {
             memory_text[idx + 8..].trim()
         } else {
             memory_text.trim()
         };
 
-        let mut memory = String::new();
-        memory.push_str("\n# LIBRARIAN MEMORY (compressed from tape by DeepSeek V3)\n\n");
-        memory.push_str(clean_text);
+        let librarian_section = format!("\n# LIBRARIAN MEMORY (compression #{})\n\n{}", self.compressions_done + 1, clean_text);
 
         let mut updated = 0;
         for i in 0..self.swarm_size {
             let path = format!("{}/agent_{}/learned.md", self.skills_dir, i);
             match std::fs::read_to_string(&path) {
                 Ok(existing) => {
+                    // Preserve agent's individual content (role, autopsy, victory notes)
+                    // Only replace the LIBRARIAN MEMORY section
                     let base = if let Some(idx) = existing.find("\n# LIBRARIAN MEMORY") {
-                        &existing[..idx]
+                        existing[..idx].to_string()
                     } else {
-                        &existing
+                        existing.clone()
                     };
-                    let _ = std::fs::write(&path, format!("{}{}", base, memory));
+                    let _ = std::fs::write(&path, format!("{}{}", base, librarian_section));
                     updated += 1;
                 }
                 Err(_) => {
                     let _ = std::fs::create_dir_all(format!("{}/agent_{}", self.skills_dir, i));
-                    let _ = std::fs::write(&path, &memory);
+                    let _ = std::fs::write(&path, &librarian_section);
                     updated += 1;
                 }
             }
         }
 
         self.compressions_done += 1;
-        // NO clear() — logs are persistent files, not memory buffers
-
         info!(">>> [LIBRARIAN] Memory written to {}/{} agents (compression #{})",
             updated, self.swarm_size, self.compressions_done);
     }

@@ -92,25 +92,10 @@ impl TuringTool for WalletTool {
             return ToolSignal::Pass; // Free append — zero cost topology
         }
 
-        // vGaia: P2P Transfer — agent-to-agent energy transfer (1:1, no minting)
+        // Transfer ABOLISHED (大宪章 Law 2: only investment costs money)
+        // P2P transfer debits outside the prediction market, violating Law 2.
         if payload.contains("Action: Transfer") {
-            let (target_agent, amount) = match self.parse_transfer(payload) {
-                Some(cmd) => cmd,
-                None => return ToolSignal::Veto("Malformed Transfer tag. Expected: [Tool: Wallet | Action: Transfer | Target: Agent_X | Amount: Y]".into()),
-            };
-            if !amount.is_finite() || amount <= 0.0 {
-                return ToolSignal::Veto("Transfer amount must be a finite positive number.".into());
-            }
-            let balance = *self.balances.get(author).unwrap_or(&0.0);
-            if balance < amount {
-                return ToolSignal::Veto(format!("Insufficient ATP for transfer. Balance: {:.2}, Requested: {:.2}", balance, amount));
-            }
-            if target_agent == author {
-                return ToolSignal::Veto("Cannot transfer ATP to self.".into());
-            }
-            // Deduct from sender immediately (bus.rs will credit receiver)
-            *self.balances.get_mut(author).unwrap() -= amount;
-            return ToolSignal::Transfer { target_agent, amount };
+            return ToolSignal::Veto("Transfer abolished. Only invest/short costs money (Law 2).".into());
         }
 
         let (target, amount) = match self.parse_payment(payload) {
@@ -118,9 +103,10 @@ impl TuringTool for WalletTool {
             None => return ToolSignal::Veto("Malformed Wallet tag. Check syntax.".into()),
         };
 
-        // Invest must be >= 1.0 (防粉尘攻击 on financial actions only)
-        if amount < 1.0 {
-            return ToolSignal::Veto("Invest amount must be >= 1.0.".into());
+        // 大宪章 Law 2: Amount must be decided by LLM, not hardcoded.
+        // No minimum — market handles dust naturally (tiny bets = tiny influence).
+        if amount <= 0.0 || !amount.is_finite() {
+            return ToolSignal::Veto("Invest amount must be a finite positive number.".into());
         }
 
         let balance = *self.balances.get(author).unwrap_or(&0.0);

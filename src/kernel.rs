@@ -133,7 +133,7 @@ impl Kernel {
 
     /// Append a node to the Tape. Returns Err if causality is violated.
     /// - Rejects duplicate FileId (V6: prevents reverse_citations corruption)
-    /// - Strips citations to non-existent nodes (V5: prevents cycles)
+    /// - Rejects citations to non-existent nodes (V5: topology rollback)
     pub(crate) fn append_tape(&mut self, mut file: File, reward: f64) -> Result<&File, String> {
         let id = file.id.clone();
 
@@ -142,16 +142,13 @@ impl Kernel {
             return Err(format!("Spacetime Paradox: Node ID {} already exists.", id));
         }
 
-        // V5: Causality defense — only allow citations to existing nodes
-        let mut valid_citations = Vec::new();
+        // V5: Causality defense — reject nodes citing non-existent parents
+        // topology.md: invalid output → rollback (∏p=0 → Q_{t+1}=Q_t), not silent rewrite
         for cid in &file.citations {
-            if self.tape.files.contains_key(cid) {
-                valid_citations.push(cid.clone());
-            } else {
-                log::warn!(">>> [CAUSALITY] Stripping ghost citation: {} cited non-existent {}", id, cid);
+            if !self.tape.files.contains_key(cid) {
+                return Err(format!("Causality violation: {} cites non-existent {}", id, cid));
             }
         }
-        file.citations = valid_citations;
 
         file.intrinsic_reward = reward;
         file.price = reward;

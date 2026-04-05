@@ -139,7 +139,9 @@ impl ResilientLLMClient {
             .map_err(|e| DriverError::NetworkFracture(format!("write: {}", e)))?;
 
         use std::io::Read;
-        let mut child = std::process::Command::new("python3")
+        // Use absolute path — Mac's homebrew python3 may not be in PATH for child processes
+        let python = std::env::var("PYTHON3").unwrap_or_else(|_| "python3".to_string());
+        let mut child = std::process::Command::new(&python)
             .arg(&script)
             .arg(&tmp_path)
             .stdout(std::process::Stdio::piped())

@@ -12,6 +12,7 @@ Endpoints:
 """
 import os, sys, json, logging, argparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
 from openai import OpenAI
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -132,12 +133,16 @@ class Handler(BaseHTTPRequestHandler):
         pass  # Suppress default access log (we have our own)
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=int(os.environ.get("LLM_PROXY_PORT", "8088")))
     args = parser.parse_args()
 
-    server = HTTPServer(("127.0.0.1", args.port), Handler)
+    server = ThreadedHTTPServer(("127.0.0.1", args.port), Handler)
     log.info(f"LLM Proxy listening on 127.0.0.1:{args.port}")
     log.info(f"Providers: {', '.join(k for k, (_, env) in PROVIDERS.items() if os.environ.get(env))}")
     try:

@@ -904,7 +904,7 @@ YOUR APPROACH:\n\
     // Full tape dump (human-readable export; WAL is the authoritative persistence)
     let dump_path = std::env::var("TAPE_OUTPUT")
         .unwrap_or_else(|_| format!("/tmp/zeta_sum_tape_{}.md", epoch_secs()));
-    if let Ok(mut f) = std::fs::File::create(dump_path) {
+    if let Ok(mut f) = std::fs::File::create(&dump_path) {
         use std::io::Write;
         let _ = writeln!(f, "# zeta_sum_proof — Full Tape Dump (Role Trifecta)\n");
         let _ = writeln!(f, "**Transactions**: {} | **Generations**: {} | **Nodes**: {}\n",

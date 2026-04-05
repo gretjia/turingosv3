@@ -1,10 +1,11 @@
 {
-  "swarm_size": 15,
-  "math_count": 5,
-  "bull_count": 5,
-  "bear_count": 5,
-  "max_tx": 300,
-  "model": "Qwen/Qwen2.5-14B-Instruct",
-  "provider": "siliconflow",
-  "description": "14B on SiliconFlow (should be faster than Aliyun). Branch-dedup + append-only. 7B benchmark: depth=14."
+  "swarm_size": 5,
+  "math_count": 3,
+  "bull_count": 1,
+  "bear_count": 1,
+  "provider": "aliyun",
+  "model": "qwen3-8b",
+  "wall_clock": 300,
+  "librarian_interval": 8,
+  "description": "baseline: smallest viable swarm (5 agents, qwen3-8b Aliyun)"
 }

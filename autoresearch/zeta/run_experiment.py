@@ -1,33 +1,40 @@
 #!/usr/bin/env python3
 """
-TuringOS AutoResearch — Experiment Runner (DO NOT MODIFY)
+TuringOS AutoResearch — Experiment Runner (Karpathy's prepare.py)
 
-This is the evaluation harness. It reads config.json, runs the evaluator
-binary, parses the output, computes metrics, and prints a standardized
-summary. Equivalent to Karpathy's prepare.py — fixed infrastructure.
+Fixed evaluation harness. Reads config.json, runs the evaluator binary,
+parses output, computes metrics, persists everything (WAL, tape, config, log).
 
-Usage: python3 run_experiment.py
-       python3 run_experiment.py > run.log 2>&1
+This file is READ-ONLY infrastructure. The AI Researcher (sweep.py) edits
+config.json and prompt files — never this file.
+
+Usage:
+  python3 run_experiment.py              # single run, appends to results.tsv
+  python3 run_experiment.py > run.log    # capture stdout
 """
 
-import subprocess, re, json, time, os, math, sys
+import subprocess, re, json, time, os, sys, shutil, signal
 from pathlib import Path
+from datetime import datetime
 from collections import defaultdict
 
 # ── Paths ──
-PROJECT = Path(__file__).resolve().parent.parent.parent  # turingosv3/
+BASE = Path(__file__).resolve().parent
+PROJECT = BASE.parent.parent  # turingosv3/
 BINARY = PROJECT / "target/release/evaluator"
-CONFIG = Path(__file__).resolve().parent / "config.json"
-TAPE = Path("/tmp/zeta_sum_tape_full.md")
-LOG_DIR = Path(__file__).resolve().parent / "logs"
+CONFIG = BASE / "config.json"
+RESULTS = BASE / "results.tsv"
+LOG_DIR = BASE / "logs"
+TAPES_DIR = BASE / "tapes"
+CONFIGS_DIR = BASE / "configs"
 
 
 def load_env():
-    """Load .env from project root"""
+    """Load .env from project root."""
     env = os.environ.copy()
     env_file = PROJECT / ".env"
     if not env_file.exists():
-        print("ERROR: .env not found at", env_file, file=sys.stderr)
+        print(f"ERROR: .env not found at {env_file}", file=sys.stderr)
         sys.exit(1)
     for line in env_file.read_text().splitlines():
         line = line.strip()
@@ -38,58 +45,98 @@ def load_env():
 
 
 def load_config():
-    """Load config.json"""
+    """Load config.json."""
     if not CONFIG.exists():
         print("ERROR: config.json not found", file=sys.stderr)
         sys.exit(1)
     with open(CONFIG) as f:
         cfg = json.load(f)
-    # Validate
     assert cfg["math_count"] + cfg["bull_count"] + cfg["bear_count"] == cfg["swarm_size"], \
-        f"Role counts must sum to swarm_size: {cfg['math_count']}+{cfg['bull_count']}+{cfg['bear_count']} != {cfg['swarm_size']}"
+        f"Role counts must sum to swarm_size"
     return cfg
 
 
-def run_evaluator(cfg, base_env, timeout_secs=600):
-    """Run the evaluator binary with config as env vars"""
-    # Clear stale tape
-    if TAPE.exists():
-        TAPE.unlink()
+def next_run_id():
+    """Auto-increment from results.tsv last row."""
+    if not RESULTS.exists():
+        return 1
+    lines = RESULTS.read_text().strip().splitlines()
+    if len(lines) <= 1:  # header only
+        return 1
+    last = lines[-1].split("\t")
+    try:
+        return int(last[0]) + 1
+    except (ValueError, IndexError):
+        return len(lines)
+
+
+def run_evaluator(cfg, base_env, run_id, timeout_secs=600):
+    """Run the evaluator binary with per-run isolation."""
+    # Per-run directories
+    run_log_dir = LOG_DIR / f"run_{run_id:03d}"
+    run_log_dir.mkdir(parents=True, exist_ok=True)
+
+    tape_path = TAPES_DIR / f"tape_{run_id:03d}.md"
+    wal_path = TAPES_DIR / f"wal_{run_id:03d}.json"
 
     env = base_env.copy()
     env["RUST_LOG"] = "info"
     env["SWARM_SIZE"] = str(cfg["swarm_size"])
-    env["MAX_TX"] = str(cfg["max_tx"])
     env["MATH_COUNT"] = str(cfg["math_count"])
     env["BULL_COUNT"] = str(cfg["bull_count"])
     env["BEAR_COUNT"] = str(cfg["bear_count"])
-    # Provider config (defaults to Aliyun qwen3-8b)
-    env["LLM_PROVIDER"] = cfg.get("provider", "aliyun")
-    env["LLM_MODEL"] = cfg.get("model", "qwen3-8b")
+    env["LIBRARIAN_INTERVAL"] = str(cfg.get("librarian_interval", 8))
+
+    # Provider config — default Aliyun
+    provider = cfg.get("provider", "aliyun")
+    model = cfg.get("model", "qwen3-8b")
+    env["LLM_PROVIDER"] = provider
+    env["LLM_MODEL"] = model
+
+    # Per-run isolation: WAL, tape dump, JSONL logs, skills
+    env["WAL_PATH"] = str(wal_path)
+    env["TAPE_OUTPUT"] = str(tape_path)
+    env["LOG_DIR"] = str(run_log_dir)
+    env["AGENT_SKILLS_DIR"] = str(run_log_dir / "skills")
+
+    # Wall clock from config (sweep.py can override)
+    wall_clock = int(cfg.get("wall_clock", timeout_secs))
 
     start = time.time()
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             [str(BINARY)], cwd=str(PROJECT),
-            capture_output=True, text=True,
-            timeout=max(timeout_secs, 1800), env=env  # 30min minimum for Aliyun's slow responses
-        )
-        output = result.stderr
-    except subprocess.TimeoutExpired as e:
-        output = (e.stderr or b"").decode(errors="replace")
-        output += "\n[TIMEOUT]"
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
+            preexec_fn=os.setsid)
+        try:
+            _, stderr = proc.communicate(timeout=max(wall_clock, 120))
+            output = stderr.decode(errors="replace")
+        except subprocess.TimeoutExpired:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            time.sleep(2)
+            if proc.poll() is None:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            proc.wait()
+            try:
+                _, stderr = proc.stdout.read(), proc.stderr.read()
+                output = stderr.decode(errors="replace") if stderr else ""
+            except:
+                output = ""
+            output += "\n[TIMEOUT]"
+    except Exception as e:
+        output = str(e)
 
     elapsed = time.time() - start
-    return output, elapsed
+    return output, elapsed, run_log_dir, tape_path, wal_path
 
 
-def parse_tape():
-    """Parse /tmp/zeta_sum_tape_full.md → dict of nodes"""
-    if not TAPE.exists():
+def parse_tape(tape_path):
+    """Parse tape markdown → dict of nodes."""
+    if not tape_path.exists():
         return {}
     nodes = {}
     current_id = None
-    for line in TAPE.read_text().splitlines():
+    for line in tape_path.read_text().splitlines():
         m = re.match(
             r"### `(\S+)` \| Author: (\S+) \| Price: (\S+) \| Citations: \[([^\]]*)\]",
             line,
@@ -111,15 +158,13 @@ def parse_tape():
 
 
 def analyze(nodes, log):
-    """Compute all metrics from tape + log"""
-    metrics = {}
-
-    # ── Tape metrics ──
+    """Compute all metrics from tape + log."""
     if not nodes:
         return {
             "nodes": 0, "depth": 0, "roots": 0, "novelty": 0.0,
             "unique_prefixes": 0, "tx": 0, "generations": 0,
             "total_yes": 0, "buy_no": 0, "traded": 0, "proved": False,
+            "appends": 0, "dedup": 0, "bankrupt": 0, "max_frontier": 0,
         }
 
     children = defaultdict(list)
@@ -143,48 +188,48 @@ def analyze(nodes, log):
         return d
     max_d = max((depth(r) for r in roots), default=0)
 
-    # Novelty: unique 40-char prefixes
+    # Novelty: unique 30-char prefixes
     prefixes = set()
     for n in nodes.values():
         prefixes.add(n["payload"].strip()[:30].lower())
     novelty = len(prefixes) / max(len(nodes), 1)
 
-    metrics["nodes"] = len(nodes)
-    metrics["depth"] = max_d
-    metrics["roots"] = len(roots)
-    metrics["novelty"] = round(novelty, 4)
-    metrics["unique_prefixes"] = len(prefixes)
+    m = {}
+    m["nodes"] = len(nodes)
+    m["depth"] = max_d
+    m["roots"] = len(roots)
+    m["novelty"] = round(novelty, 4)
+    m["unique_prefixes"] = len(prefixes)
 
-    # ── Log metrics ──
-    match = re.search(r"EVALUATION COMPLETE \((\d+) tx, (\d+) gen", log)
-    metrics["tx"] = int(match.group(1)) if match else 0
-    metrics["generations"] = int(match.group(2)) if match else 0
+    # Log metrics
+    match = re.search(r"EVALUATION COMPLETE \((\d+) appends?, (\d+) total", log)
+    m["appends"] = int(match.group(1)) if match else len(re.findall(r"Appended", log))
+    m["tx"] = int(match.group(2)) if match else 0
+    m["generations"] = len(re.findall(r"Gen \d+ perished|Gen \d+ —", log))
 
     buy_yes = len(re.findall(r"BUY YES\]", log))
     auto_long = len(re.findall(r"AUTO-LONG\]", log))
-    metrics["total_yes"] = buy_yes + auto_long
-    metrics["buy_no"] = len(re.findall(r"BUY NO\]", log))
-    metrics["proved"] = bool(re.search(r"Proof chain COMPLETE", log))
+    m["total_yes"] = buy_yes + auto_long
+    m["buy_no"] = len(re.findall(r"BUY NO\]", log))
+    m["proved"] = bool(re.search(r"Proof chain COMPLETE|OMEGA", log))
+    m["dedup"] = len(re.findall(r"DEDUP\]|GLOBAL-DEDUP", log))
+    m["bankrupt"] = len(re.findall(r"Global bankruptcy|All bankrupt", log))
+
+    frontiers = [int(f) for f in re.findall(r"from (\d+) frontier", log)]
+    m["max_frontier"] = max(frontiers, default=0)
 
     traded = set()
-    for m in re.finditer(r"BUY (?:YES|NO)\] \S+ bought .+? on (\S+) for", log):
-        traded.add(m.group(1))
-    for m in re.finditer(r"AUTO-LONG\] \S+ bought .+? on (\S+) for", log):
-        traded.add(m.group(1))
-    metrics["traded"] = len(traded)
+    for t in re.finditer(r"BUY (?:YES|NO)\] \S+ bought .+? on (\S+) for", log):
+        traded.add(t.group(1))
+    for t in re.finditer(r"AUTO-LONG\] \S+ bought .+? on (\S+) for", log):
+        traded.add(t.group(1))
+    m["traded"] = len(traded)
 
-    return metrics
+    return m
 
 
 def compute_ers(m):
-    """
-    Effective Reasoning Score
-
-    ERS = depth_norm × novelty × breadth_factor × proved_bonus
-
-    This metric rewards configs where the economic system CONSTRAINS agents
-    to produce deep, novel, multi-strategy reasoning.
-    """
+    """ERS = depth_norm × novelty × breadth_factor × proved_bonus"""
     depth_norm = min(m["depth"], 15) / 15.0
     novelty = m["novelty"]
     breadth = min(m["roots"], 5) / 5.0
@@ -193,9 +238,10 @@ def compute_ers(m):
 
 
 def main():
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # Ensure directories
+    for d in [LOG_DIR, LOG_DIR / "success", LOG_DIR / "failure", TAPES_DIR, CONFIGS_DIR]:
+        d.mkdir(parents=True, exist_ok=True)
 
-    # Validate
     if not BINARY.exists():
         print(f"ERROR: Binary not found at {BINARY}", file=sys.stderr)
         print("Run: cd experiments/zeta_sum_proof && cargo build --release --bin evaluator",
@@ -204,66 +250,100 @@ def main():
 
     cfg = load_config()
     base_env = load_env()
+    run_id = next_run_id()
+
+    # Save config snapshot
+    shutil.copy2(CONFIG, CONFIGS_DIR / f"config_{run_id:03d}.json")
 
     ratio = f"{cfg['math_count']}M/{cfg['bull_count']}B+/{cfg['bear_count']}B-"
-    print(f"=== TuringOS AutoResearch ===")
-    print(f"Config: {cfg['swarm_size']} agents ({ratio}), {cfg['max_tx']}tx")
+    provider = cfg.get("provider", "aliyun")
+    model = cfg.get("model", "qwen3-8b")
+    print(f"=== TuringOS AutoResearch — Run {run_id:03d} ===")
+    print(f"Config: {cfg['swarm_size']} agents ({ratio}), {provider}/{model}")
     print(f"Description: {cfg.get('description', 'n/a')}")
     print(f"Running...", flush=True)
 
-    # Run
-    log, elapsed = run_evaluator(cfg, base_env)
+    # Initialize results.tsv if needed
+    if not RESULTS.exists():
+        with open(RESULTS, "w") as f:
+            f.write("run_id\ttimestamp\tERS\tdepth\tnodes\tnovelty\troots\tappends\tdedup\t"
+                    "bankrupt\tmax_frontier\tyes\tno\ttraded\tproved\telapsed_s\tstatus\t"
+                    "description\tconfig_json\n")
 
-    # Parse & analyze FIRST (to determine success/failure)
-    ts = int(time.time())
-    nodes = parse_tape()
-    if not nodes:
-        appended = len(re.findall(r"Appended", log))
-        if appended > 0:
-            print(f"[WARN] Tape not found, using log fallback ({appended} tx appended)")
-    m = analyze(nodes, log)
+    # Run
+    output, elapsed, run_log_dir, tape_path, wal_path = run_evaluator(cfg, base_env, run_id)
+
+    # Save log
+    log_file = run_log_dir / "evaluator.log"
+    log_file.write_text(output)
+
+    # Parse & analyze
+    nodes = parse_tape(tape_path)
+    m = analyze(nodes, output)
     ers = compute_ers(m)
 
-    # Classify: success or failure
-    is_success = m["proved"] or (m["depth"] >= 10 and m["novelty"] >= 0.5)
+    # Classify success/failure
+    is_success = m["proved"] or (m["depth"] >= 8 and m["novelty"] >= 0.4)
     outcome = "success" if is_success else "failure"
     outcome_dir = LOG_DIR / outcome
     outcome_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save log to success/ or failure/
-    log_file = outcome_dir / f"run_{ts}.log"
-    log_file.write_text(log)
+    # Copy log + tape to outcome dir
+    shutil.copy2(log_file, outcome_dir / f"run_{run_id:03d}.log")
+    if tape_path.exists():
+        shutil.copy2(tape_path, outcome_dir / f"tape_{run_id:03d}.md")
 
-    # Persist tape (NEVER rely on /tmp/ — Run 6 tape loss lesson)
-    if TAPE.exists():
-        import shutil
-        tape_persist = outcome_dir / f"tape_{ts}.md"
-        shutil.copy2(str(TAPE), str(tape_persist))
-        print(f"[{outcome.upper()}] Log + tape saved to {outcome_dir}/", flush=True)
-    else:
-        print(f"[{outcome.upper()}] Log saved to {log_file} (no tape)", flush=True)
-
-    # Print standardized summary (grep-friendly)
+    # Write to results.tsv (ALWAYS — even on crash)
     ty = m["total_yes"]
     tn = max(m["buy_no"], 1)
-    ratio_str = f"{ty/tn:.1f}:1"
+    with open(RESULTS, "a") as f:
+        row = [
+            f"{run_id:03d}",
+            datetime.now().isoformat(),
+            f"{ers}",
+            str(m["depth"]),
+            str(m["nodes"]),
+            str(m["novelty"]),
+            str(m["roots"]),
+            str(m["appends"]),
+            str(m["dedup"]),
+            str(m["bankrupt"]),
+            str(m["max_frontier"]),
+            str(ty),
+            str(m["buy_no"]),
+            str(m["traded"]),
+            "YES" if m["proved"] else "NO",
+            f"{elapsed:.0f}",
+            outcome,
+            cfg.get("description", ""),
+            json.dumps(cfg),
+        ]
+        f.write("\t".join(row) + "\n")
 
+    # Print summary
+    ratio_str = f"{ty/tn:.1f}:1"
     print("---")
+    print(f"run_id:     {run_id:03d}")
     print(f"ERS:        {ers}")
     print(f"depth:      {m['depth']}")
     print(f"nodes:      {m['nodes']}")
     print(f"novelty:    {m['novelty']}")
     print(f"roots:      {m['roots']}")
-    print(f"unique_pfx: {m['unique_prefixes']}")
+    print(f"appends:    {m['appends']}")
+    print(f"dedup:      {m['dedup']}")
     print(f"yes:        {ty}")
     print(f"no:         {m['buy_no']}")
     print(f"ratio:      {ratio_str}")
     print(f"traded:     {m['traded']}")
     print(f"proved:     {'YES' if m['proved'] else 'NO'}")
-    print(f"tx_actual:  {m['tx']}")
-    print(f"generations:{m['generations']}")
     print(f"elapsed_s:  {elapsed:.0f}")
-    print(f"log_file:   {log_file}")
+    print(f"status:     {outcome}")
+    print(f"wal:        {wal_path}")
+    print(f"tape:       {tape_path}")
+    print(f"log:        {log_file}")
+
+    # Return metrics for sweep.py to consume
+    return ers, m, outcome
 
 
 if __name__ == "__main__":

@@ -51,10 +51,31 @@ fn parse_action_json(raw: &str) -> Option<AgentAction> {
 
     // Try strict parse first; if it fails (e.g. LaTeX backslashes like \cdot, \cos),
     // fix invalid escape sequences by replacing lone backslashes.
-    let v: Value = serde_json::from_str(json_str).or_else(|_| {
+    let v: Value = match serde_json::from_str(json_str).or_else(|_| {
         let fixed = fix_json_escapes(json_str);
         serde_json::from_str(&fixed)
-    }).ok()?;
+    }) {
+        Ok(v) => v,
+        Err(_) => {
+            // LLM output <action>append</action> (bare tool name, no JSON).
+            // Treat preceding text as tactic for append.
+            let tool_name = inner.trim().to_lowercase();
+            if tool_name == "append" || tool_name.starts_with("append") {
+                let preceding = &raw[..start];
+                let tactic = preceding.trim().to_string();
+                if !tactic.is_empty() {
+                    return Some(AgentAction {
+                        tool: "append".to_string(),
+                        tactic: Some(tactic),
+                        amount: None,
+                        node: None,
+                        query: None,
+                    });
+                }
+            }
+            return None;
+        }
+    };
 
     let tool = v.get("tool")?.as_str()?.to_string();
     let tactic = v.get("tactic").and_then(|t| t.as_str()).map(|s| s.replace("\\n", "\n"));

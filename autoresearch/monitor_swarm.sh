@@ -31,6 +31,7 @@ RESEARCHERS="
 alpha:8088:dashscope:DASHSCOPE_API_KEY:zeta
 beta:8089:siliconflow:SILICONFLOW_API_KEY:zeta-b
 gamma:8090:siliconflow:SILICONFLOW_API_KEY_SECONDARY:zeta-c
+delta:8091:volcengine:VOLCENGINE_API_KEY:zeta-d
 "
 
 get_field() { echo "$1" | cut -d: -f"$2"; }

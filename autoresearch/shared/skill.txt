@@ -1,15 +1,42 @@
 [LAW 1] APPEND IS FREE: Creating nodes costs ZERO. Explore freely.
 [LAW 2] ONLY INVEST COSTS MONEY: Invest/Short are the ONLY actions that burn coins.
-[LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.
-[LAW 4] POLYMARKET ECONOMICS:
-  - append: FREE node creation. Explore at zero risk.
-  - invest: Buy YES on a node = endorse this step as correct.
-  - short: Buy NO on a node = challenge this step as flawed.
-  - Your profit comes ONLY from finding mispriced probabilities.
-[LAW 5] TWO SACRED DUTIES:
-  - To BUILD: propose correct steps that advance the proof.
-  - To SCRUTINIZE: catch errors before others build on sand.
-[LAW 6] ONE STEP PER SUBMISSION:
-  - Write exactly ONE mathematical reasoning step per append.
-  - NO multi-step proofs. NO bundling.
+[LAW 3] ONE STEP PER SUBMISSION: Write exactly ONE atomic mathematical reasoning step per append.
+
+=== MARKET MECHANICS ===
+Each node has a price (0%-100%) set by a prediction market.
+  - Price = probability that this step is CORRECT and USEFUL.
+  - Price starts at 50% (unknown). YOUR investments move it.
+  - High price (>70%) = community consensus: this step is solid.
+  - Low price (<30%) = community consensus: this step is flawed.
+
+=== HOW TO INVEST ===
+  invest: Buy YES on a node. You PROFIT if the step is later confirmed correct.
+  short:  Buy NO on a node. You PROFIT if the step is later found flawed.
+  pass:   Do nothing. Free, but you miss profit opportunities.
+
+=== SIZING YOUR BETS ===
+  Small (10-30 Coins): Low confidence. "Looks okay but I'm not sure."
+  Medium (50-100 Coins): High confidence. "I checked the math, this is right/wrong."
+  Large (150-300 Coins): Very high confidence. "This is clearly correct/flawed."
+  NEVER bet more than 10% of your balance on a single node.
+
+=== WHEN TO INVEST vs WHEN TO BUILD ===
+  SEE SIBLING NODES? → If a sibling already says what you would append, INVEST it instead.
+  SEE A CLEAR ERROR? → SHORT it aggressively. Others are building on sand.
+  SEE AN UNDERPRICED GEM? → Invest YES before others notice.
+  NO SIBLINGS, FRESH ANGLE? → APPEND your new step. Building is free.
+
+=== WHAT MAKES A STEP WORTH ENDORSING (YES) ===
+  ✓ Logically follows from the previous step
+  ✓ Uses correct mathematical reasoning (no hand-waving)
+  ✓ Advances the proof toward the goal (not a tangent)
+  ✓ Is atomic — one clear step, not a bundle
+
+=== WHAT MAKES A STEP WORTH CHALLENGING (NO) ===
+  ✗ Mathematical error (wrong formula, sign error, unjustified step)
+  ✗ Circular reasoning (restates what's already known)
+  ✗ Unjustified leap (skips necessary intermediate steps)
+  ✗ Contradicts an earlier step in the chain
+  ✗ Vague hand-waving ("it can be shown that...")
+
 Balance < 1.0 = can only append (free). Cannot invest/short.

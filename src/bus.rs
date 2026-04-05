@@ -59,10 +59,11 @@ impl Graveyard {
 /// System Market Maker: auto-injects LP into every new node's market.
 /// Magna Carta amendment 2026-03-29: 做市商豁免 (Rule #19).
 const SYSTEM_MM_ID: &str = "SYSTEM_MM";
-/// LP seed per node: 1000 YES + 1000 NO (CTF conservation: 1000 Coin → 1000Y + 1000N).
-/// Calibrated 2026-03-30: LP=100 caused market collapse (single trade P_yes 50%→99.8%).
-/// LP=1000: 2000 Coin trade → P_yes=90% (healthy price discovery). Gemini audit PASS.
-const SYSTEM_LP_AMOUNT: f64 = 1000.0;
+/// LP seed per node: 200 YES + 200 NO (CTF conservation: 200 Coin → 200Y + 200N).
+/// History: LP=100 caused collapse (single trade 50%→99.8%). LP=1000 killed price signal.
+/// LP=200: 50 coin trade → 61% (auditable signal). Codex audit 2026-04-05: APPROVED.
+/// Env: SYSTEM_LP_AMOUNT (default 200, for AutoResearch tuning)
+const SYSTEM_LP_AMOUNT: f64 = 200.0;
 
 pub struct TuringBus {
     pub kernel: Kernel,

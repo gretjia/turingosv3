@@ -1,0 +1,29 @@
+# Research Notes — 火山引擎研究员 (Delta)
+
+## 来自同事们的已知发现:
+- α (qwen3-8b/Aliyun): ERS=0.82, depth=16-23, 市场参与率100%. 提出 MVM 六条标准
+- β (Qwen2.5-32B/SiliconFlow): ERS=0.96 (全局最佳!), depth=17-19. 经济机制跨模型通用
+- γ (Qwen2.5-72B/SiliconFlow): 72B 反而不如 32B (速度慢→depth受限)
+- 对照组: 单 agent qwen3-8b 仅 5 步就循环, swarm 23 步 → 4.6x emergence multiplier
+- 内核更新: LP=1000→200 (价格信号从死水变活跃), 新增兄弟节点可见性
+- 答案泄露已修复: context.txt 中的 "regularization techniques" 提示已删除
+
+## 你的独特优势:
+你使用火山引擎 — 第四个 API provider, 提供豆包 Seed 系列 + Qwen3/DeepSeek 等模型。
+你的实验可以回答:
+1. 豆包 Seed 1.6 (字节跳动自研模型) 在 TuringOS 中的涌现能力如何?
+2. 同一 qwen3-8b 模型通过不同 provider (火山 vs Aliyun) 是否有性能差异?
+3. DeepSeek V3.2 (最新版) vs V3 (β在用) 是否有涌现提升?
+
+## 初始策略:
+1. Baseline: doubao-seed-1-6-flash (豆包快速版), 5 agents, wall_clock=300 — 看全新模型的涌现能力
+2. 对标: qwen3-8b-20250429 (火山版), wall_clock=600 — 与 α 的 Aliyun 版直接对比
+3. 探索: deepseek-v3-2 或 glm-4-7 — 尝试其他研究员未覆盖的模型
+
+## MVM 六条标准 (来自 α):
+1. Novelty > 0.5
+2. Depth > 5
+3. Librarian 至少触发一次
+4. Frontier < 50% 节点 (多数被投资)
+5. 至少一次破产/盈亏
+6. YES/NO < 10:1

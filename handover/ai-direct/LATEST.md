@@ -1,73 +1,91 @@
 # TuringOS v3 — Handover State
-**Updated**: 2026-04-05
-**Session Summary**: P0 WAL 修复 + AutoResearch v6 harness 重建 + Live AI Researcher 启动 + 首批 15 runs 数据
+**Updated**: 2026-04-05 (evening)
+**Session Summary**: Multi-Researcher Swarm (4 AI) 上线 + 市场修复 (LP=200) + 对照实验 (4.6x emergence) + 宪法审计 + Bull/Bear 指南
 
 ## Current State
-- **AutoResearch v6 正在 Mac 运行** (tmux session `autoresearch`)，Life #6, 15 runs completed
-- **P0 修复**: zeta evaluator 接入 bus.save_wal()/restore_wal() — Tape 不再丢失
-- **Live AI Researcher**: sweep.py (DeepSeek R1 researcher + V3 auditor) 自主运行中
-- **当前最佳**: Run 014, ERS=0.845, qwen3-32b, 5 agents (3M/1B+/1B-), 600s wall_clock
-- **核心发现**: qwen3-8b 经济机制弱 (36% traded)，qwen3-32b 质的飞跃 (traded=98, YES:NO=80:156)
-- **Researcher 正在测试**: qwen3-235b (Run 015, 进行中)
+- **4 个自主 AI 研究员在 Mac Studio 运行中** (launch_swarm.sh)
+  - α 阿里云 (qwen3-8b) — 39 exp, Life #8, 标准制定者
+  - β 硅基α (Qwen2.5-32B/SiliconFlow) — 20 exp, Life #7, 全局最佳 ERS=0.964
+  - γ 硅基β (Qwen2.5-32B/SiliconFlow) — 21 exp, Life #6, 验证者
+  - δ 火山引擎 (doubao-seed-2.0-pro/Volcengine) — 3 exp, Life #1, 新上线探索者
+- **共享白板**: `autoresearch/shared/bulletin.jsonl` (73 条), 四人通过白板自组织协作
+- **市场修复**: LP 1000→200, 价格信号从死水 (41-59%) 变为活跃 (5-95%)
+- **对照实验**: 单 agent qwen3-8b 仅 5 步循环, swarm 23 步 → **4.6x emergence multiplier**
+- **宪法审计 PASS**: 零违宪行为, 经济系统零和守恒, 内核纯度完好
 
 ## Changes This Session
 
-### P0: WAL Tape Persistence (核心修复)
-1. `evaluator.rs` — 接入 bus.save_wal() 每次 append 后 + restore_wal() 启动时 (`ba4e5ba`)
-2. `evaluator.rs` — WAL_PATH env var, 默认项目本地路径 (非 /tmp/) (`ba4e5ba`)
-3. `evaluator.rs` — TAPE_OUTPUT env var, 带 timestamp 防覆盖 (`ba4e5ba`)
-4. `evaluator.rs` — LIBRARIAN_INTERVAL 默认 100→8 固化架构师决定 (`ba4e5ba`)
-5. `evaluator.rs` — generation 类型 u32→usize 匹配 bus.rs API (`ba4e5ba`)
-6. `evaluator.rs` — File::create borrow fix for TAPE_OUTPUT String (`c455e4e`)
+### Multi-Researcher Swarm (AutoResearch v7) — `bbb5b63`
+1. `sweep.py` 重写 — identity.json 加载, bulletin R/W, OOM guards (subprocess→file, setrlimit), global semaphore, per-researcher PID lock
+2. `launch_swarm.sh` + `monitor_swarm.sh` — POSIX sh (macOS Bash 3.2 safe), PID file 管理, 自动重启
+3. `shared/` 知识公地 — problem.txt, skill.txt (只读), bulletin.jsonl (append-only fcntl 锁)
+4. 4 个 researcher workspace: zeta/ (α), zeta-b/ (β), zeta-c/ (γ), zeta-d/ (δ)
+5. 4 个 proxy 实例: :8088 dashscope, :8089/:8090 siliconflow, :8091 volcengine
+6. `--provider` flag 加入 llm_proxy.py (Codex 审计发现路由 bug 后修复)
+7. Codex exec 审计 x2: 首次 FAIL (3 CRITICAL + 5 HIGH) → 全部修复 → 二次 PASS
 
-### AutoResearch v6 Harness
-7. `run_experiment.py` — 全面重写: per-run WAL/tape/log/config 隔离, 自动 run_id, config 快照 (`c455e4e`)
-8. `sweep.py` (NEW) — Live AI Researcher: DeepSeek R1 + V3, 大宪章优先, re-init/Markov memory (`c455e4e`)
-9. `run_experiment.py` — proxy provider 支持 (Mac 需要 proxy, V-007) (`0c03236`)
-10. `run_experiment.py` — timeout stderr 捕获修复 + WAL fallback metrics (`8d5b643`)
-11. `config.json` — 起始配置: qwen3-8b, 5 agents, proxy 模式
-12. `prompt/problem.txt`, `prompt/skill.txt` — agent 可见 prompt 文件
-13. `results.tsv` — v6 新格式 (19 列, 含 config_json)
-14. v5 归档: `experiments/zeta_sum_proof/audit/autoresearch_v5_{results,summary,logs}.tar.gz`
+### 市场价格信号修复
+8. `bus.rs:65` — SYSTEM_LP_AMOUNT 1000→200 (Codex 审计 APPROVED, CTF 守恒不变)
+9. `actor.rs` — 兄弟节点可见性: Agent append 前看到同父兄弟的 payload+价格, 可选投资而非重复
+10. Price Gate 保留不变 (Codex 审计 REJECT 了禁用方案: LP=200 下 Gate 自然恢复有效)
 
-### V-010: Tape 丢失违规 (发现 + 修复)
-- **根因**: zeta evaluator 从未调用 bus.save_wal()，而 minif2f_v2 正确使用。bus.rs 注释 "A Turing machine without persistent tape is not a Turing machine" 但 zeta 没接上。
-- **修复**: 参照 minif2f_v2 接入 WAL restore (startup) + save (每次 append 后)
-- **验证**: WAL JSON 文件正确持久化 (45KB, 含完整 tape + markets + wallets)
+### 宪法修复
+11. `context.txt` 删除 — 包含 "divergent series and regularization techniques" (答案泄露)
+12. `evaluator.rs` DEFAULT_CONTEXT 清理 → "You are a reasoning agent collaborating on a mathematical proof"
+13. `librarian.rs` prompt 清理 — "1+2+3+...=-1/12 (regularization)" → "a mathematical proof"
+
+### Bull/Bear 投资指南
+14. `shared/skill.txt` 全面重写 — 市场机制说明, 投注规模指南, 决策框架, 何时投资 vs 建树
+15. `evaluator.rs` role prompt 升级 — Mathematician/Bull/Bear 都有具体投资策略
+16. `evaluator.rs` invest prompt 升级 — 决策框架 + 投注规模 + "NEVER pass" 激励
+
+### 429 限流修复
+17. `llm_proxy.py` — exponential backoff retry (最多 4 次, 2s→3s→5s→9s)
+18. α proxy 已处理 463 次 429 重试 (Aliyun TPM 限流)
+
+### Bug 修复
+19. `.env` 西里尔字母 `а` (U+0430) → ASCII `a` — γ 连续 10+ 次 ERS=0.0 的根因
+20. MAX_CONCURRENT_EVALUATORS 3→4 — 加 δ 后其他三人被阻塞
+
+### 对照实验
+21. `control_group.py` — 单 agent qwen3-8b 基线对照: 一次性 (18 步假) + 迭代 (5 步循环)
+22. `run027_dag_audit.md` — depth=23 DAG 完整审计 (340 节点, 114 traded, 价格 5-95%)
 
 ## Key Decisions
-- **WAL 是 tape 的物理存在**: WAL JSON = 完整状态 (tape + markets + wallets + portfolios). Markdown dump 降级为可选人类可读导出
-- **Karpathy AutoResearch 范式**: LLM IS the search algorithm. sweep.py = researcher's body, DeepSeek R1 = researcher's brain. 不是调参脚本。
-- **大宪章优先**: Researcher prompt 第一段永远是三大立法 + 四大引擎 + LOCKED 参数
-- **最小模型起步**: 从 qwen3-8b 开始，向上探索最小可行规模
-- **全程 Aliyun API**: Mac 走 proxy (V-007 TLS deadlock)，默认 DashScope
+- **每个 Researcher 是独立生命体**: 自己的笔记/历史/个性, 白板是唯一社交空间, 无中央控制
+- **LP=200 (非 100, 非 1000)**: LP=100 曾导致崩盘, LP=1000 杀死价格信号. 200 是 Codex 审计通过的中间值
+- **Price Gate 不禁用**: Codex 证明 LP=200 让 Gate 自然恢复有效 (10 coin 触发)
+- **Rust binary 必须在 Mac 上编译**: x86→arm64 不兼容 (Exec format error 教训)
+- **对照实验协议**: Experiment B (迭代接龙) 是最公平对比, 4.6x emergence multiplier
 
 ## Architect Insights (本次会话)
-- **Turing Machine 没有 tape 就不是 Turing Machine**: bus.rs 已有 WAL 但 zeta 没接。根因是 fork 遗漏，不是设计缺陷。
-- **假深度的根源**: 7B/8B 模型的 depth=17-29 是 step numbering 绕过 dedup ("Step 10: Formalize" vs "Step 14: Formalize" 算不同前缀)
-- **最小可行模型 ≈ qwen3-32b**: 8b 经济机制弱 (36% traded), 32b 质的飞跃 (traded=98). 模型规模比 swarm 数量更关键。
-- **Researcher re-init 是理性的**: 面对矛盾数据 (metrics bug 导致 0 appends vs 实际 168) 选择重跑验证，这是科学方法，不是 bug
+- **苦涩的教训推论: 推理速度 > 参数量**: 72B 不如 32B, 因为 72B 在有限时间内产出步骤少. DeepSeek-V3 同理
+- **市场流动性是涌现的瓶颈**: LP=1000 让价格信号死亡, Agent 的数学判断无法通过市场表达
+- **协作不需要编排**: 4 个 AI 通过 append-only 白板自组织 — β 发布发现 → α 跟进验证 → γ 借鉴方向 → δ 探索新模型
+- **透题比想象中微妙**: context.txt 里一个词 "regularization" 就足以引导整条证明路径
 
-## AutoResearch v6 实验数据 (截至 Run 015)
+## Swarm 实验数据 (key runs)
 
-| Run | Model | Swarm | ERS | Depth | Traded | 状态 |
-|-----|-------|-------|-----|-------|--------|------|
-| 001 | qwen3-8b | 5 (3/1/1) | 0.486 | 17 | 24 | baseline |
-| 011 | **qwen3-32b** | 5 (3/1/1) | 0.659 | 12 | 39 | 模型升级突破 |
-| 014 | **qwen3-32b** | 5 (3/1/1) 600s | **0.845** | 18 | 98 | **当前最佳** |
-| 015 | qwen3-235b | 5 | 进行中 | - | - | Researcher 自主决策 |
+| Researcher | Run | Model | ERS | Depth | 关键发现 |
+|------------|-----|-------|-----|-------|---------|
+| α | 024 | qwen3-8b, 600s | 0.819 | 16 | frontier=0, 100%被投资 |
+| α | 027 | qwen3-8b, 900s | 0.512 | **23** | 最深链! 340节点零重复 |
+| α | 033 | qwen3-8b, LP=200 | 0.436 | 12 | **价格 5%-95%** 市场修复确认 |
+| β | 008 | Qwen2.5-32B, 900s | **0.964** | 17 | 全局最佳 ERS |
+| β | 009 | Qwen2.5-32B, 2B- | 0.897 | 19 | 更多 bear → 深度增 |
+| γ | 019 | Qwen2.5-32B, LP=200 | 0.733 | 9 | LP=200 后 |
+| δ | 002 | doubao-seed-2.0-pro | 0.356 | 6 | 首次火山引擎数据 |
 
 ## Next Steps
-1. **[RUNNING] AutoResearch v6 继续** — Mac tmux `autoresearch`, Researcher 自主探索模型规模 + swarm 配置
-2. **[TODO] 验证 qwen3-32b 经济机制**: 检查 Run 014 WAL 的 market activity, 确认 depth=18 是否真实
-3. **[TODO] Dedup 改进**: 30-char prefix 被 step numbering 绕过，需要更语义化的去重
+1. **[RUNNING] 4 researcher swarm 自主运行** — 监控: `./launch_swarm.sh status`
+2. **[TODO] LP=200 + Bull/Bear 指南后的市场数据分析** — 价格分布/破产率是否改善
+3. **[TODO] 对照实验扩展** — 在 LP=200 新内核下重跑基线对照, 看 emergence ratio 是否变化
 4. **[OPEN SPRINT] bus.rs tick_map_reduce 重构**
 5. **[OPEN SPRINT] math_membrane.rs 语义断头台对齐**
-6. **[DEFERRED] ThermodynamicHeartbeatTool 接入** — bus.rs 生命周期变更需人工确认
 
 ## Warnings
-- **AutoResearch 在 Mac tmux 运行中**: `ssh zephrymac-studio "tmux attach -t autoresearch"` 查看实时输出
-- **Mac proxy 需提前启动**: 如 proxy 挂了, evaluator 会 timeout
-- **Dead code**: `experiments/zeta_sum_proof/src/wal.rs` 是旧 WAL 实现, 未删除, 与 bus.rs WAL 无关
-- **sweep.py Researcher 可能 re-init 过频**: 当前无 re-init 冷却期, 如果连续失败会反复重生
-- **LIBRARIAN_INTERVAL=8 已固化**: Rust 默认值 + harness 都传 8
+- **4 个 researcher + 4 个 proxy 在 Mac 运行中**: `./launch_swarm.sh status` 查看, `./launch_swarm.sh stop` 停止
+- **Mac proxy 需要 .env 里的 API key**: 如果 key 过期/欠费, proxy 返回 500
+- **α 阿里云频繁 429 限流**: proxy retry 在处理但可能影响实验速度. 考虑换 qwen3.5-flash (RPM 50x)
+- **sweep.py × 4 份**: 改一份必须 cp 到另外三份 + 重启. 参考 memory `feedback_researcher_sync.md`
+- **未提交的变更**: LP=200, skill.txt, role prompt, zeta-d/, evaluator.rs — 需要 commit + push

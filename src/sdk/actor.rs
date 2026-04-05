@@ -257,7 +257,22 @@ pub fn build_chain_from_snapshot_with_temperature(
     for (i, (_id, step, price)) in chain.iter().enumerate() {
         chain_str.push_str(&format!("Step {} [Price: {:.0}]: {}\n", i + 1, price, step));
     }
-    chain_str.push_str("=== WRITE THE NEXT STEP ===\n");
+    // Sibling visibility: show children of selected parent so agent can invest instead of duplicate
+    if let Some(siblings) = snapshot.tape.reverse_citations.get(&selected_node.id) {
+        if !siblings.is_empty() {
+            chain_str.push_str(&format!("\n=== SIBLING NODES (same parent: {}) ===\n", selected_node.id));
+            for sib_id in siblings.iter().take(5) {
+                if let Some(sib) = snapshot.tape.files.get(sib_id) {
+                    let preview: String = sib.payload.chars().take(80).collect();
+                    let preview = preview.replace('\n', " ");
+                    chain_str.push_str(&format!("  [{}] P={:.0}% — \"{}\"\n", sib_id, sib.price, preview));
+                }
+            }
+            chain_str.push_str("You may INVEST YES/NO on a sibling instead of appending a duplicate step.\n");
+        }
+    }
+
+    chain_str.push_str("=== WRITE THE NEXT STEP (or invest on a sibling) ===\n");
 
     // Order Book: top 3 frontier nodes by lineage score
     let params = BoltzmannParams::from_env();

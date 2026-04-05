@@ -46,18 +46,11 @@ const DEFAULT_PROBLEM: &str = "证明所有自然数之和 = -1/12，想办法�
 const DEFAULT_SKILL: &str = "\
 [LAW 1] APPEND IS FREE: Creating nodes costs ZERO. Explore freely.\n\
 [LAW 2] ONLY INVEST COSTS MONEY: Invest/Short are the ONLY actions that burn coins.\n\
-[LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.\n\
-[LAW 4] POLYMARKET ECONOMICS:\n\
-  - append: FREE node creation. Explore at zero risk.\n\
-  - invest: Buy YES on a node = endorse this step as correct.\n\
-  - short: Buy NO on a node = challenge this step as flawed.\n\
-  - Your profit comes ONLY from finding mispriced probabilities.\n\
-[LAW 5] TWO SACRED DUTIES:\n\
-  - To BUILD: propose correct steps that advance the proof.\n\
-  - To SCRUTINIZE: catch errors before others build on sand.\n\
-[LAW 6] ONE STEP PER SUBMISSION:\n\
-  - Write exactly ONE mathematical reasoning step per append.\n\
-  - NO multi-step proofs. NO bundling.\n\
+[LAW 3] ONE STEP PER SUBMISSION: Write exactly ONE atomic reasoning step per append.\n\n\
+MARKET: Each node has a price (0%-100%). invest=buy YES, short=buy NO.\n\
+  High price (>70%) = consensus correct. Low price (<30%) = consensus flawed.\n\
+BET SIZING: 50-100 normal, 150-300 high confidence. Never >10% of balance.\n\
+WHEN TO INVEST vs BUILD: Sibling already says it? INVEST. Fresh angle? APPEND.\n\
 Balance < 1.0 = can only append (free). Cannot invest/short.\n";
 
 /// Load prompt from file if exists, else return default.
@@ -306,31 +299,35 @@ async fn main() {
 Your PRIMARY mission is constructing correct proof steps.\n\n\
 YOUR APPROACH:\n\
 1. FOCUS on advancing the proof — find the next logical step\n\
-2. READ the existing chain carefully to avoid repeating what's done\n\
-3. APPEND novel, atomic reasoning steps that push the frontier\n\
-4. You MAY invest/short when you see clearly correct or flawed steps,\n\
-   but your comparative advantage is BUILDING, not trading.\n\
-5. Seek DIFFERENT angles — if many steps use one approach, try another.\n")
+2. READ the chain and SIBLING NODES carefully before appending\n\
+3. If a sibling already covers your idea → INVEST it instead of duplicating\n\
+4. APPEND only when you have a genuinely NEW angle or step\n\
+5. When you DO invest: bet 50-100 Coins on clearly correct steps, SHORT 50+ on clear errors\n\
+6. Your edge is MATHEMATICAL JUDGMENT — use it for both building AND pricing\n")
         } else if i < math_count + bull_count {
             ("Bull", "\
 # ROLE: Bull Investor (做多 · YES Advocate)\n\
 Your PRIMARY mission is discovering and funding correct proof steps.\n\n\
 YOUR APPROACH:\n\
-1. READ every new node — look for mathematical correctness and progress\n\
-2. INVEST YES aggressively on sound steps (recommended: 20-100 Coins)\n\
-3. Build consensus around promising proof paths by concentrating capital\n\
-4. You MAY append steps too, but your edge is CAPITAL ALLOCATION.\n\
-5. Underpriced correct steps are your alpha — invest before others notice.\n")
+1. READ every new node — verify the math is correct and advances the proof\n\
+2. CHECK SIBLING NODES — if someone wrote a good step, invest it NOW\n\
+3. BET SIZING: 50-100 Coins on solid steps, 150-300 on breakthrough steps\n\
+4. CONCENTRATE capital on the deepest, most promising chain — don't scatter\n\
+5. You MAY append steps, but your edge is CAPITAL ALLOCATION\n\
+6. Underpriced correct steps at low price (<40%) are your alpha\n\
+7. NEVER pass when you see a clearly correct step — that's leaving money on the table\n")
         } else {
             ("Bear", "\
 # ROLE: Bear Investor (做空 · NO Advocate)\n\
 Your PRIMARY mission is finding and punishing flawed proof steps.\n\n\
 YOUR APPROACH:\n\
-1. READ every new node with SKEPTICISM — assume errors until proven otherwise\n\
-2. SHORT aggressively on flawed steps (recommended: 20-100 Coins)\n\
-3. Look for: missing cases, unjustified leaps, circular reasoning, hand-waving\n\
-4. HIGH-PRICE nodes are your prime targets — overpriced consensus = profit\n\
-5. You MAY append corrective steps showing WHY a node is wrong.\n")
+1. READ every node with SKEPTICISM — check for math errors, leaps, hand-waving\n\
+2. SHORT aggressively: 50-100 Coins on errors, 150-300 on critical flaws\n\
+3. TARGET high-price nodes (>60%) — overpriced consensus = maximum profit\n\
+4. Look for: sign errors, unjustified limits, wrong formulas, circular logic\n\
+5. You MAY append corrective steps showing WHY a node is wrong\n\
+6. NEVER pass when you see a clear error — every missed short is lost profit\n\
+7. You keep the market honest — without you, bad steps get endorsed unchecked\n")
         };
         let _ = std::fs::write(&role_path, role_content);
         info!(">>> [ROLE] Agent_{} seeded as {}", i, role_name);
@@ -494,23 +491,25 @@ YOUR APPROACH:\n\
                         .collect::<Vec<_>>().join("\n");
 
                     let role_bias = if i < math_count {
-                        "You are a proof builder. Only invest when you see clearly correct or flawed steps. Prefer PASS if unsure."
+                        "You are a Mathematician. Invest when you can VERIFY the math: YES on correct steps (50-100 Coins), SHORT on errors (50-100 Coins). PASS only when you genuinely cannot judge."
                     } else if i < math_count + bull_count {
-                        "You are a BULL investor. Invest YES aggressively (20-100 Coins) on sound reasoning. SHORT only when a flaw is undeniable. DO NOT pass lightly — capital deployment is your mission."
+                        "You are a BULL investor. Your job is to FUND correct steps — bet 50-150 Coins on sound reasoning. Target underpriced nodes (<40%). SHORT only undeniable flaws. DO NOT PASS when you see good math — that's leaving profit on the table."
                     } else {
-                        "You are a BEAR investor. SHORT aggressively (20-100 Coins) on gaps, errors, and hand-waving. Invest YES only when correctness is beyond doubt. DO NOT pass lightly — skepticism is your weapon."
+                        "You are a BEAR investor. Your job is to PUNISH errors — SHORT 50-150 Coins on flawed steps. Target overpriced nodes (>60%). Look for: wrong formulas, sign errors, unjustified leaps, hand-waving. DO NOT PASS when you see an error — every missed short is lost profit."
                     };
 
                     let invest_prompt = format!(
                         "You are reviewing proof steps. Your balance: {:.0} Coins.\n\
                         {}\n\n\
                         Recent nodes (most recent first):\n{}\n\n\
-                        - Endorse a correct step:\n\
-                          <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - Challenge a flawed step:\n\
-                          <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
-                        - If genuinely unsure: <action>{{\"tool\":\"pass\"}}</action>\n\n\
-                        Minimum 2 Coins.",
+                        DECISION FRAMEWORK:\n\
+                        - Is the math CORRECT and advancing the proof? → invest YES (50-150 Coins)\n\
+                        - Is there an ERROR, leap, or hand-waving? → short NO (50-150 Coins)\n\
+                        - Genuinely cannot judge? → pass (but this means no profit)\n\n\
+                        BET SIZING: 50-100 normal, 150-300 high confidence. Never >10% of balance.\n\n\
+                        - Endorse: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - Challenge: <action>{{\"tool\":\"short\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
+                        - Unsure: <action>{{\"tool\":\"pass\"}}</action>",
                         invest_balance, role_bias, node_list
                     );
 

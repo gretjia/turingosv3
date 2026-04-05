@@ -204,7 +204,7 @@ def cleanup_bulletin(max_entries=200):
 # Global Evaluator Semaphore — OOM guard (max 2 concurrent)
 # ══════════════════════════════════════════════════════════════
 
-MAX_CONCURRENT_EVALUATORS = 3
+MAX_CONCURRENT_EVALUATORS = 4
 
 def acquire_evaluator_slot(identity_id, timeout=600):
     """Acquire a slot to run the evaluator. Blocks until available.

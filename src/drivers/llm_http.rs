@@ -29,7 +29,8 @@ impl ResilientLLMClient {
         };
         Self {
             client: Client::builder()
-                .http1_only()  // Force HTTP/1.1 — Chinese APIs (DashScope/SiliconFlow) hang on H2 ALPN
+                .http1_only()  // Force HTTP/1.1 — Chinese APIs may hang on H2 ALPN
+                .no_proxy()    // Bypass system proxy — Mac VPN proxy (7897) blocks Chinese API calls
                 .build()
                 .unwrap(),
             api_url: api_url.to_string(),

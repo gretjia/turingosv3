@@ -117,16 +117,14 @@ def run_evaluator(cfg, base_env, run_id, timeout_secs=600):
             _, stderr = proc.communicate(timeout=max(wall_clock, 120))
             output = stderr.decode(errors="replace")
         except subprocess.TimeoutExpired:
+            # Kill process group, then read remaining stderr
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-            time.sleep(2)
+            time.sleep(3)  # give evaluator time to flush WAL + tape dump
             if proc.poll() is None:
                 os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            proc.wait()
-            try:
-                _, stderr = proc.stdout.read(), proc.stderr.read()
-                output = stderr.decode(errors="replace") if stderr else ""
-            except:
-                output = ""
+            # communicate() after kill reads any buffered output
+            _, stderr = proc.communicate()
+            output = stderr.decode(errors="replace") if stderr else ""
             output += "\n[TIMEOUT]"
     except Exception as e:
         output = str(e)
@@ -282,8 +280,33 @@ def main():
     log_file = run_log_dir / "evaluator.log"
     log_file.write_text(output)
 
-    # Parse & analyze
+    # Parse & analyze — tape markdown first, WAL fallback
     nodes = parse_tape(tape_path)
+    if not nodes and wal_path.exists():
+        # WAL exists but tape markdown wasn't written (timeout killed before dump)
+        # Extract node count from WAL for basic metrics
+        try:
+            wal_data = json.loads(wal_path.read_text())
+            wal_nodes = wal_data.get("tape_files", {})
+            if wal_nodes:
+                print(f"[WAL FALLBACK] Tape markdown empty but WAL has {len(wal_nodes)} nodes", flush=True)
+                # Build minimal nodes dict from WAL
+                for nid, f in wal_nodes.items():
+                    nodes[nid] = {
+                        "author": f.get("author", ""),
+                        "price": int(f.get("price", 0)),
+                        "citations": f.get("citations", []),
+                        "payload": f.get("payload", "")[:200],
+                    }
+        except (json.JSONDecodeError, KeyError):
+            pass
+    if not nodes:
+        # Last resort: count from JSONL success log
+        success_jsonl = run_log_dir / "success.jsonl"
+        if success_jsonl.exists():
+            lines = success_jsonl.read_text().strip().splitlines()
+            print(f"[JSONL FALLBACK] {len(lines)} successful appends in JSONL", flush=True)
+
     m = analyze(nodes, output)
     ers = compute_ers(m)
 

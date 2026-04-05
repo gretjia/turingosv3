@@ -453,7 +453,10 @@ YOUR APPROACH:\n\
                             }
                         }
                     }
-                    Err(_) => {}
+                    Err(e) => {
+                        warn!("[Agent {}] LLM call failed: {:?}", agent_name, e);
+                        heartbeat.store(epoch_secs(), Ordering::Relaxed);
+                    }
                 }
 
                 // VOLUNTARY INVESTMENT ROUND — role-differentiated
@@ -533,7 +536,9 @@ YOUR APPROACH:\n\
                                 }
                             }
                         }
-                        Err(_) => {}
+                        Err(e) => {
+                            warn!("[Agent {}] Invest LLM call failed: {:?}", agent_name, e);
+                        }
                     }
                 }
 
@@ -801,7 +806,9 @@ YOUR APPROACH:\n\
                 let secs_since_free = now.saturating_sub(last_free);
 
                 let all_bankrupt = solvent_count == 0;
-                let absolute_stagnation = secs_since_invest >= 60 && secs_since_free >= 60;
+                // Cloud APIs (DashScope, SiliconFlow) have high first-call latency (30-60s).
+                // 120s threshold prevents false stagnation during cold start.
+                let absolute_stagnation = secs_since_invest >= 120 && secs_since_free >= 120;
 
                 if all_bankrupt || absolute_stagnation {
                     let reason = if all_bankrupt { "Global bankruptcy" } else { "Absolute stagnation" };

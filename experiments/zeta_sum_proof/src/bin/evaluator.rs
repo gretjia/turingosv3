@@ -395,11 +395,13 @@ YOUR APPROACH:\n\
                         let raw_preview: String = raw.chars().take(200).collect();
                         info!("[Agent {}] LLM returned {} chars: {}", agent_name, raw.len(), raw_preview.replace('\n', "↵"));
                         if let Some(action) = parse_agent_output(&raw) {
-                            info!("[Agent {}] Parsed action: tool={}", agent_name, action.tool);
+                            let tactic_preview = action.tactic.as_deref().unwrap_or("(none)");
+                            info!("[Agent {}] Parsed action: tool={}, tactic_len={}", agent_name, action.tool, tactic_preview.len());
                             match action.tool.as_str() {
                                 "append" => {
                                     let tactic = action.tactic.unwrap_or_default();
                                     if !tactic.is_empty() {
+                                        info!("[Agent {}] Sending append to mempool: {} chars", agent_name, tactic.len());
                                         let _ = tx.send(MinerTx {
                                             agent_id: agent_name.clone(),
                                             model_name: client.model_name().to_string(),
@@ -407,6 +409,7 @@ YOUR APPROACH:\n\
                                             parent_id: parent_id.clone(),
                                             action_type: "append".to_string(),
                                         }).await;
+                                        info!("[Agent {}] Mempool send complete", agent_name);
                                     }
                                 }
                                 "invest" => {
@@ -455,6 +458,8 @@ YOUR APPROACH:\n\
                                     heartbeat.store(epoch_secs(), Ordering::Relaxed);
                                 }
                             }
+                        } else {
+                            warn!("[Agent {}] parse_agent_output returned None for {} chars", agent_name, raw.len());
                         }
                     }
                     Err(e) => {

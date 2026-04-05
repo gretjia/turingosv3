@@ -1,0 +1,9 @@
+{
+  "id": "beta",
+  "name": "硅基α研究员",
+  "proxy_port": 8089,
+  "provider": "proxy",
+  "proxy_url": "http://127.0.0.1:8089/v1/chat/completions",
+  "default_model": "deepseek-ai/DeepSeek-V3",
+  "available_models": ["deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-72B-Instruct", "Qwen/Qwen2.5-32B-Instruct"]
+}

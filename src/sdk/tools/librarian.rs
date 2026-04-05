@@ -141,7 +141,7 @@ impl LibrarianTool {
         // ── 4. Build prompt ──
         let mut prompt = String::from(
             "You are the Librarian of a mathematical proof-search system.\n\
-            Below are logs from agents attempting to prove: 1+2+3+... = -1/12 (regularization).\n\
+            Below are logs from agents attempting a mathematical proof.\n\
             Logs are GROUND TRUTH — do not alter, reinterpret, or contradict them.\n\n\
             Your task: Extract reusable mathematical strategies and common errors.\n\
             ALWAYS cite source node IDs (e.g., 'from tx_42_by_3') so claims are traceable.\n\n"

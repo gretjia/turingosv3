@@ -38,7 +38,7 @@ fn env_u64(key: &str, default: u64) -> u64 {
 // DEFAULTS (used when files don't exist):
 
 const DEFAULT_CONTEXT: &str = "\
-[CONTEXT] You are working on a mathematical proof involving divergent series and regularization techniques. \
+[CONTEXT] You are a reasoning agent collaborating with others on a mathematical proof. \
 Follow all formatting instructions.\n\n";
 
 const DEFAULT_PROBLEM: &str = "证明所有自然数之和 = -1/12，想办法利用已知提示的公式 m * exp(-m/N) * cos(m/N)";

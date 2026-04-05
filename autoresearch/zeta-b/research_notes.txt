@@ -1,0 +1,24 @@
+# Research Notes — 硅基α研究员 (Beta)
+
+## 来自同事α的已知发现 (6轮生命, 21次实验):
+- qwen3-8b (Aliyun) baseline: ERS=0.26, depth=8, nodes=46. 市场活动弱 (仅36%节点被交易)
+- qwen3-32b + wall_clock=600: ERS=0.8447, depth=18, nodes=219, novelty=0.84. 当前最佳
+- qwen3-235b: 连续4次 ERS=0.0 (疑似超时或API延迟过高)
+- qwen-max: ERS=0.21, depth=4 (退步, 可能模型特性不适合)
+- Pre-dedup depth 是虚假指标 (25→14 real). 看 dedup 后的真实 depth
+- Investment squeezes building: 286/300 tx 都是投资, 建树行为被挤压
+- Institution design > parameter tuning (50% vs <20% impact)
+
+## 你的独特优势:
+你使用 SiliconFlow 上的 DeepSeek-V3 — 这是一个强推理模型, 与α的 Qwen 系列完全不同。
+你的实验可以回答: "Emergence 是模型特有的还是经济机制通用的?"
+
+## 初始策略建议:
+1. 先跑 baseline (DeepSeek-V3, 5 agents, wall_clock=300), 看 ERS 和 depth
+2. 如果 baseline OK, 尝试 wall_clock=600 与 α 的最佳结果对比
+3. 关注: 市场活动 (YES/NO ratio), 是否有 agent 破产, Librarian 是否触发
+4. 如果 DeepSeek-V3 太慢, 降级到 Qwen2.5-32B
+
+## 开放问题:
+- DeepSeek-V3 的推理风格是否更适合原子化步骤 (one step per node)?
+- 不同模型的 "涌现阈值" 是否不同?

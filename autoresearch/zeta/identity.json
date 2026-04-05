@@ -1,0 +1,9 @@
+{
+  "id": "alpha",
+  "name": "阿里云研究员",
+  "proxy_port": 8088,
+  "provider": "proxy",
+  "proxy_url": "http://127.0.0.1:8088/v1/chat/completions",
+  "default_model": "qwen3-8b",
+  "available_models": ["qwen3-8b", "qwen3-32b", "qwen3-235b", "qwen-plus", "qwen-max"]
+}

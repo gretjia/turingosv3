@@ -10,10 +10,10 @@ Endpoints:
   POST /v1/chat/completions  (OpenAI-compatible)
   GET  /health
 """
-import os, sys, json, logging, argparse
+import os, sys, json, logging, argparse, time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from openai import OpenAI
+from openai import OpenAI, RateLimitError, APIStatusError
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger("llm_proxy")
@@ -71,7 +71,7 @@ class Handler(BaseHTTPRequestHandler):
         max_tokens = body.get("max_tokens", 3072)
         enable_thinking = body.get("enable_thinking", False)
 
-        provider = detect_provider(model)
+        provider = FORCED_PROVIDER or detect_provider(model)
 
         try:
             client = get_client(provider)
@@ -82,25 +82,51 @@ class Handler(BaseHTTPRequestHandler):
             elif "qwen3" in model.lower():
                 extra["extra_body"] = {"enable_thinking": False}
 
-            log.info(f"→ {provider}/{model} (temp={temperature}, max_tok={max_tokens})")
-
-            resp = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=True,
-                **extra,
-            )
-
+            # Exponential backoff retry for 429 rate limits (Aliyun TPM/RPM)
+            max_retries = 4
             content = ""
             reasoning = ""
-            for chunk in resp:
-                delta = chunk.choices[0].delta
-                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
-                    reasoning += delta.reasoning_content
-                if hasattr(delta, "content") and delta.content:
-                    content += delta.content
+
+            for attempt in range(max_retries + 1):
+                try:
+                    if attempt == 0:
+                        log.info(f"→ {provider}/{model} (temp={temperature}, max_tok={max_tokens})")
+                    else:
+                        log.info(f"→ {provider}/{model} (retry {attempt}/{max_retries})")
+
+                    resp = client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stream=True,
+                        **extra,
+                    )
+
+                    content = ""
+                    reasoning = ""
+                    for chunk in resp:
+                        delta = chunk.choices[0].delta
+                        if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                            reasoning += delta.reasoning_content
+                        if hasattr(delta, "content") and delta.content:
+                            content += delta.content
+                    break  # success
+
+                except RateLimitError as e:
+                    if attempt < max_retries:
+                        wait = 2 ** attempt + 1  # 2s, 3s, 5s, 9s
+                        log.warning(f"429 rate limit from {provider}, waiting {wait}s (attempt {attempt+1}/{max_retries})")
+                        time.sleep(wait)
+                    else:
+                        raise
+                except APIStatusError as e:
+                    if e.status_code == 429 and attempt < max_retries:
+                        wait = 2 ** attempt + 1
+                        log.warning(f"429 from {provider}, waiting {wait}s (attempt {attempt+1}/{max_retries})")
+                        time.sleep(wait)
+                    else:
+                        raise
 
             # Return OpenAI-compatible response
             result = {
@@ -137,10 +163,22 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 
+FORCED_PROVIDER = None  # set via --provider to bypass autodetection
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=int(os.environ.get("LLM_PROXY_PORT", "8088")))
+    parser.add_argument("--provider", type=str, default=None,
+                        help="Force all requests to this provider (bypass model-name autodetection)")
     args = parser.parse_args()
+
+    if args.provider:
+        if args.provider not in PROVIDERS:
+            log.error(f"Unknown provider: {args.provider}. Available: {list(PROVIDERS.keys())}")
+            sys.exit(1)
+        FORCED_PROVIDER = args.provider
+        log.info(f"Provider forced to: {args.provider}")
 
     server = ThreadedHTTPServer(("127.0.0.1", args.port), Handler)
     log.info(f"LLM Proxy listening on 127.0.0.1:{args.port}")

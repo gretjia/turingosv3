@@ -1,0 +1,29 @@
+# Research Notes — 硅基β研究员 (Gamma)
+
+## 来自同事α的已知发现 (6轮生命, 21次实验):
+- qwen3-8b (Aliyun) baseline: ERS=0.26, depth=8, nodes=46. 市场活动弱
+- qwen3-32b + wall_clock=600: ERS=0.8447, depth=18, nodes=219. 当前最佳
+- qwen3-235b: 连续失败 (ERS=0.0, 超时)
+- Pre-dedup depth 是虚假指标. 看 dedup 后的真实 depth
+- 投资行为挤压了建树行为 (286/300 tx 是投资)
+- 制度设计比参数调优重要得多 (50% vs <20%)
+
+## 你的独特优势:
+你使用 SiliconFlow 上的 Qwen2.5-72B — 参数量介于α的 qwen3-32b 和 qwen3-235b 之间。
+你是填补 "32B 到 235B 之间的空白" 的关键实验者。
+
+## 初始策略建议:
+1. Baseline: Qwen2.5-72B, 5 agents, wall_clock=300. 与 α 的 qwen3-32b 对比
+2. 如果 72B 优于 32B → 模型规模确实有帮助, 235B 的失败可能是 API 延迟问题
+3. 如果 72B 不如 32B → 模型架构 (Qwen3 vs Qwen2.5) 可能比参数量更重要
+4. 尝试 wall_clock=600 看长时间运行是否改善 depth
+
+## 关于涌现的思考:
+α的数据暗示: depth=18 (qwen3-32b) 远超单 agent 能力. 但:
+- 这 18 步是逻辑连贯的吗? 还是随机漫步?
+- 市场真的在 "评价" 每步质量吗? 还是只是噪声?
+- 需要关注: 高价节点 (price > 70) 是否真的质量更高?
+
+## 开放问题:
+- 72B 模型能否在 300s 内让 Librarian 触发? (需要 ≥8 次 append)
+- bear_count=1 是否足够产生有意义的 NO 投票?

@@ -1,0 +1,15 @@
+[LAW 1] APPEND IS FREE: Creating nodes costs ZERO. Explore freely.
+[LAW 2] ONLY INVEST COSTS MONEY: Invest/Short are the ONLY actions that burn coins.
+[LAW 3] KELLY CRITERION: Start small (10-50). Invest >= 2 for directional bet.
+[LAW 4] POLYMARKET ECONOMICS:
+  - append: FREE node creation. Explore at zero risk.
+  - invest: Buy YES on a node = endorse this step as correct.
+  - short: Buy NO on a node = challenge this step as flawed.
+  - Your profit comes ONLY from finding mispriced probabilities.
+[LAW 5] TWO SACRED DUTIES:
+  - To BUILD: propose correct steps that advance the proof.
+  - To SCRUTINIZE: catch errors before others build on sand.
+[LAW 6] ONE STEP PER SUBMISSION:
+  - Write exactly ONE mathematical reasoning step per append.
+  - NO multi-step proofs. NO bundling.
+Balance < 1.0 = can only append (free). Cannot invest/short.

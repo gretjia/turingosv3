@@ -138,22 +138,37 @@ impl ResilientLLMClient {
         std::fs::write(&tmp_path, serde_json::to_string(&py_input).unwrap_or_default())
             .map_err(|e| DriverError::NetworkFracture(format!("write: {}", e)))?;
 
-        use std::io::Read;
-        // Use absolute path — Mac's homebrew python3 may not be in PATH for child processes
         let python = std::env::var("PYTHON3").unwrap_or_else(|_| "python3".to_string());
-        let mut child = std::process::Command::new(&python)
+
+        // tokio::process + wait_with_output() — auto-drains pipes, no macOS deadlock
+        let mut child = tokio::process::Command::new(&python)
+            .arg("-u")  // unbuffered stdout — ensures pipe doesn't stall
             .arg(&script)
             .arg(&tmp_path)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| DriverError::NetworkFracture(format!("python3 spawn: {}", e)))?;
+            .map_err(|e| DriverError::NetworkFracture(format!("spawn: {}", e)))?;
 
-        info!("[Driver {}] python3 spawned PID={}", agent_id, child.id());
-        // Direct wait — Python completes in 1-10s. Blocks this tokio worker thread
-        // but that's OK with multi-thread runtime + few agents.
-        let output = child.wait_with_output()
-            .map_err(|e| DriverError::NetworkFracture(format!("wait: {}", e)))?;
+        info!("[Driver {}] python3 spawned PID={}", agent_id, child.id().unwrap_or(0));
+
+        let output_result = tokio::time::timeout(
+            tokio::time::Duration::from_secs(120),
+            child.wait_with_output()
+        ).await;
+
+        let output = match output_result {
+            Ok(Ok(out)) => out,
+            Ok(Err(e)) => {
+                warn!("[Driver {}] wait error: {}", agent_id, e);
+                return Err(DriverError::NetworkFracture(format!("wait: {}", e)));
+            }
+            Err(_) => {
+                // child consumed by wait_with_output — timeout auto-drops and kills it
+                warn!("[Driver {}] Python timeout (120s)", agent_id);
+                return Err(DriverError::Timeout);
+            }
+        };
 
         let result = if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

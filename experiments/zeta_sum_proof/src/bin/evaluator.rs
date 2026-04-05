@@ -392,7 +392,10 @@ YOUR APPROACH:\n\
                 let temp = 0.2 + 0.6 * (i as f32 / swarm_size.max(1) as f32);
                 match client.resilient_generate(&p, i, temp).await {
                     Ok(raw) => {
+                        let raw_preview: String = raw.chars().take(200).collect();
+                        info!("[Agent {}] LLM returned {} chars: {}", agent_name, raw.len(), raw_preview.replace('\n', "↵"));
                         if let Some(action) = parse_agent_output(&raw) {
+                            info!("[Agent {}] Parsed action: tool={}", agent_name, action.tool);
                             match action.tool.as_str() {
                                 "append" => {
                                     let tactic = action.tactic.unwrap_or_default();

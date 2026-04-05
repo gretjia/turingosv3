@@ -178,7 +178,7 @@ async fn main() {
     bus.mount_tool(Box::new(WalletTool::new()));
     bus.mount_tool(Box::new(MathStepMembrane::new()));
     // Librarian: management layer agent — Ground Truth logs + DeepSeek V3 compression
-    let librarian_interval = env_usize("LIBRARIAN_INTERVAL", 100);
+    let librarian_interval = env_usize("LIBRARIAN_INTERVAL", 8); // Architect directive: 8 appends per compression
     let log_dir = std::env::var("LOG_DIR")
         .unwrap_or_else(|_| "/tmp/turingos_zeta_logs".to_string());
     bus.mount_tool(Box::new(LibrarianTool::new(&skills_dir, swarm_size, librarian_interval, &log_dir)));
@@ -186,9 +186,30 @@ async fn main() {
     let agent_ids: Vec<String> = (0..swarm_size).map(|i| format!("Agent_{}", i)).collect();
     bus.init_problem(&agent_ids);
 
+    // --- WAL: Tape Persistence (A Turing machine's tape MUST survive restart) ---
+    let wal_path = std::env::var("WAL_PATH")
+        .unwrap_or_else(|_| "experiments/zeta_sum_proof/wal/zeta_sum.wal.json".to_string());
+    // Ensure WAL directory exists
+    if let Some(parent) = std::path::Path::new(&wal_path).parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let (mut restored_tx, mut restored_gen) = (0u64, 1usize);
+    if std::path::Path::new(&wal_path).exists() {
+        match bus.restore_wal(&wal_path) {
+            Ok((tx, gen)) => {
+                restored_tx = tx;
+                restored_gen = gen;
+                info!(">>> [WAL] Tape restored! Resuming from tx={}, gen={}", tx, gen);
+            }
+            Err(e) => {
+                warn!(">>> [WAL] Restore failed: {}. Starting fresh.", e);
+            }
+        }
+    }
+
     // --- Create Channels ---
     let mut init_snap = bus.get_immutable_snapshot();
-    init_snap.generation = 1;
+    init_snap.generation = restored_gen as u32;
     let (tx_state, rx_state) = watch::channel(init_snap);
     let (tx_mempool, mut rx_mempool) = mpsc::channel::<MinerTx>(1000);
 
@@ -553,9 +574,9 @@ YOUR APPROACH:\n\
     info!(">>> TuringOS v3 ζ-Sum Booted. {} agents (5M/5B+/5B-). <<<", swarm_size);
 
     // --- Reactor Loop ---
-    let mut tx_count: u64 = 0;       // all tx (for node ID)
-    let mut append_count: u64 = 0;   // only successful appends (for budget)
-    let mut generation: u32 = 1;
+    let mut tx_count: u64 = restored_tx;      // resume from WAL if restored
+    let mut append_count: u64 = 0;            // only successful appends (for budget)
+    let mut generation: usize = restored_gen;
     let mut last_invest_epoch = epoch_secs();
     let mut last_librarian_at: u64 = 0; // appends at last compression
 
@@ -602,6 +623,11 @@ YOUR APPROACH:\n\
                         }
 
                         bus.tick_map_reduce();
+
+                        // WAL: persist tape after every successful append
+                        if let Err(e) = bus.save_wal(&wal_path, tx_count, generation) {
+                            warn!(">>> [WAL] Save failed: {}", e);
+                        }
 
                         // Engine 4: real-time autopsy/victory — insert BEFORE # LIBRARIAN MEMORY
                         // so Librarian compression (which replaces everything after that header) won't delete them.
@@ -788,7 +814,7 @@ YOUR APPROACH:\n\
                 }
 
                 let mut snap = bus.get_immutable_snapshot();
-                snap.generation = generation;
+                snap.generation = generation as u32;
                 let _ = tx_state.send(snap);
 
                 // No tx limit — run until OMEGA or manual stop (architect directive 2026-04-02)
@@ -830,7 +856,7 @@ YOUR APPROACH:\n\
                     info!(">>> [NO REBIRTH] Gen {} — zero new Coins. Free append only.", generation);
 
                     let mut snap = bus.get_immutable_snapshot();
-                    snap.generation = generation;
+                    snap.generation = generation as u32;
                     let _ = tx_state.send(snap);
                     last_invest_epoch = epoch_secs();
                 } else {
@@ -875,8 +901,9 @@ YOUR APPROACH:\n\
         info!("{} | P:{:.0} | {}{}", id, f.price, summary, flag);
     }
 
-    // Full tape dump
-    let dump_path = "/tmp/zeta_sum_tape_full.md";
+    // Full tape dump (human-readable export; WAL is the authoritative persistence)
+    let dump_path = std::env::var("TAPE_OUTPUT")
+        .unwrap_or_else(|_| format!("/tmp/zeta_sum_tape_{}.md", epoch_secs()));
     if let Ok(mut f) = std::fs::File::create(dump_path) {
         use std::io::Write;
         let _ = writeln!(f, "# zeta_sum_proof — Full Tape Dump (Role Trifecta)\n");

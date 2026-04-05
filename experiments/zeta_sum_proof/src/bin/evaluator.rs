@@ -209,12 +209,11 @@ async fn main() {
             info!("Provider: SiliconFlow | Model: {}", model);
             vec![Arc::new(ResilientLLMClient::with_key(url, &model, &key))]
         }
-        // Local llama.cpp server(s), tunneled via SSH.
-        // Single endpoint: LLM_URL=http://127.0.0.1:18080/v1/chat/completions
+        // Local server(s): llama.cpp or llm_proxy.py (Python OpenAI SDK → cloud APIs).
+        // Single endpoint: LLM_URL=http://127.0.0.1:8088/v1/chat/completions
         // Multi endpoint:  LLM_URLS=http://127.0.0.1:18080,http://127.0.0.1:18081
         //   Agents round-robin across endpoints for parallel throughput.
-        // Source: AUTORESEARCH_PLAN.md — Mac (18080) + Windows1 (18081)
-        "local" | "llama" | "llama.cpp" => {
+        "local" | "llama" | "llama.cpp" | "proxy" => {
             let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "qwen3.5-9b".to_string());
             let urls: Vec<String> = if let Ok(multi) = std::env::var("LLM_URLS") {
                 multi.split(',').map(|u| {
@@ -238,10 +237,12 @@ async fn main() {
     // --- DeepSeek: Two roles, two models ---
     // Oracle (Engine 3): deepseek-reasoner for verification (needs chain-of-thought)
     // Librarian (Engine 4): deepseek-chat (V3) for compression (needs structured summaries)
-    let ds_url = "https://api.deepseek.com/chat/completions";
+    // DEEPSEEK_URL override: route through llm_proxy.py when direct HTTPS fails
+    let ds_url = std::env::var("DEEPSEEK_URL")
+        .unwrap_or_else(|_| "https://api.deepseek.com/chat/completions".to_string());
     let ds_key = std::env::var("DEEPSEEK_API_KEY").unwrap_or_default();
     let deepseek_oracle = if !ds_key.is_empty() {
-        let client = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-reasoner", &ds_key));
+        let client = Arc::new(ResilientLLMClient::with_key(&ds_url, "deepseek-reasoner", &ds_key));
         info!("DeepSeek Oracle: ARMED (deepseek-reasoner, triggers at P >= 90%)");
         Some(client)
     } else {
@@ -249,7 +250,7 @@ async fn main() {
         None
     };
     let deepseek_librarian = if !ds_key.is_empty() {
-        let client = Arc::new(ResilientLLMClient::with_key(ds_url, "deepseek-chat", &ds_key));
+        let client = Arc::new(ResilientLLMClient::with_key(&ds_url, "deepseek-chat", &ds_key));
         info!("DeepSeek Librarian: ARMED (deepseek-chat, management layer)");
         Some(client)
     } else {

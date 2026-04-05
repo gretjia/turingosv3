@@ -49,20 +49,6 @@ impl WalletTool {
         Some((target_node, amount))
     }
 
-    /// vGaia: Parse P2P transfer tag [Tool: Wallet | Action: Transfer | Target: Agent_X | Amount: Y]
-    fn parse_transfer(&self, payload: &str) -> Option<(String, f64)> {
-        let tag = "[Tool: Wallet | Action: Transfer | Target: ";
-        let start = payload.find(tag)?;
-        let rest = &payload[start + tag.len()..];
-        let target_end = rest.find(" | Amount: ")?;
-        let target_agent = rest[..target_end].trim().to_string();
-
-        let amt_rest = &rest[target_end + 11..];
-        let amt_end = amt_rest.find(']')?;
-        let amount: f64 = amt_rest[..amt_end].trim().parse().unwrap_or(0.0);
-
-        Some((target_agent, amount))
-    }
 }
 
 impl TuringTool for WalletTool {

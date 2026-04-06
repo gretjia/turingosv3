@@ -248,13 +248,65 @@ def analyze(nodes, log):
     return m
 
 
-def compute_ers(m):
-    """ERS = depth_norm × novelty × breadth_factor × proved_bonus"""
-    depth_norm = min(m["depth"], 15) / 15.0
-    novelty = m["novelty"]
-    breadth = min(m["roots"], 5) / 5.0
-    proved_bonus = 1.5 if m["proved"] else 1.0
-    return round(depth_norm * novelty * breadth * proved_bonus, 4)
+def extract_deepest_chain(nodes):
+    """Trace the deepest chain in the DAG. Returns list of node IDs root→leaf."""
+    if not nodes:
+        return []
+    root_dist = {}
+    def compute_rd(nid):
+        if nid in root_dist: return root_dist[nid]
+        cites = [c for c in nodes[nid].get("citations", []) if c in nodes]
+        if not cites: root_dist[nid] = 0; return 0
+        d = 1 + max(compute_rd(c) for c in cites)
+        root_dist[nid] = d
+        return d
+    for nid in nodes: compute_rd(nid)
+    if not root_dist:
+        return []
+    deepest = max(root_dist, key=root_dist.get)
+    chain = [deepest]
+    while True:
+        cites = [c for c in nodes[chain[-1]].get("citations", []) if c in nodes]
+        if not cites: break
+        chain.append(cites[0])
+    return list(reversed(chain))
+
+
+def query_proxy_stats(proxy_url):
+    """Query proxy /stats endpoint for token counts."""
+    import urllib.request
+    try:
+        stats_url = proxy_url.rsplit("/v1", 1)[0] + "/stats"
+        with urllib.request.urlopen(stats_url, timeout=5) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return None
+
+
+def reset_proxy_stats(proxy_url):
+    """Reset proxy token counters before experiment."""
+    import urllib.request
+    try:
+        reset_url = proxy_url.rsplit("/v1", 1)[0] + "/stats/reset"
+        req = urllib.request.Request(reset_url, data=b"", method="POST")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return None
+
+
+def compute_pput(golden_path_tokens, total_tokens, elapsed_minutes):
+    """PPUT — Progress Per Unit Time.
+
+    PPUT = golden_path_tokens / (total_tokens × elapsed_minutes)
+
+    Measures: how efficiently did the swarm convert API tokens into
+    useful proof progress? No artificial gates — data speaks for itself.
+    golden_path_tokens = 0 means PPUT = 0 (no progress).
+    """
+    if golden_path_tokens <= 0 or total_tokens <= 0 or elapsed_minutes <= 0:
+        return 0.0
+    return round(golden_path_tokens / (total_tokens * elapsed_minutes), 6)
 
 
 def main():
@@ -286,9 +338,13 @@ def main():
     # Initialize results.tsv if needed
     if not RESULTS.exists():
         with open(RESULTS, "w") as f:
-            f.write("run_id\ttimestamp\tERS\tdepth\tnodes\tnovelty\troots\tappends\tdedup\t"
+            f.write("run_id\ttimestamp\tPPUT\tdepth\tnodes\tnovelty\troots\tappends\tdedup\t"
                     "bankrupt\tmax_frontier\tyes\tno\ttraded\tproved\telapsed_s\tstatus\t"
-                    "description\tconfig_json\n")
+                    "description\tconfig_json\tgp_tokens\ttotal_tokens\n")
+
+    # Reset proxy token counters before experiment
+    proxy_url = cfg.get("proxy_url", "http://127.0.0.1:8088/v1/chat/completions")
+    reset_proxy_stats(proxy_url)
 
     # Run
     output, elapsed, run_log_dir, tape_path, wal_path = run_evaluator(cfg, base_env, run_id)
@@ -325,10 +381,31 @@ def main():
             print(f"[JSONL FALLBACK] {len(lines)} successful appends in JSONL", flush=True)
 
     m = analyze(nodes, output)
-    ers = compute_ers(m)
+
+    # Query proxy for real token counts
+    proxy_stats = query_proxy_stats(proxy_url)
+    total_tokens = proxy_stats.get("total_tokens", 0) if proxy_stats else 0
+
+    # Golden path tokens: count tokens in deepest chain payloads
+    chain = extract_deepest_chain(nodes)
+    gp_tokens = 0
+    if chain and proxy_stats:
+        # Estimate golden path tokens from payload chars (1 token ≈ 3 chars average)
+        gp_chars = sum(len(nodes[nid].get("payload", "")) for nid in chain if nid in nodes)
+        gp_tokens = gp_chars // 3
+        # If total_tokens is 0 (proxy stats failed), estimate from nodes
+        if total_tokens == 0:
+            total_chars = sum(len(n.get("payload", "")) for n in nodes.values())
+            total_tokens = total_chars // 3
+
+    elapsed_minutes = elapsed / 60.0
+    pput = compute_pput(gp_tokens, total_tokens, elapsed_minutes)
+
+    m["gp_tokens"] = gp_tokens
+    m["total_tokens"] = total_tokens
 
     # Classify success/failure
-    is_success = m["proved"] or (m["depth"] >= 8 and m["novelty"] >= 0.4)
+    is_success = m["proved"] or (m["depth"] >= 5 and m["novelty"] >= 0.4)
     outcome = "success" if is_success else "failure"
     outcome_dir = LOG_DIR / outcome
     outcome_dir.mkdir(parents=True, exist_ok=True)
@@ -345,7 +422,7 @@ def main():
         row = [
             f"{run_id:03d}",
             datetime.now().isoformat(),
-            f"{ers}",
+            f"{pput}",
             str(m["depth"]),
             str(m["nodes"]),
             str(m["novelty"]),
@@ -362,6 +439,8 @@ def main():
             outcome,
             cfg.get("description", ""),
             json.dumps(cfg),
+            str(gp_tokens),
+            str(total_tokens),
         ]
         f.write("\t".join(row) + "\n")
 
@@ -369,26 +448,20 @@ def main():
     ratio_str = f"{ty/tn:.1f}:1"
     print("---")
     print(f"run_id:     {run_id:03d}")
-    print(f"ERS:        {ers}")
+    print(f"PPUT:       {pput}")
     print(f"depth:      {m['depth']}")
+    print(f"gp_tokens:  {gp_tokens}")
+    print(f"total_tokens: {total_tokens}")
     print(f"nodes:      {m['nodes']}")
     print(f"novelty:    {m['novelty']}")
-    print(f"roots:      {m['roots']}")
     print(f"appends:    {m['appends']}")
-    print(f"dedup:      {m['dedup']}")
-    print(f"yes:        {ty}")
-    print(f"no:         {m['buy_no']}")
-    print(f"ratio:      {ratio_str}")
     print(f"traded:     {m['traded']}")
     print(f"proved:     {'YES' if m['proved'] else 'NO'}")
     print(f"elapsed_s:  {elapsed:.0f}")
     print(f"status:     {outcome}")
-    print(f"wal:        {wal_path}")
-    print(f"tape:       {tape_path}")
-    print(f"log:        {log_file}")
 
     # Return metrics for sweep.py to consume
-    return ers, m, outcome
+    return pput, m, outcome
 
 
 if __name__ == "__main__":

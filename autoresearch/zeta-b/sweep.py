@@ -9,7 +9,7 @@ Architecture:
   sweep.py = Researcher's body (runs experiments, reads data, calls API)
   DeepSeek Reasoner = Researcher's brain (forms hypotheses, proposes changes)
   run_experiment.py = Fixed experiment harness (Karpathy's prepare.py)
-  ERS = Single scalar truth (Karpathy's val_bpb)
+  PPUT = Progress Per Unit Time (golden_path_tokens / total_tokens × elapsed_minutes)
   bulletin.jsonl = Shared whiteboard (append-only, colleagues' discoveries)
 
 Multi-researcher mode:
@@ -108,9 +108,9 @@ def read_bulletin(limit=30):
     try:
         # Read only the tail of the file (last ~64KB) to avoid OOM on large bulletins
         size = BULLETIN.stat().st_size
-        with open(BULLETIN, "r") as f:
+        with open(BULLETIN, "r", encoding="utf-8", errors="replace") as f:
             if size > 65536:
-                f.seek(size - 65536)
+                f.seek(max(size - 65536, 0))
                 f.readline()  # skip partial line
             lines = f.readlines()
         entries = []
@@ -127,7 +127,7 @@ def read_bulletin(limit=30):
         return []
 
 
-def post_bulletin(identity_id, msg_type, msg, ers=None, config=None):
+def post_bulletin(identity_id, msg_type, msg, pput=None, config=None):
     """Append one entry to bulletin.jsonl. Atomic via fcntl + small write."""
     entry = {
         "ts": datetime.now().isoformat(timespec="seconds"),
@@ -135,8 +135,8 @@ def post_bulletin(identity_id, msg_type, msg, ers=None, config=None):
         "type": msg_type,
         "msg": msg[:500],  # cap message length for sanity
     }
-    if ers is not None:
-        entry["ers"] = round(ers, 4)
+    if pput is not None:
+        entry["pput"] = round(pput, 6)
     if config is not None:
         # Only include key config fields, not full blob
         entry["config"] = {k: config[k] for k in ("model", "swarm_size", "wall_clock") if k in config}
@@ -163,11 +163,11 @@ def format_bulletin_for_prompt(entries, my_id):
     for e in others[-15:]:
         prefix = f"  [{e.get('from','?')}] ({e.get('type','?')})"
         msg = e.get('msg', '')
-        ers_str = f" [ERS={e['ers']:.4f}]" if e.get('ers') else ""
+        pput_str = f" [PPUT={e['pput']:.6f}]" if e.get('pput') else ""
         cfg_str = ""
         if e.get('config'):
             cfg_str = f" config={json.dumps(e['config'])}"
-        lines.append(f"{prefix} {msg}{ers_str}{cfg_str}")
+        lines.append(f"{prefix} {msg}{pput_str}{cfg_str}")
     lines.append("=== END BULLETIN ===\n")
     return "\n".join(lines)
 
@@ -311,7 +311,7 @@ def build_researcher_prompt(history, config, prev_life_memory, identity):
     if prev_life_memory:
         prev_life_section = f"""
 === PREVIOUS LIFE MEMORY (Markov: you see ONLY your immediate past life) ===
-Life #{prev_life_memory.get('life_id', '?')}: {prev_life_memory.get('total_experiments', '?')} experiments, best ERS={prev_life_memory.get('best_ers', '?')}
+Life #{prev_life_memory.get('life_id', '?')}: {prev_life_memory.get('total_experiments', '?')} experiments, best ERS={prev_life_memory.get('best_pput', '?')}
 Best config: {json.dumps(prev_life_memory.get('best_config', {}))}
 What worked: {prev_life_memory.get('what_worked', [])}
 What failed: {prev_life_memory.get('what_failed', [])}
@@ -346,28 +346,43 @@ FOUR ENGINES:
 
 LOCKED: LIBRARIAN_INTERVAL = 8
 
-=== RESEARCH MISSION (two core tasks) ===
+=== RESEARCH MISSION — TuringOS Scaling Law ===
 
-TASK 1 — EMERGENCE: Confirm that the TuringOS multi-agent swarm produces intelligence QUALITATIVELY BEYOND a single agent. Evidence of emergence:
-  - Thinking depth: proof chains deeper than any single agent could produce alone
-  - Atomic steps: each node is one clean reasoning step (not multi-step dumps)
-  - Long-range coherence: the proof DAG maintains logical continuity over many steps
-  - Memory preservation: TAPE + Librarian keep institutional knowledge alive (no amnesia)
-  - Market signal: YES/NO prices reflect genuine quality assessment, not noise
-  You define and refine your own emergence criteria. Post discoveries to the bulletin.
+CURRENT PRIORITY: Measure how proof depth scales with swarm size (N).
+This is the single most important unanswered question for TuringOS.
 
-TASK 2 — MINIMUM VIABLE MODEL: What is the minimum model size (how many B parameters) for TuringOS economic mechanisms to actually work?
-  "Work" means the economic system (prediction market, CTF conservation, investment) produces meaningful behavior — not just token generation.
-  You and your colleagues define and discuss what "meaningful" means. Start with:
-  - Non-repetitive reasoning (novelty > 50%)
-  - Meaningful YES/NO activity (ratio < 10:1)
-  - Depth > 5, Librarian fires at least once
-  - Agents go bankrupt or profit (the market has real consequences)
-  Refine these criteria as you learn. Post your proposed standards to the bulletin.
+TASK 1 — SCALING LAW: How does depth change as N (swarm_size) increases?
+  Known data: N=1→depth=5 (single agent loops), N=3→depth~8, N=5→depth~9-16, N=7→depth~9, N=10→depth~7-18, N=15→depth~9
+  The curve appears FLAT from N=3 to N=15 — but data is noisy and large-N is sparse.
+  Open question: Is it (A) truly flat (emergence comes from mechanism, not scale), or (B) wall_clock too short for large swarms to fully interact?
+  YOUR JOB: Run experiments at your assigned N values. Each N at least 3-5 times. Report ALL depth values (not just the best). Use median + variance.
 
-Record any other discoveries and insights in your research notes. The economic system is CONSTITUTIONAL — it cannot be changed. Your job is to find what model scale makes it sing.
+TASK 2 — EMERGENCE FLOOR: Find the minimum conditions for emergence.
+  Two dimensions: (a) minimum model size, (b) minimum swarm size.
+  Already confirmed: qwen3-8b (8B) produces emergence at N=5 (4.6x vs single agent).
+  Doubao-seed-2.0-lite produces emergence at N=5 (depth=11).
+  Doubao-seed-1.6-flash does NOT (depth=1-2). The floor is somewhere in between.
 
-METRIC: ERS = depth_norm x novelty x breadth x proved_bonus.
+TASK 3 — LOG-LOG CURVE: Collect enough data to plot log(N) vs log(depth).
+  If depth ∝ N^α: α>1 = superlinear (more agents = disproportionately better), α=1 = linear, α<1 = sublinear (diminishing returns).
+  Need data especially at large N (20, 30, 50+) to determine the slope.
+  After finding the rough curve, add data points near the emergence threshold (e.g., N=4 if N=3 fails but N=5 works).
+
+CONTROLS: Single-agent baselines (N=1) need at least 5 runs per model for reliable median.
+
+CONSTRAINTS:
+  - Model is FIXED per researcher (check your identity.json). Do not switch models.
+  - Economic system is CONSTITUTIONAL — cannot be changed.
+  - wall_clock should scale with N: N≤10→600s, N=15→900-1200s, N=20+→1800-3600s.
+  - Report failures too — what N value DOESN'T work is equally important.
+
+METRIC: PPUT (Progress Per Unit Time) — the ONLY scoring metric.
+  PPUT = golden_path_tokens / (total_tokens × elapsed_minutes)
+  golden_path_tokens = token count of the deepest proof chain (useful work)
+  total_tokens = all API tokens consumed by all agents (total cost)
+  elapsed_minutes = wall clock time
+  Higher PPUT = more efficient progress. No artificial thresholds.
+  golden_path = 0 tokens means PPUT = 0 (no progress at all).
 
 {prev_life_section}
 {bulletin_section}
@@ -388,7 +403,7 @@ CURRENT CONFIG: {json.dumps(config, indent=2)}
 
 """
     for h in reversed(history[-8:]):
-        prompt += f"  [{h['verdict']}] ERS={h['ers']:.4f} depth={h['depth']} "
+        prompt += f"  [{h['verdict']}] PPUT={h['pput']:.6f} depth={h['depth']} "
         prompt += f"appends={h['appends']} dedup={h['dedup']} "
         prompt += f"bankrupt={h['bankrupt']} frontier={h['max_frontier']} "
         prompt += f"nodes={h['nodes']} novelty={h['novelty']} "
@@ -484,7 +499,7 @@ def _set_evaluator_limits():
 
 
 def run_single_experiment(config, identity):
-    """Write config.json, run evaluator with OOM guards. Returns (ers, metrics, outcome)."""
+    """Write config.json, run evaluator with OOM guards. Returns (pput, metrics, outcome)."""
     with open(CONFIG, "w") as f:
         json.dump(config, f, indent=2)
 
@@ -515,8 +530,8 @@ def run_single_experiment(config, identity):
             output = f.read()
 
     # Parse ERS from output
-    ers_match = re.search(r"^ERS:\s+(\S+)", output, re.MULTILINE)
-    ers = float(ers_match.group(1)) if ers_match else 0.0
+    pput_match = re.search(r"^PPUT:\s+(\S+)", output, re.MULTILINE)
+    pput = float(pput_match.group(1)) if pput_match else 0.0
 
     def extract(key):
         m = re.search(rf"^{key}:\s+(\S+)", output, re.MULTILINE)
@@ -534,19 +549,19 @@ def run_single_experiment(config, identity):
     }
 
     outcome = extract("status")
-    return ers, metrics, outcome, output
+    return pput, metrics, outcome, output
 
 
 # ══════════════════════════════════════════════════════════════
 # State Management
 # ══════════════════════════════════════════════════════════════
 
-def compress_life_memory(history, best_config, best_ers, life_id):
+def compress_life_memory(history, best_config, best_pput, life_id):
     keep_runs = [h for h in history if h.get("verdict") == "KEEP"]
     return {
         "life_id": life_id,
         "total_experiments": len(history),
-        "best_ers": best_ers,
+        "best_pput": best_pput,
         "best_config": best_config,
         "what_worked": [h["change"] for h in keep_runs][-5:],
         "what_failed": [h["change"] for h in history if h.get("verdict") == "DISCARD"][-5:],
@@ -565,17 +580,17 @@ def load_prev_life():
 def resume_from_tsv():
     """Resume state from results.tsv on restart."""
     history = []
-    best_ers = -1.0
+    best_pput = -1.0
     best_config = DEFAULT_CONFIG.copy()
     if RESULTS.exists():
         for line in RESULTS.read_text().strip().splitlines()[1:]:
             parts = line.split("\t")
             if len(parts) >= 19:
                 try:
-                    ers = float(parts[2])
+                    pput_val = float(parts[2])
                     cfg = json.loads(parts[18])
                     entry = {
-                        "ers": ers,
+                        "pput": pput_val,
                         "depth": int(parts[3]),
                         "nodes": int(parts[4]),
                         "novelty": float(parts[5]),
@@ -584,17 +599,17 @@ def resume_from_tsv():
                         "dedup": int(parts[8]),
                         "bankrupt": int(parts[9]),
                         "max_frontier": int(parts[10]),
-                        "verdict": "KEEP" if ers > best_ers else "DISCARD",
+                        "verdict": "KEEP" if pput_val > best_pput else "DISCARD",
                         "change": parts[17] if len(parts) > 17 else "",
                     }
-                    if ers > best_ers:
-                        best_ers = ers
+                    if pput_val > best_pput:
+                        best_pput = pput_val
                         best_config = cfg
                         entry["verdict"] = "KEEP"
                     history.append(entry)
                 except (ValueError, json.JSONDecodeError):
                     continue
-    return history, best_ers, best_config
+    return history, best_pput, best_config
 
 
 # ══════════════════════════════════════════════════════════════
@@ -653,7 +668,7 @@ def main():
         sys.exit(1)
 
     # Resume or start fresh
-    history, best_ers, best_config = resume_from_tsv()
+    history, best_pput, best_config = resume_from_tsv()
     prev_life = load_prev_life()
     life_id = (prev_life.get("life_id", 0) + 1) if prev_life else 1
 
@@ -663,7 +678,7 @@ def main():
     print(f"  Researcher Brain: DeepSeek Reasoner")
     print(f"  Agent Models: {', '.join(identity.get('available_models', ['?']))}")
     if history:
-        print(f"  RESUMED: {len(history)} experiments, best ERS={best_ers:.4f}")
+        print(f"  RESUMED: {len(history)} experiments, best PPUT={best_pput:.6f}")
     print("=" * 60, flush=True)
 
     # Announce birth on bulletin
@@ -679,16 +694,16 @@ def main():
         # Acquire semaphore before running evaluator
         slot_fd, slot_num = acquire_evaluator_slot(identity["id"])
         try:
-            ers, metrics, outcome, output = run_single_experiment(best_config, identity)
+            pput, metrics, outcome, output = run_single_experiment(best_config, identity)
         finally:
             release_evaluator_slot(slot_fd, slot_num)
 
-        best_ers = ers
-        entry = {**metrics, "ers": ers, "verdict": "BASELINE", "change": "baseline"}
+        best_pput = pput_val
+        entry = {**metrics, "pput": pput_val, "verdict": "BASELINE", "change": "baseline"}
         history.append(entry)
-        print(f"  ERS={ers:.4f} depth={metrics['depth']} appends={metrics['appends']}", flush=True)
+        print(f"  PPUT={pput:.6f} depth={metrics['depth']} appends={metrics['appends']}", flush=True)
         post_bulletin(identity["id"], "breakthrough",
-                      f"baseline ERS={ers:.4f} model={DEFAULT_CONFIG['model']}", ers=ers, config=best_config)
+                      f"baseline PPUT={pput:.6f} model={DEFAULT_CONFIG['model']}", pput=pput, config=best_config)
 
     # Periodic cleanup counter
     cleanup_counter = 0
@@ -778,13 +793,13 @@ def main():
             elif action_type == "re-init":
                 reason = action.get("reason", "no reason")
                 print(f"\n  *** RE-INIT: {reason}", flush=True)
-                memory = compress_life_memory(history, best_config, best_ers, life_id)
+                memory = compress_life_memory(history, best_config, best_pput, life_id)
                 memory["death_reason"] = reason
                 PREV_LIFE.write_text(json.dumps(memory, indent=2))
                 post_bulletin(identity["id"], "warning",
-                              f"re-init after {len(history)} exp (best={best_ers:.4f}): {reason[:100]}")
+                              f"re-init after {len(history)} exp (best={best_pput:.4f}): {reason[:100]}")
                 life_id += 1
-                best_ers = -1.0
+                best_pput = -1.0
                 best_config = DEFAULT_CONFIG.copy()
                 history = []
                 exp_num = 0
@@ -793,15 +808,15 @@ def main():
                 print(f"\n[0] BASELINE (new life #{life_id})", flush=True)
                 slot_fd, slot_num = acquire_evaluator_slot(identity["id"])
                 try:
-                    ers, metrics, outcome, output = run_single_experiment(best_config, identity)
+                    pput, metrics, outcome, output = run_single_experiment(best_config, identity)
                 finally:
                     release_evaluator_slot(slot_fd, slot_num)
-                best_ers = ers
-                entry = {**metrics, "ers": ers, "verdict": "BASELINE", "change": f"re-init: {reason[:40]}"}
+                best_pput = pput_val
+                entry = {**metrics, "pput": pput_val, "verdict": "BASELINE", "change": f"re-init: {reason[:40]}"}
                 history.append(entry)
-                print(f"  ERS={ers:.4f} depth={metrics['depth']} appends={metrics['appends']}", flush=True)
+                print(f"  PPUT={pput:.6f} depth={metrics['depth']} appends={metrics['appends']}", flush=True)
                 post_bulletin(identity["id"], "breakthrough",
-                              f"new life baseline ERS={ers:.4f}", ers=ers, config=best_config)
+                              f"new life baseline PPUT={pput:.6f}", pput=pput, config=best_config)
                 continue
             else:
                 change_desc = f"unknown:{action_type}"
@@ -820,31 +835,31 @@ def main():
             # ── Acquire semaphore + Run experiment ──
             slot_fd, slot_num = acquire_evaluator_slot(identity["id"])
             try:
-                ers, metrics, outcome, output = run_single_experiment(new_config, identity)
+                pput, metrics, outcome, output = run_single_experiment(new_config, identity)
             finally:
                 release_evaluator_slot(slot_fd, slot_num)
 
-            if ers > best_ers:
+            if pput_val > best_pput:
                 verdict = "KEEP"
-                print(f"  KEEP ERS={ers:.4f} (was {best_ers:.4f})", flush=True)
-                best_ers = ers
+                print(f"  KEEP PPUT={pput:.6f} (was {best_pput:.6f})", flush=True)
+                best_pput = pput_val
                 best_config = new_config
                 # Auto-broadcast breakthrough
                 post_bulletin(identity["id"], "breakthrough",
-                              f"{change_desc} → ERS={ers:.4f}",
-                              ers=ers, config=new_config)
+                              f"{change_desc} → PPUT={pput:.6f}",
+                              pput=pput, config=new_config)
             else:
                 verdict = "DISCARD"
-                print(f"  DISCARD ERS={ers:.4f} (best={best_ers:.4f})", flush=True)
+                print(f"  DISCARD PPUT={pput:.6f} (best={best_pput:.6f})", flush=True)
 
-            entry = {**metrics, "ers": ers, "verdict": verdict, "change": change_desc}
+            entry = {**metrics, "pput": pput_val, "verdict": verdict, "change": change_desc}
             history.append(entry)
             print(f"  depth={metrics['depth']} appends={metrics['appends']} novelty={metrics['novelty']}", flush=True)
 
         except KeyboardInterrupt:
             print("\n\nResearcher interrupted. Saving state...", flush=True)
             post_bulletin(identity["id"], "warning",
-                          f"going offline (Life #{life_id}, {len(history)} exp, best={best_ers:.4f})")
+                          f"going offline (Life #{life_id}, {len(history)} exp, best={best_pput:.4f})")
             break
         except Exception as e:
             print(f"\n  ERROR: {type(e).__name__}: {e}", flush=True)
@@ -852,7 +867,7 @@ def main():
             time.sleep(10)
             exp_num -= 1
 
-    print(f"\n{identity.get('name','Researcher')} Life #{life_id}: {len(history)} experiments, best ERS={best_ers:.4f}")
+    print(f"\n{identity.get('name','Researcher')} Life #{life_id}: {len(history)} experiments, best PPUT={best_pput:.6f}")
     print("Researcher dormant. Restart with: python3 sweep.py")
 
 

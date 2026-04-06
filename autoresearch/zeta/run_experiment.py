@@ -342,9 +342,10 @@ def main():
                     "bankrupt\tmax_frontier\tyes\tno\ttraded\tproved\telapsed_s\tstatus\t"
                     "description\tconfig_json\tgp_tokens\ttotal_tokens\n")
 
-    # Reset proxy token counters before experiment
+    # Snapshot proxy token counters BEFORE experiment
     proxy_url = cfg.get("proxy_url", "http://127.0.0.1:8088/v1/chat/completions")
-    reset_proxy_stats(proxy_url)
+    stats_before = query_proxy_stats(proxy_url) or {}
+    tokens_before = stats_before.get("total_tokens", 0)
 
     # Run
     output, elapsed, run_log_dir, tape_path, wal_path = run_evaluator(cfg, base_env, run_id)
@@ -382,21 +383,20 @@ def main():
 
     m = analyze(nodes, output)
 
-    # Query proxy for real token counts
-    proxy_stats = query_proxy_stats(proxy_url)
-    total_tokens = proxy_stats.get("total_tokens", 0) if proxy_stats else 0
+    # Snapshot proxy token counters AFTER experiment — use DIFFERENCE
+    stats_after = query_proxy_stats(proxy_url) or {}
+    tokens_after = stats_after.get("total_tokens", 0)
+    total_tokens = tokens_after - tokens_before  # exact tokens for THIS experiment
 
     # Golden path tokens: count tokens in deepest chain payloads
     chain = extract_deepest_chain(nodes)
-    gp_tokens = 0
-    if chain and proxy_stats:
-        # Estimate golden path tokens from payload chars (1 token ≈ 3 chars average)
-        gp_chars = sum(len(nodes[nid].get("payload", "")) for nid in chain if nid in nodes)
-        gp_tokens = gp_chars // 3
-        # If total_tokens is 0 (proxy stats failed), estimate from nodes
-        if total_tokens == 0:
-            total_chars = sum(len(n.get("payload", "")) for n in nodes.values())
-            total_tokens = total_chars // 3
+    gp_chars = sum(len(nodes[nid].get("payload", "")) for nid in chain if nid in nodes)
+    gp_tokens = gp_chars // 3  # estimate: 1 token ≈ 3 chars average
+
+    # Fallback if proxy stats failed
+    if total_tokens <= 0:
+        total_chars = sum(len(n.get("payload", "")) for n in nodes.values())
+        total_tokens = total_chars // 3
 
     elapsed_minutes = elapsed / 60.0
     pput = compute_pput(gp_tokens, total_tokens, elapsed_minutes)

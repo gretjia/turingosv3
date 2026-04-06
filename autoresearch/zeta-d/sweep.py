@@ -698,8 +698,8 @@ def main():
         finally:
             release_evaluator_slot(slot_fd, slot_num)
 
-        best_pput = pput_val
-        entry = {**metrics, "pput": pput_val, "verdict": "BASELINE", "change": "baseline"}
+        best_pput = pput
+        entry = {**metrics, "pput": pput, "verdict": "BASELINE", "change": "baseline"}
         history.append(entry)
         print(f"  PPUT={pput:.6f} depth={metrics['depth']} appends={metrics['appends']}", flush=True)
         post_bulletin(identity["id"], "breakthrough",
@@ -811,8 +811,8 @@ def main():
                     pput, metrics, outcome, output = run_single_experiment(best_config, identity)
                 finally:
                     release_evaluator_slot(slot_fd, slot_num)
-                best_pput = pput_val
-                entry = {**metrics, "pput": pput_val, "verdict": "BASELINE", "change": f"re-init: {reason[:40]}"}
+                best_pput = pput
+                entry = {**metrics, "pput": pput, "verdict": "BASELINE", "change": f"re-init: {reason[:40]}"}
                 history.append(entry)
                 print(f"  PPUT={pput:.6f} depth={metrics['depth']} appends={metrics['appends']}", flush=True)
                 post_bulletin(identity["id"], "breakthrough",
@@ -839,10 +839,10 @@ def main():
             finally:
                 release_evaluator_slot(slot_fd, slot_num)
 
-            if pput_val > best_pput:
+            if pput > best_pput:
                 verdict = "KEEP"
                 print(f"  KEEP PPUT={pput:.6f} (was {best_pput:.6f})", flush=True)
-                best_pput = pput_val
+                best_pput = pput
                 best_config = new_config
                 # Auto-broadcast breakthrough
                 post_bulletin(identity["id"], "breakthrough",
@@ -852,7 +852,7 @@ def main():
                 verdict = "DISCARD"
                 print(f"  DISCARD PPUT={pput:.6f} (best={best_pput:.6f})", flush=True)
 
-            entry = {**metrics, "pput": pput_val, "verdict": verdict, "change": change_desc}
+            entry = {**metrics, "pput": pput, "verdict": verdict, "change": change_desc}
             history.append(entry)
             print(f"  depth={metrics['depth']} appends={metrics['appends']} novelty={metrics['novelty']}", flush=True)
 

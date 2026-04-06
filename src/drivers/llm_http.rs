@@ -40,7 +40,8 @@ impl ResilientLLMClient {
 
     /// All calls go through HTTP (either local llama-server or local llm_proxy.py).
     /// No HTTPS, no TLS, no Chinese API issues — reqwest works perfectly over HTTP.
-    pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, temperature: f32) -> Result<String, DriverError> {
+    /// Returns (content, completion_tokens). completion_tokens = real API count, 0 if unavailable.
+    pub async fn resilient_generate(&self, prompt: &str, agent_id: usize, temperature: f32) -> Result<(String, u64), DriverError> {
         let is_qwen3 = self.model_name.contains("qwen3");
         let is_dashscope = self.api_url.contains("dashscope");
         let thinking_mode = std::env::var("THINKING_MODE").unwrap_or_else(|_| "off".to_string());
@@ -95,6 +96,7 @@ impl ResilientLLMClient {
                         }
 
                         let mut content = String::new();
+                        let mut completion_tokens: u64 = 0;
                         if let Some(choices) = body.get("choices") {
                             let msg = &choices[0]["message"];
                             if let Some(r) = msg.get("reasoning_content").and_then(|v| v.as_str()) {
@@ -104,9 +106,15 @@ impl ResilientLLMClient {
                                 content.push_str(c);
                             }
                         }
+                        // Extract real completion_tokens from API response
+                        if let Some(usage) = body.get("usage") {
+                            completion_tokens = usage.get("completion_tokens")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0);
+                        }
 
                         if !content.is_empty() {
-                            Ok(content)
+                            Ok((content, completion_tokens))
                         } else {
                             error!("[Driver {}] Empty response: {}", agent_id, &body.to_string()[..body.to_string().len().min(200)]);
                             Err(DriverError::JsonParseError)

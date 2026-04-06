@@ -1,0 +1,17 @@
+{
+  "experiment": "TuringOS Scaling Law — PPUT vs N",
+  "model": "qwen3-8b",
+  "provider": "proxy",
+  "proxy_url": "http://127.0.0.1:8088/v1/chat/completions",
+  "librarian_interval": 8,
+  "runs_per_n": 5,
+  "configs": [
+    {"N": 1, "swarm_size": 1, "math_count": 1, "bull_count": 0, "bear_count": 0, "wall_clock": 600},
+    {"N": 3, "swarm_size": 3, "math_count": 1, "bull_count": 1, "bear_count": 1, "wall_clock": 600},
+    {"N": 5, "swarm_size": 5, "math_count": 2, "bull_count": 2, "bear_count": 1, "wall_clock": 600},
+    {"N": 7, "swarm_size": 7, "math_count": 3, "bull_count": 2, "bear_count": 2, "wall_clock": 600},
+    {"N": 10, "swarm_size": 10, "math_count": 4, "bull_count": 3, "bear_count": 3, "wall_clock": 600},
+    {"N": 15, "swarm_size": 15, "math_count": 5, "bull_count": 5, "bear_count": 5, "wall_clock": 1200},
+    {"N": 20, "swarm_size": 20, "math_count": 7, "bull_count": 7, "bear_count": 6, "wall_clock": 1800}
+  ]
+}

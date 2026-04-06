@@ -95,7 +95,7 @@ async fn run_agent(
         let result = client.resilient_generate(&current_prompt, i, temp).await;
         
         let harness_err = match result {
-            Ok(raw_text) => {
+            Ok((raw_text, _comp_tokens)) => {
                 if let Some(action) = parse_agent_output(&raw_text) {
                     let output = match action.tool.as_str() {
                         "invest" => {

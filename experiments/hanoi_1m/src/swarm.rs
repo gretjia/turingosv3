@@ -81,7 +81,7 @@ async fn run_agent(
         let result = client.resilient_generate(&current_prompt, i, temp).await;
         
         let harness_err = match result {
-            Ok(raw_text) => {
+            Ok((raw_text, _comp_tokens)) => {
                 if let Some(pure_state) = distill_pure_state(&raw_text) {
                     return Some((i, pure_state));
                 } else {

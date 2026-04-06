@@ -39,6 +39,7 @@ _stats = {
     "requests": 0,
     "errors": 0,
     "retries_429": 0,
+    "estimated_count": 0,
 }
 
 
@@ -48,6 +49,11 @@ def _record_usage(prompt_tokens, completion_tokens):
         _stats["completion_tokens"] += completion_tokens
         _stats["total_tokens"] += prompt_tokens + completion_tokens
         _stats["requests"] += 1
+
+
+def _record_estimated():
+    with _stats_lock:
+        _stats["estimated_count"] += 1
 
 
 def _record_error():
@@ -184,11 +190,13 @@ class Handler(BaseHTTPRequestHandler):
                         reasoning = getattr(msg, "reasoning_content", None) or ""
 
                         # Extract real token counts from API response
-                        if resp.usage:
+                        estimated = False
+                        if resp.usage and resp.usage.completion_tokens:
                             usage_prompt = resp.usage.prompt_tokens or 0
                             usage_completion = resp.usage.completion_tokens or 0
                         else:
-                            # Fallback estimate: 1 token ≈ 4 chars (English) or 2 chars (Chinese)
+                            # Fallback estimate — marked as estimated for PPUT validation
+                            estimated = True
                             usage_prompt = sum(len(m.get("content", "")) for m in messages) // 3
                             usage_completion = (len(content) + len(reasoning)) // 3
 
@@ -208,6 +216,8 @@ class Handler(BaseHTTPRequestHandler):
 
             # Record token usage
             _record_usage(usage_prompt, usage_completion)
+            if estimated:
+                _record_estimated()
 
             # Return OpenAI-compatible response with usage
             result = {
@@ -224,6 +234,7 @@ class Handler(BaseHTTPRequestHandler):
                     "prompt_tokens": usage_prompt,
                     "completion_tokens": usage_completion,
                     "total_tokens": usage_prompt + usage_completion,
+                    "estimated": estimated,
                 },
             }
 

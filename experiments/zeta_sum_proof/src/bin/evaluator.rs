@@ -409,7 +409,7 @@ YOUR APPROACH:\n\
 
                 let temp = 0.2 + 0.6 * (i as f32 / swarm_size.max(1) as f32);
                 match client.resilient_generate(&p, i, temp).await {
-                    Ok(raw) => {
+                    Ok((raw, comp_tokens)) => {
                         if let Some(action) = parse_agent_output(&raw) {
                             match action.tool.as_str() {
                                 "append" => {
@@ -421,6 +421,7 @@ YOUR APPROACH:\n\
                                             payload: tactic,
                                             parent_id: parent_id.clone(),
                                             action_type: "append".to_string(),
+                                            completion_tokens: comp_tokens,
                                         }).await;
                                     }
                                 }
@@ -429,12 +430,15 @@ YOUR APPROACH:\n\
                                     let amount = action.amount.unwrap_or(1.0);
                                     let node = action.node.unwrap_or_else(|| "self".to_string());
                                     let payload = format!("{} [Tool: Wallet | Action: Invest | Node: {} | Amount: {:.2}]", tactic, node, amount);
+                                    // self-invest creates a new node — pass real completion_tokens
+                                    let tok = if node.trim().eq_ignore_ascii_case("self") { comp_tokens } else { 0 };
                                     let _ = tx.send(MinerTx {
                                         agent_id: agent_name.clone(),
                                         model_name: client.model_name().to_string(),
                                         payload,
                                         parent_id: parent_id.clone(),
                                         action_type: "invest".to_string(),
+                                        completion_tokens: tok,
                                     }).await;
                                 }
                                 "short" => {
@@ -448,6 +452,7 @@ YOUR APPROACH:\n\
                                             payload,
                                             parent_id: None,
                                             action_type: "short".to_string(),
+                                            completion_tokens: 0,
                                         }).await;
                                     }
                                 }
@@ -514,7 +519,7 @@ YOUR APPROACH:\n\
                     );
 
                     match client.resilient_generate(&invest_prompt, i, 0.3).await {
-                        Ok(raw) => {
+                        Ok((raw, _)) => {
                             if let Some(action) = parse_agent_output(&raw) {
                                 match action.tool.as_str() {
                                     "invest" => {
@@ -528,6 +533,7 @@ YOUR APPROACH:\n\
                                                 payload,
                                                 parent_id: None,
                                                 action_type: "invest".to_string(),
+                                            completion_tokens: 0,
                                             }).await;
                                             info!(">>> [INVEST] {} YES {:.0} on {}", agent_name, amount, node);
                                         }
@@ -543,6 +549,7 @@ YOUR APPROACH:\n\
                                                 payload,
                                                 parent_id: None,
                                                 action_type: "short".to_string(),
+                                            completion_tokens: 0,
                                             }).await;
                                             info!(">>> [SHORT] {} NO {:.0} on {}", agent_name, amount, node);
                                         }
@@ -600,6 +607,8 @@ YOUR APPROACH:\n\
                     stake: 1,
                     intrinsic_reward: 0.0,
                     price: 0.0,
+                    created_at: epoch_secs(),
+                    completion_tokens: tx.completion_tokens,
                 };
 
                 match bus.append(file) {
@@ -681,7 +690,7 @@ YOUR APPROACH:\n\
                                 let memory_text = if let Some(ref librarian_llm) = deepseek_librarian {
                                     info!(">>> [LIBRARIAN] Calling DeepSeek V3 ({} success + {} failure nodes)...", sc, fc);
                                     match librarian_llm.resilient_generate(&prompt, 0, 0.3).await {
-                                        Ok(response) => {
+                                        Ok((response, _)) => {
                                             info!(">>> [LIBRARIAN] DeepSeek V3 compression received ({} chars)", response.len());
                                             response
                                         }
@@ -746,7 +755,7 @@ YOUR APPROACH:\n\
 
                                 info!(">>> [DEEPSEEK ORACLE] Verifying {} ({} steps)...", candidate_id, chain.len());
                                 match oracle.resilient_generate(&proof_text, 0, 0.1).await {
-                                    Ok(response) => {
+                                    Ok((response, _)) => {
                                         let verdict = response.to_uppercase();
                                         if verdict.contains("YES") && !verdict.starts_with("NO") {
                                             info!(">>> [DEEPSEEK VERDICT] ✓ PROOF ACCEPTED! OMEGA!");

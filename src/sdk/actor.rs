@@ -18,6 +18,8 @@ pub struct MinerTx {
     pub payload: String,
     pub parent_id: Option<String>,
     pub action_type: String,
+    /// Real API completion_tokens for the LLM call that generated this payload.
+    pub completion_tokens: u64,
 }
 
 /// Tunable parameters for Boltzmann selection.

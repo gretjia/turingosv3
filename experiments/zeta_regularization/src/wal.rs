@@ -40,6 +40,8 @@ impl Into<TuringFile> for WalRecord {
             stake: self.stake,
             intrinsic_reward: self.intrinsic_reward,
             price: self.price,
+            created_at: 0,
+            completion_tokens: 0,
         }
     }
 }

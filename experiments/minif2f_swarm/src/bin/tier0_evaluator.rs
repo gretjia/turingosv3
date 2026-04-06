@@ -39,7 +39,7 @@ fn main() {
         );
 
         let response = rt.block_on(async {
-            client.resilient_generate(&prompt, 0, 0.0).await
+            client.resilient_generate(&prompt, 0, 0.0).await.map(|(c, _)| c)
         });
 
         match response {

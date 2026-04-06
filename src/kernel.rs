@@ -20,6 +20,13 @@ pub struct File {
     pub stake: Token,
     pub intrinsic_reward: f64,
     pub price: f64,
+    /// Epoch seconds when this node was committed to the tape.
+    #[serde(default)]
+    pub created_at: u64,
+    /// Real API completion_tokens for the LLM call that generated this node's payload.
+    /// 0 = not tracked (legacy nodes). Used for PPUT computation.
+    #[serde(default)]
+    pub completion_tokens: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

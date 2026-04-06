@@ -456,6 +456,14 @@ impl TuringBus {
     }
 
     pub fn append(&mut self, mut file: File) -> Result<(), String> {
+        // Stamp creation time if not already set by caller
+        if file.created_at == 0 {
+            file.created_at = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+        }
+
         // ── Phase 0: KERNEL-LEVEL payload blacklist (cannot be bypassed) ──
         // This runs BEFORE any SKILL tool. Physical enforcement.
         for pattern in &self.forbidden_payload_patterns {

@@ -141,7 +141,7 @@ OUTPUT RULES:\n\
     );
 
     match client.resilient_generate(&prompt, 99, 0.1).await {
-        Ok(raw) => {
+        Ok((raw, _comp_tokens)) => {
             // Extract code block if present
             let code = if let Some(start) = raw.find("```") {
                 let after = &raw[start + 3..];
@@ -416,7 +416,7 @@ Every bad step you kill saves the forest from building on sand.\n")
 
                 let temp = 0.2 + 0.6 * (i as f32 / SWARM_SIZE.max(1) as f32);
                 match client.resilient_generate(&p, i, temp).await {
-                    Ok(raw) => {
+                    Ok((raw, _comp_tokens)) => {
                         if let Some(action) = parse_agent_output(&raw) {
                             match action.tool.as_str() {
                                 "append" => {
@@ -428,6 +428,7 @@ Every bad step you kill saves the forest from building on sand.\n")
                                             payload: tactic,
                                             parent_id: parent_id.clone(),
                                             action_type: "append".to_string(),
+                                                    completion_tokens: 0,
                                         }).await;
                                     }
                                 }
@@ -444,6 +445,7 @@ Every bad step you kill saves the forest from building on sand.\n")
                                         payload,
                                         parent_id: parent_id.clone(),
                                         action_type: "invest".to_string(),
+                                                    completion_tokens: 0,
                                     }).await;
                                 }
                                 "short" => {
@@ -457,6 +459,7 @@ Every bad step you kill saves the forest from building on sand.\n")
                                             payload,
                                             parent_id: None,
                                             action_type: "short".to_string(),
+                                                    completion_tokens: 0,
                                         }).await;
                                     }
                                 }
@@ -520,7 +523,7 @@ Every bad step you kill saves the forest from building on sand.\n")
                     );
 
                     match client.resilient_generate(&invest_prompt, i, 0.3).await {
-                        Ok(raw) => {
+                        Ok((raw, _comp_tokens)) => {
                             if let Some(action) = parse_agent_output(&raw) {
                                 match action.tool.as_str() {
                                     "invest" => {
@@ -535,6 +538,7 @@ Every bad step you kill saves the forest from building on sand.\n")
                                                 payload,
                                                 parent_id: None,
                                                 action_type: "invest".to_string(),
+                                                    completion_tokens: 0,
                                             }).await;
                                             info!(">>> [INVEST] {} bet YES {:.0} on {}", agent_name, amount, node);
                                         }
@@ -550,6 +554,7 @@ Every bad step you kill saves the forest from building on sand.\n")
                                                 payload,
                                                 parent_id: None,
                                                 action_type: "short".to_string(),
+                                                    completion_tokens: 0,
                                             }).await;
                                             info!(">>> [SHORT] {} bet NO {:.0} on {}", agent_name, amount, node);
                                         }
@@ -604,6 +609,8 @@ Every bad step you kill saves the forest from building on sand.\n")
                     stake: 1,
                     intrinsic_reward: 0.0,
                     price: 0.0,
+                    created_at: 0,
+                    completion_tokens: 0,
                 };
 
                 let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));

@@ -1,1 +1,6 @@
 证明所有自然数之和 = -1/12，想办法利用已知提示的公式 m * exp(-m/N) * cos(m/N)
+
+RULES:
+- Write exactly ONE mathematical reasoning step per submission
+- Your step must logically follow from the previous steps
+- When the proof is complete and you have derived the final result, write [COMPLETE] at the beginning of your final step

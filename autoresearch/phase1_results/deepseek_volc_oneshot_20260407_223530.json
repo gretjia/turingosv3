@@ -1,0 +1,52 @@
+[
+  {
+    "model": "DeepSeek-R1",
+    "run": 1,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-R1",
+    "run": 2,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-R1",
+    "run": 3,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-R1",
+    "run": 4,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-R1",
+    "run": 5,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-V3.2",
+    "run": 1,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-V3.2",
+    "run": 2,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-V3.2",
+    "run": 3,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-V3.2",
+    "run": 4,
+    "error": "HTTP Error 500: Internal Server Error"
+  },
+  {
+    "model": "DeepSeek-V3.2",
+    "run": 5,
+    "error": "HTTP Error 500: Internal Server Error"
+  }
+]

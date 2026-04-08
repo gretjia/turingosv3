@@ -10,5 +10,5 @@ file_glob: "*.rs"
 enforcement: "warn"
 message: "WARNING: Payload limit change detected — Rule 21 (one-step-per-node) boundary, verify impact"
 stats:
-  times_triggered: 0
-  last_triggered: "never"
+  times_triggered: 1
+  last_triggered: "2026-04-05T05:19:51Z"

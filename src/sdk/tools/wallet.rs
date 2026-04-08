@@ -59,11 +59,13 @@ impl TuringTool for WalletTool {
     fn on_init(&mut self, agents: &[String]) {
         // GENESIS: One-time fixed allocation. This is the ONLY legal Coin injection.
         // After this, the system NEVER creates new Coins. (Magna Carta Law 2)
-        // Total system Coins = agents.len() × 10,000 = constant forever.
+        // Total system Coins = agents.len() × GENESIS_COINS = constant forever.
+        let genesis_coins: f64 = std::env::var("GENESIS_COINS")
+            .ok().and_then(|v| v.parse().ok()).unwrap_or(10000.0);
         self.stakes.clear();
         for agent in agents {
-            self.balances.insert(agent.clone(), 10000.0);
-            log::info!(">>> [GENESIS] Agent {} allocated 10,000 Coins.", agent);
+            self.balances.insert(agent.clone(), genesis_coins);
+            log::info!(">>> [GENESIS] Agent {} allocated {:.0} Coins.", agent, genesis_coins);
         }
     }
 

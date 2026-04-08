@@ -26,3 +26,21 @@
 2026-04-05T02:06:07Z | warn | R-008 | /home/zephryj/projects/turingosv3/src/bus.rs | WARNING: Market constant change detected — verify LP amounts and initial balances are intentional
 2026-04-05T02:08:58Z | warn | R-008 | /home/zephryj/projects/turingosv3/src/bus.rs | WARNING: Market constant change detected — verify LP amounts and initial balances are intentional
 2026-04-05T02:19:36Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-05T03:00:56Z | warn | R-010 | /home/zephryj/projects/turingosv3/experiments/zeta_sum_proof/model_scaling_sweep.py | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T04:50:30Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_http.rs | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T05:19:51Z | warn | R-009 | /home/zephryj/projects/turingosv3/src/drivers/llm_http.rs | WARNING: Payload limit change detected — Rule 21 (one-step-per-node) boundary, verify impact
+2026-04-05T05:19:51Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_http.rs | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T05:46:20Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_call.py | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T05:46:53Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_http.rs | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T06:33:14Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T06:33:46Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_http.rs | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T11:55:20Z | warn | R-014 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | |
+2026-04-05T13:16:52Z | warn | R-014 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | |
+2026-04-05T13:17:09Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T13:55:09Z | warn | R-010 | /home/zephryj/projects/turingosv3/autoresearch/control_group.py | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-05T14:33:08Z | warn | R-008 | /home/zephryj/projects/turingosv3/src/bus.rs | WARNING: Market constant change detected — verify LP amounts and initial balances are intentional
+2026-04-06T04:50:22Z | warn | R-014 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | |
+2026-04-06T09:15:11Z | warn | R-010 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | WARNING: Thinking mode configuration change — verify performance and cost implications
+2026-04-06T09:15:11Z | warn | R-014 | /home/zephryj/projects/turingosv3/src/drivers/llm_proxy.py | |
+2026-04-06T15:14:12Z | warn | R-006 | /home/zephryj/projects/turingosv3/src/kernel.rs | WARNING: kernel.rs 是纯拓扑层, 修改需要用户确认 + kernel-auditor 审计
+2026-04-07T11:47:18Z | warn | R-010 | /home/zephryj/projects/turingosv3/autoresearch/phase1_boundary_test.py | WARNING: Thinking mode configuration change — verify performance and cost implications

@@ -22,7 +22,7 @@ Each node has a price (0%-100%) set by a prediction market.
 
 === WHEN TO INVEST vs WHEN TO BUILD ===
   SEE SIBLING NODES? → If a sibling already says what you would append, INVEST it instead.
-  SEE A CLEAR ERROR? → SHORT it aggressively. Others are building on sand.
+  SEE A SPECIFIC ERROR? → SHORT it reasonably. Correct shorts make the market healthy.
   SEE AN UNDERPRICED GEM? → Invest YES before others notice.
   NO SIBLINGS, FRESH ANGLE? → APPEND your new step. Building is free.
 

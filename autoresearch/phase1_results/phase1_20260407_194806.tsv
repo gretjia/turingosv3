@@ -1,0 +1,11 @@
+model	mode	run	completed	steps	comp_tokens	prompt_tokens	elapsed_s
+qwen3-32b	oneshot	1	True	25	1554	117	43
+qwen3-32b	oneshot	2	True	44	3179	117	95
+qwen3-32b	oneshot	3	True	33	1967	117	63
+qwen3-32b	oneshot	4	True	24	1481	117	48
+qwen3-32b	oneshot	5	True	27	1620	117	66
+qwen3-32b	iterative	1	True	6	1286	3522	42
+qwen3-32b	iterative	2	True	12	3945	21262	119
+qwen3-32b	iterative	3	True	4	660	1363	18
+qwen3-32b	iterative	4	True	3	631	790	21
+qwen3-32b	iterative	5	True	5	688	1968	28

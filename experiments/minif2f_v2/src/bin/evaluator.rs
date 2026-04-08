@@ -831,11 +831,18 @@ Every bad step you kill saves the forest from building on sand.\n")
                     snap.generation = generation;
                     let _ = tx_state.send(snap);
                     last_invest_epoch = epoch_secs();
-                } else if secs_since_free < 30 {
-                    info!("[WATCH] Agents researching. Respecting Law 1.");
                 } else {
-                    info!("[TIMEOUT] Idle. Solvent: {}/{}. Invest: {}s, Free: {}s",
-                        solvent_count, SWARM_SIZE, secs_since_invest, secs_since_free);
+                    if secs_since_free < 30 {
+                        info!("[WATCH] Agents researching. Respecting Law 1.");
+                    } else {
+                        info!("[TIMEOUT] Idle. Solvent: {}/{}. Invest: {}s, Free: {}s",
+                            solvent_count, SWARM_SIZE, secs_since_invest, secs_since_free);
+                    }
+                    // Heartbeat: broadcast current snapshot so agents blocked on
+                    // rx.changed() can proceed. Without this, agents that PASS
+                    // (sending no tx) deadlock against the reactor indefinitely.
+                    let snap = bus.get_immutable_snapshot();
+                    let _ = tx_state.send(snap);
                 }
             }
         }

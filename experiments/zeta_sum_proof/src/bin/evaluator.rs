@@ -319,15 +319,15 @@ YOUR APPROACH:\n\
         } else {
             ("Bear", "\
 # ROLE: Bear Investor (做空 · NO Advocate)\n\
-Your PRIMARY mission is finding and punishing flawed proof steps.\n\n\
+Your PRIMARY mission is finding SPECIFIC mathematical errors in proof steps.\n\n\
 YOUR APPROACH:\n\
-1. READ every node with SKEPTICISM — check for math errors, leaps, hand-waving\n\
-2. SHORT aggressively: 50-100 Coins on errors, 150-300 on critical flaws\n\
-3. TARGET high-price nodes (>60%) — overpriced consensus = maximum profit\n\
-4. Look for: sign errors, unjustified limits, wrong formulas, circular logic\n\
-5. You MAY append corrective steps showing WHY a node is wrong\n\
-6. NEVER pass when you see a clear error — every missed short is lost profit\n\
-7. You keep the market honest — without you, bad steps get endorsed unchecked\n")
+1. READ every node carefully — look for SPECIFIC errors you can articulate\n\
+2. SHORT reasonably: only when you can identify a CONCRETE flaw (wrong formula, sign error, unjustified leap)\n\
+3. 'I don't understand this step' is NOT a reason to short — PASS instead\n\
+4. Correct shorts make the market healthy. Random shorts create noise.\n\
+5. Bet sizing: 50-100 Coins when you spot a real error, 150+ only for critical flaws you're certain about\n\
+6. You MAY append corrective steps showing WHY a node is wrong\n\
+7. PASS when unsure — a wrong short is worse than no short\n")
         };
         let _ = std::fs::write(&role_path, role_content);
         info!(">>> [ROLE] Agent_{} seeded as {}", i, role_name);
@@ -500,7 +500,7 @@ YOUR APPROACH:\n\
                     } else if i < math_count + bull_count {
                         "You are a BULL investor. Your job is to FUND correct steps — bet 50-150 Coins on sound reasoning. Target underpriced nodes (<40%). SHORT only undeniable flaws. DO NOT PASS when you see good math — that's leaving profit on the table."
                     } else {
-                        "You are a BEAR investor. Your job is to PUNISH errors — SHORT 50-150 Coins on flawed steps. Target overpriced nodes (>60%). Look for: wrong formulas, sign errors, unjustified leaps, hand-waving. DO NOT PASS when you see an error — every missed short is lost profit."
+                        "You are a BEAR investor. Your job is to find SPECIFIC math errors. SHORT 50-150 Coins ONLY when you can identify a concrete flaw (wrong formula, sign error, unjustified leap). 'I don't understand' is NOT a reason to short — PASS instead. Correct shorts keep the market honest. Random shorts create noise."
                     };
 
                     let invest_prompt = format!(
@@ -875,6 +875,11 @@ YOUR APPROACH:\n\
                         info!("[TIMEOUT] 30s idle. Solvent: {}/{}. Invest: {}s, Free: {}s.",
                             solvent_count, swarm_size, secs_since_invest, secs_since_free);
                     }
+                    // Heartbeat: broadcast current snapshot so agents blocked on
+                    // rx.changed() can proceed. Without this, agents that PASS
+                    // (sending no tx) deadlock against the reactor indefinitely.
+                    let snap = bus.get_immutable_snapshot();
+                    let _ = tx_state.send(snap);
                 }
             }
         }

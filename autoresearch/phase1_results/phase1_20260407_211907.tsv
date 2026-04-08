@@ -1,0 +1,6 @@
+model	mode	run	completed	steps	comp_tokens	prompt_tokens	elapsed_s
+qwen3-14b	iterative	1	True	1	161	116	5
+qwen3-14b	iterative	2	True	4	429	1259	9
+qwen3-14b	iterative	3	True	2	353	403	7
+qwen3-14b	iterative	4	True	1	332	116	7
+qwen3-14b	iterative	5	True	4	498	1252	13

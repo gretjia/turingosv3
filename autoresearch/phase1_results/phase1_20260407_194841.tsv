@@ -1,0 +1,11 @@
+model	mode	run	completed	steps	comp_tokens	prompt_tokens	elapsed_s
+Qwen2.5-72B	oneshot	1	True	16	1250	113	56
+Qwen2.5-72B	oneshot	2	True	2	1153	113	55
+Qwen2.5-72B	oneshot	3	True	2	1638	113	76
+Qwen2.5-72B	oneshot	4	True	4	2650	113	111
+Qwen2.5-72B	oneshot	5	True	2	1553	113	66
+Qwen2.5-72B	iterative	1	True	11	2938	14174	216
+Qwen2.5-72B	iterative	2	True	17	2878	26927	290
+Qwen2.5-72B	iterative	3	True	8	1791	6360	119
+Qwen2.5-72B	iterative	4	True	28	16773	159759	913
+Qwen2.5-72B	iterative	5	True	18	2466	26291	319

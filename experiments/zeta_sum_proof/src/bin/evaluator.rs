@@ -27,6 +27,9 @@ fn env_usize(key: &str, default: usize) -> usize {
 fn env_u64(key: &str, default: u64) -> u64 {
     std::env::var(key).ok().and_then(|s| s.parse().ok()).unwrap_or(default)
 }
+fn env_f64(key: &str, default: f64) -> f64 {
+    std::env::var(key).ok().and_then(|s| s.parse().ok()).unwrap_or(default)
+}
 
 // ── THE MUTABLE ARTIFACT (Karpathy's train.py equivalent) ──
 // Prompt files are the SINGLE thing the AutoResearch agent can edit.
@@ -156,8 +159,18 @@ async fn main() {
     let bull_count = env_usize("BULL_COUNT", 5);
     let bear_count = env_usize("BEAR_COUNT", 5);
 
+    // OMEGA trigger: market-driven (Rule 20 — Engine 2 signals, Engine 3 verifies)
+    // [COMPLETE] is an optional accelerator (lower threshold), NOT a requirement.
+    let omega_market_threshold = env_f64("OMEGA_MARKET_THRESHOLD", 0.95);
+    let omega_complete_threshold = env_f64("OMEGA_COMPLETE_THRESHOLD", 0.80);
+    let omega_min_depth = env_usize("OMEGA_MIN_DEPTH", 5);
+    let omega_target_value = std::env::var("OMEGA_TARGET_VALUE").ok(); // Layer 1 pre-filter
+
     info!("=== ζ-Sum AutoResearch — {}M/{}B+/{}B- ===", math_count, bull_count, bear_count);
     info!("N={}, Max Tx={}", swarm_size, max_transactions);
+    info!("OMEGA: market P>={:.0}% | [COMPLETE] P>={:.0}% | min_depth={} | target={}",
+        omega_market_threshold * 100.0, omega_complete_threshold * 100.0, omega_min_depth,
+        omega_target_value.as_deref().unwrap_or("(none)"));
 
     // --- Skills dir (needed by Librarian + Role seeding) ---
     let skills_dir = std::env::var("AGENT_SKILLS_DIR")
@@ -585,6 +598,7 @@ YOUR APPROACH:\n\
     let mut generation: usize = restored_gen;
     let mut last_invest_epoch = epoch_secs();
     let mut last_librarian_at: u64 = 0; // appends at last compression
+    let mut oracle_checked: std::collections::HashSet<String> = std::collections::HashSet::new(); // avoid re-checking same chain
 
     loop {
         match tokio::time::timeout(
@@ -719,31 +733,63 @@ YOUR APPROACH:\n\
                             last_librarian_at = append_count;
                         }
 
-                        // --- DeepSeek Halt Gate ---
-                        // [COMPLETE] nodes don't auto-trigger OMEGA.
-                        // Only when market price >= 90% do we call DeepSeek to verify.
+                        // --- OMEGA Gate (Rule 20: Engine 2 signals → Engine 3 verifies) ---
+                        // Two trigger paths, both invoke Oracle for independent verification:
+                        //   Path A: [COMPLETE] + P >= omega_complete_threshold (agent hint, lower bar)
+                        //   Path B: leaf + P >= omega_market_threshold + depth >= omega_min_depth (pure market signal)
+                        // [COMPLETE] is an optional accelerator, NOT a requirement.
                         if tx.payload.contains("[COMPLETE]") {
                             let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
                             let price = bus.kernel.tape.files.get(&file_id)
                                 .map(|n| n.price).unwrap_or(0.0);
-                            info!(">>> [COMPLETE CLAIMED] {} at {} (P={:.1}%). Need 90% for DeepSeek verification.",
-                                tx.agent_id, file_id, price * 100.0);
+                            info!(">>> [COMPLETE CLAIMED] {} at {} (P={:.1}%). Threshold: {:.0}%.",
+                                tx.agent_id, file_id, price * 100.0, omega_complete_threshold * 100.0);
                         }
 
-                        // Check ALL [COMPLETE] nodes for price threshold
+                        // Scan for OMEGA candidates (highest price first)
                         let mut omega_candidate: Option<String> = None;
-                        for (nid, node) in &bus.kernel.tape.files {
-                            if node.payload.contains("[COMPLETE]") && node.price >= 0.9 {
-                                info!(">>> [PRICE GATE] {} reached P={:.1}% — invoking DeepSeek Oracle!",
-                                    nid, node.price * 100.0);
-                                omega_candidate = Some(nid.clone());
+                        let mut sorted_nodes: Vec<(&String, &turingosv3::kernel::File)> = bus.kernel.tape.files.iter().collect();
+                        sorted_nodes.sort_by(|a, b| b.1.price.partial_cmp(&a.1.price).unwrap_or(std::cmp::Ordering::Equal));
+                        for (nid, node) in &sorted_nodes {
+                            if oracle_checked.contains(*nid) { continue; }
+
+                            // Layer 1: target value pre-filter (string match, zero cost)
+                            // If OMEGA_TARGET_VALUE is set, the candidate's leaf payload must contain it.
+                            // This prevents Oracle from "filling in gaps" on incomplete chains.
+                            if let Some(ref target) = omega_target_value {
+                                if !node.payload.contains(target.as_str()) {
+                                    continue;
+                                }
+                            }
+
+                            // Chain depth (trace to root)
+                            let chain = bus.kernel.trace_golden_path(nid);
+                            let depth = chain.len();
+
+                            // Path A: [COMPLETE] + lower threshold
+                            if node.payload.contains("[COMPLETE]") && node.price >= omega_complete_threshold {
+                                info!(">>> [OMEGA GATE A] {} [COMPLETE] P={:.1}% depth={} — invoking Oracle!",
+                                    nid, node.price * 100.0, depth);
+                                omega_candidate = Some((*nid).clone());
                                 break;
+                            }
+
+                            // Path B: pure market signal — leaf + high P + sufficient depth
+                            if depth >= omega_min_depth && node.price >= omega_market_threshold {
+                                // Check if leaf (no children)
+                                let is_leaf = !bus.kernel.tape.reverse_citations.contains_key(*nid)
+                                    || bus.kernel.tape.reverse_citations.get(*nid).map(|v| v.is_empty()).unwrap_or(true);
+                                if is_leaf {
+                                    info!(">>> [OMEGA GATE B] {} leaf P={:.1}% depth={} — invoking Oracle!",
+                                        nid, node.price * 100.0, depth);
+                                    omega_candidate = Some((*nid).clone());
+                                    break;
+                                }
                             }
                         }
 
                         if let Some(ref candidate_id) = omega_candidate {
                             if let Some(ref oracle) = deepseek_oracle {
-                                // Build the full proof chain for DeepSeek to verify
                                 let chain = bus.kernel.trace_golden_path(candidate_id);
                                 let mut proof_text = format!("PROBLEM: {}\n\nPROOF CHAIN ({} steps):\n", problem, chain.len());
                                 for (i, nid) in chain.iter().rev().enumerate() {
@@ -751,7 +797,17 @@ YOUR APPROACH:\n\
                                         proof_text.push_str(&format!("Step {}: {}\n", i+1, n.payload.trim()));
                                     }
                                 }
-                                proof_text.push_str("\nIS THIS PROOF MATHEMATICALLY CORRECT AND COMPLETE? Answer YES or NO with brief justification.");
+                                proof_text.push_str("\n\
+                                    QUESTION: Does the FINAL STEP of this chain contain an explicit numerical result that answers the problem?\n\
+                                    \n\
+                                    RULES:\n\
+                                    1. Read ONLY the steps shown above. Do NOT use your own knowledge to fill in gaps.\n\
+                                    2. The chain must ITSELF compute the answer — if the final step is an intermediate computation, answer NO.\n\
+                                    3. If no specific number appears in the final step as the derived answer, answer NO.\n\
+                                    4. 'Apply the formula' or 'it can be shown that' without actually computing = NO.\n\
+                                    \n\
+                                    First, quote the final step's conclusion verbatim.\n\
+                                    Then answer YES or NO.");
 
                                 info!(">>> [DEEPSEEK ORACLE] Verifying {} ({} steps)...", candidate_id, chain.len());
                                 match oracle.resilient_generate(&proof_text, 0, 0.1).await {
@@ -763,6 +819,7 @@ YOUR APPROACH:\n\
                                             break;
                                         } else {
                                             warn!(">>> [DEEPSEEK VERDICT] ✗ PROOF REJECTED: {}", &response[..response.len().min(200)]);
+                                            oracle_checked.insert(candidate_id.clone());
                                         }
                                     }
                                     Err(e) => {
@@ -770,10 +827,14 @@ YOUR APPROACH:\n\
                                     }
                                 }
                             } else {
-                                // No DeepSeek key — fallback to old behavior
-                                info!(">>> [OMEGA] No DeepSeek Oracle, accepting [COMPLETE] at P >= 90%");
-                                bus.halt_and_settle(candidate_id);
-                                break;
+                                // No DeepSeek key — accept if [COMPLETE] + P >= threshold
+                                if bus.kernel.tape.files.get(candidate_id)
+                                    .map(|n| n.payload.contains("[COMPLETE]")).unwrap_or(false) {
+                                    info!(">>> [OMEGA] No Oracle — accepting [COMPLETE] at P >= {:.0}%",
+                                        omega_complete_threshold * 100.0);
+                                    bus.halt_and_settle(candidate_id);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -889,18 +950,35 @@ YOUR APPROACH:\n\
     info!("==== EVALUATION COMPLETE ({} appends, {} total tx, {} generations) ====", append_count, tx_count, generation);
     bus.kernel.refresh_prices();
 
-    if let Some(omega) = bus.kernel.tape.files.values()
-        .find(|f| f.payload.contains("[OMEGA]") || f.payload.contains("[COMPLETE]"))
-    {
-        info!("--- PROOF CHAIN (Golden Path) ---");
-        let path = bus.kernel.trace_golden_path(&omega.id);
+    // Show golden path: prefer [OMEGA]/[COMPLETE] node, fallback to highest-P leaf
+    let omega_node = bus.kernel.tape.files.values()
+        .find(|f| f.payload.contains("[OMEGA]") || f.payload.contains("[COMPLETE]"));
+    let best_leaf = if omega_node.is_none() {
+        bus.kernel.tape.files.values()
+            .filter(|f| {
+                !bus.kernel.tape.reverse_citations.contains_key(&f.id)
+                    || bus.kernel.tape.reverse_citations.get(&f.id).map(|v| v.is_empty()).unwrap_or(true)
+            })
+            .max_by(|a, b| a.price.partial_cmp(&b.price).unwrap_or(std::cmp::Ordering::Equal))
+    } else { None };
+    let display_node = omega_node.or(best_leaf);
+    if let Some(node) = display_node {
+        let label = if node.payload.contains("[OMEGA]") || node.payload.contains("[COMPLETE]") {
+            "OMEGA"
+        } else {
+            "BEST CHAIN (no OMEGA)"
+        };
+        info!("--- {} (Golden Path) ---", label);
+        let path = bus.kernel.trace_golden_path(&node.id);
         for (i, nid) in path.iter().rev().enumerate() {
             if let Some(n) = bus.kernel.tape.files.get(nid) {
                 let step = n.payload.lines().last().unwrap_or(&n.payload).trim();
                 info!("Step {}: [{}] P:{:.0} | {}", i+1, nid, n.price, step);
             }
         }
-        info!("OMEGA: Proof chain COMPLETE!");
+        if label == "OMEGA" {
+            info!("OMEGA: Proof chain COMPLETE!");
+        }
     } else {
         info!("NOT proved within {} transactions.", tx_count);
     }

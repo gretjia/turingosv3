@@ -159,18 +159,14 @@ async fn main() {
     let bull_count = env_usize("BULL_COUNT", 5);
     let bear_count = env_usize("BEAR_COUNT", 5);
 
-    // OMEGA trigger: market-driven (Rule 20 — Engine 2 signals, Engine 3 verifies)
-    // [COMPLETE] is an optional accelerator (lower threshold), NOT a requirement.
-    let omega_market_threshold = env_f64("OMEGA_MARKET_THRESHOLD", 0.95);
-    let omega_complete_threshold = env_f64("OMEGA_COMPLETE_THRESHOLD", 0.80);
-    let omega_min_depth = env_usize("OMEGA_MIN_DEPTH", 5);
-    let omega_target_value = std::env::var("OMEGA_TARGET_VALUE").ok(); // Layer 1 pre-filter
+    // OMEGA trigger: [COMPLETE] + P >= threshold + target value pre-filter
+    let omega_threshold = env_f64("OMEGA_THRESHOLD", 0.90);
+    let omega_target_value = std::env::var("OMEGA_TARGET_VALUE").ok();
 
     info!("=== ζ-Sum AutoResearch — {}M/{}B+/{}B- ===", math_count, bull_count, bear_count);
     info!("N={}, Max Tx={}", swarm_size, max_transactions);
-    info!("OMEGA: market P>={:.0}% | [COMPLETE] P>={:.0}% | min_depth={} | target={}",
-        omega_market_threshold * 100.0, omega_complete_threshold * 100.0, omega_min_depth,
-        omega_target_value.as_deref().unwrap_or("(none)"));
+    info!("OMEGA: [COMPLETE] + P>={:.0}% | target={}",
+        omega_threshold * 100.0, omega_target_value.as_deref().unwrap_or("(none)"));
 
     // --- Skills dir (needed by Librarian + Role seeding) ---
     let skills_dir = std::env::var("AGENT_SKILLS_DIR")
@@ -261,27 +257,37 @@ async fn main() {
         _ => panic!("Unknown LLM_PROVIDER: {}. Use 'aliyun', 'siliconflow', or 'local'.", provider),
     };
 
-    // --- DeepSeek: Two roles, two models ---
-    // Oracle (Engine 3): deepseek-reasoner for verification (needs chain-of-thought)
-    // Librarian (Engine 4): deepseek-chat (V3) for compression (needs structured summaries)
-    // DEEPSEEK_URL override: route through llm_proxy.py when direct HTTPS fails
+    // --- Oracle + Librarian: independent API keys for rate-limit isolation ---
+    // ORACLE_URL / ORACLE_KEY / ORACLE_MODEL: Engine 3 (verification)
+    // LIBRARIAN_URL / LIBRARIAN_KEY / LIBRARIAN_MODEL: Engine 4 (compression)
+    // Falls back to DEEPSEEK_URL / DEEPSEEK_API_KEY if not set.
     let ds_url = std::env::var("DEEPSEEK_URL")
         .unwrap_or_else(|_| "https://api.deepseek.com/chat/completions".to_string());
     let ds_key = std::env::var("DEEPSEEK_API_KEY").unwrap_or_default();
-    let deepseek_oracle = if !ds_key.is_empty() {
-        let client = Arc::new(ResilientLLMClient::with_key(&ds_url, "deepseek-reasoner", &ds_key));
-        info!("DeepSeek Oracle: ARMED (deepseek-reasoner, triggers at P >= 90%)");
+
+    let oracle_url = std::env::var("ORACLE_URL").unwrap_or_else(|_| ds_url.clone());
+    let oracle_key = std::env::var("ORACLE_KEY").unwrap_or_else(|_| ds_key.clone());
+    let oracle_model = std::env::var("ORACLE_MODEL").unwrap_or_else(|_| "deepseek-reasoner".to_string());
+
+    let deepseek_oracle = if !oracle_key.is_empty() {
+        let client = Arc::new(ResilientLLMClient::with_key(&oracle_url, &oracle_model, &oracle_key));
+        info!("Oracle: ARMED ({} @ {})", oracle_model, oracle_url.chars().take(40).collect::<String>());
         Some(client)
     } else {
-        warn!("DeepSeek Oracle: DISABLED (no DEEPSEEK_API_KEY)");
+        warn!("Oracle: DISABLED (no ORACLE_KEY or DEEPSEEK_API_KEY)");
         None
     };
-    let deepseek_librarian = if !ds_key.is_empty() {
-        let client = Arc::new(ResilientLLMClient::with_key(&ds_url, "deepseek-chat", &ds_key));
-        info!("DeepSeek Librarian: ARMED (deepseek-chat, management layer)");
+
+    let lib_url = std::env::var("LIBRARIAN_URL").unwrap_or_else(|_| ds_url.clone());
+    let lib_key = std::env::var("LIBRARIAN_KEY").unwrap_or_else(|_| ds_key.clone());
+    let lib_model = std::env::var("LIBRARIAN_MODEL").unwrap_or_else(|_| "deepseek-chat".to_string());
+
+    let deepseek_librarian = if !lib_key.is_empty() {
+        let client = Arc::new(ResilientLLMClient::with_key(&lib_url, &lib_model, &lib_key));
+        info!("Librarian: ARMED ({} @ {})", lib_model, lib_url.chars().take(40).collect::<String>());
         Some(client)
     } else {
-        warn!("DeepSeek Librarian: DISABLED (no DEEPSEEK_API_KEY)");
+        warn!("Librarian: DISABLED (no LIBRARIAN_KEY or DEEPSEEK_API_KEY)");
         None
     };
 
@@ -522,7 +528,7 @@ YOUR APPROACH:\n\
                         Recent nodes (most recent first):\n{}\n\n\
                         DECISION FRAMEWORK:\n\
                         - Is the math CORRECT and advancing the proof? → invest YES (50-150 Coins)\n\
-                        - Is there an ERROR, leap, or hand-waving? → short NO (50-150 Coins)\n\
+                        - Is there an ERROR or wrong direction? → short NO (50-150 Coins)\n\
                         - Genuinely cannot judge? → pass (but this means no profit)\n\n\
                         BET SIZING: 50-100 normal, 150-300 high confidence. Never >10% of balance.\n\n\
                         - Endorse: <action>{{\"tool\":\"invest\",\"node\":\"NODE_ID\",\"amount\":COINS}}</action>\n\
@@ -733,59 +739,35 @@ YOUR APPROACH:\n\
                             last_librarian_at = append_count;
                         }
 
-                        // --- OMEGA Gate (Rule 20: Engine 2 signals → Engine 3 verifies) ---
-                        // Two trigger paths, both invoke Oracle for independent verification:
-                        //   Path A: [COMPLETE] + P >= omega_complete_threshold (agent hint, lower bar)
-                        //   Path B: leaf + P >= omega_market_threshold + depth >= omega_min_depth (pure market signal)
-                        // [COMPLETE] is an optional accelerator, NOT a requirement.
+                        // --- OMEGA: [COMPLETE] + P >= threshold + target filter + structured Oracle audit ---
                         if tx.payload.contains("[COMPLETE]") {
                             let file_id = format!("tx_{}_by_{}", tx_count, tx.agent_id.replace("Agent_", ""));
                             let price = bus.kernel.tape.files.get(&file_id)
                                 .map(|n| n.price).unwrap_or(0.0);
-                            info!(">>> [COMPLETE CLAIMED] {} at {} (P={:.1}%). Threshold: {:.0}%.",
-                                tx.agent_id, file_id, price * 100.0, omega_complete_threshold * 100.0);
+                            info!(">>> [COMPLETE CLAIMED] {} at {} (P={:.1}%). Need {:.0}% for Oracle.",
+                                tx.agent_id, file_id, price * 100.0, omega_threshold * 100.0);
                         }
 
-                        // Scan for OMEGA candidates (highest price first)
+                        // Scan all [COMPLETE] nodes for price threshold (highest price first)
                         let mut omega_candidate: Option<String> = None;
                         let mut sorted_nodes: Vec<(&String, &turingosv3::kernel::File)> = bus.kernel.tape.files.iter().collect();
                         sorted_nodes.sort_by(|a, b| b.1.price.partial_cmp(&a.1.price).unwrap_or(std::cmp::Ordering::Equal));
                         for (nid, node) in &sorted_nodes {
+                            if !node.payload.contains("[COMPLETE]") { continue; }
+                            if node.price < omega_threshold { continue; }
                             if oracle_checked.contains(*nid) { continue; }
-
-                            // Layer 1: target value pre-filter (string match, zero cost)
-                            // If OMEGA_TARGET_VALUE is set, the candidate's leaf payload must contain it.
-                            // This prevents Oracle from "filling in gaps" on incomplete chains.
+                            // Target value pre-filter: chain must contain the target answer
                             if let Some(ref target) = omega_target_value {
-                                if !node.payload.contains(target.as_str()) {
-                                    continue;
-                                }
+                                let chain = bus.kernel.trace_golden_path(nid);
+                                let chain_text: String = chain.iter()
+                                    .filter_map(|id| bus.kernel.tape.files.get(id))
+                                    .map(|f| f.payload.as_str()).collect::<Vec<_>>().join(" ");
+                                if !chain_text.contains(target.as_str()) { continue; }
                             }
-
-                            // Chain depth (trace to root)
-                            let chain = bus.kernel.trace_golden_path(nid);
-                            let depth = chain.len();
-
-                            // Path A: [COMPLETE] + lower threshold
-                            if node.payload.contains("[COMPLETE]") && node.price >= omega_complete_threshold {
-                                info!(">>> [OMEGA GATE A] {} [COMPLETE] P={:.1}% depth={} — invoking Oracle!",
-                                    nid, node.price * 100.0, depth);
-                                omega_candidate = Some((*nid).clone());
-                                break;
-                            }
-
-                            // Path B: pure market signal — leaf + high P + sufficient depth
-                            if depth >= omega_min_depth && node.price >= omega_market_threshold {
-                                // Check if leaf (no children)
-                                let is_leaf = !bus.kernel.tape.reverse_citations.contains_key(*nid)
-                                    || bus.kernel.tape.reverse_citations.get(*nid).map(|v| v.is_empty()).unwrap_or(true);
-                                if is_leaf {
-                                    info!(">>> [OMEGA GATE B] {} leaf P={:.1}% depth={} — invoking Oracle!",
-                                        nid, node.price * 100.0, depth);
-                                    omega_candidate = Some((*nid).clone());
-                                    break;
-                                }
-                            }
+                            info!(">>> [OMEGA TRIGGER] {} [COMPLETE] P={:.1}% — invoking Oracle audit!",
+                                nid, node.price * 100.0);
+                            omega_candidate = Some((*nid).clone());
+                            break;
                         }
 
                         if let Some(ref candidate_id) = omega_candidate {
@@ -797,17 +779,7 @@ YOUR APPROACH:\n\
                                         proof_text.push_str(&format!("Step {}: {}\n", i+1, n.payload.trim()));
                                     }
                                 }
-                                proof_text.push_str("\n\
-                                    QUESTION: Does the FINAL STEP of this chain contain an explicit numerical result that answers the problem?\n\
-                                    \n\
-                                    RULES:\n\
-                                    1. Read ONLY the steps shown above. Do NOT use your own knowledge to fill in gaps.\n\
-                                    2. The chain must ITSELF compute the answer — if the final step is an intermediate computation, answer NO.\n\
-                                    3. If no specific number appears in the final step as the derived answer, answer NO.\n\
-                                    4. 'Apply the formula' or 'it can be shown that' without actually computing = NO.\n\
-                                    \n\
-                                    First, quote the final step's conclusion verbatim.\n\
-                                    Then answer YES or NO.");
+                                proof_text.push_str("\nIS THIS PROOF MATHEMATICALLY CORRECT AND COMPLETE? Answer YES or NO with brief justification.");
 
                                 info!(">>> [DEEPSEEK ORACLE] Verifying {} ({} steps)...", candidate_id, chain.len());
                                 match oracle.resilient_generate(&proof_text, 0, 0.1).await {
@@ -823,18 +795,14 @@ YOUR APPROACH:\n\
                                         }
                                     }
                                     Err(e) => {
-                                        warn!(">>> [DEEPSEEK ERROR] Oracle failed: {:?}. Continuing without halt.", e);
+                                        warn!(">>> [DEEPSEEK ERROR] Oracle failed: {:?}. Continuing.", e);
                                     }
                                 }
                             } else {
-                                // No DeepSeek key — accept if [COMPLETE] + P >= threshold
-                                if bus.kernel.tape.files.get(candidate_id)
-                                    .map(|n| n.payload.contains("[COMPLETE]")).unwrap_or(false) {
-                                    info!(">>> [OMEGA] No Oracle — accepting [COMPLETE] at P >= {:.0}%",
-                                        omega_complete_threshold * 100.0);
-                                    bus.halt_and_settle(candidate_id);
-                                    break;
-                                }
+                                info!(">>> [OMEGA] No Oracle — accepting [COMPLETE] at P >= {:.0}%",
+                                    omega_threshold * 100.0);
+                                bus.halt_and_settle(candidate_id);
+                                break;
                             }
                         }
                     }

@@ -74,6 +74,8 @@ fn evaluate_theorem(problem_name: &str, problem_content: &str, mut agent: Specul
             stake: action.stake,
             intrinsic_reward: 0.0,
             price: 0.0,
+            created_at: 0,
+            completion_tokens: 0,
         };
 
         match bus.append(file) {

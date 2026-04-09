@@ -71,6 +71,8 @@ pub fn run_turing_os_v3(human_spec: String, mut ai: impl AIBlackBox, lean_proble
             stake: action.stake,
             intrinsic_reward: 0.0,
             price: 0.0,
+            created_at: 0,
+            completion_tokens: 0,
         };
 
         match bus.append(file) {

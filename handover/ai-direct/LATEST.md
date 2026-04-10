@@ -1,97 +1,96 @@
 # TuringOS v3 — Handover State
-**Updated**: 2026-04-09
-**Session Summary**: OMEGA 机制重设计 + 原子化步骤调优实验 × 8 + 苦涩的教训实证
+**Updated**: 2026-04-10
+**Session Summary**: PPUT 模型扫描 + Q3.5-122B 49x 提升 + 模型地板研究 + Oracle 修复方案
 
 ## Current State
-- **OMEGA 可复现**: V3.2 N=3 3M/0B+/0B- 50K，PPUT ~2×10⁻⁴，2/2 成功率
-- **最佳配置确定**: 零人工规则 + [COMPLETE]协议 + 目标值预过滤 = 稳定 OMEGA
-- **代码已回滚到大宪章对齐状态**: 投资 prompt 简洁版，Oracle YES/NO，无 SUBSTANCE/审计
-- **未提交的变更**: evaluator.rs (OMEGA 机制 + Oracle/Librarian 独立 key 支持)
-- **所有节点已清理**: omega-vm / Mac / Linux1 无残留进程
+- **PPUT 排行榜**（严格审计）:
+  1. Q3.5-122B N=3: **9.87×10⁻³** (GENUINE, 4 步链, 2.5 min)
+  2. Q3.5-27B N=3: 2.11×10⁻³ (BORDERLINE)
+  3. Q3.5-35B-A3B N=3: 1.83×10⁻³ (GENUINE)
+  4. V3.2 N=3 (baseline): 2.19×10⁻⁴ (GENUINE 8.5/10)
+- **模型地板**: 27B 可靠，9B 产生 Oracle false positive
+- **投资列表修复**: 5 recent + 5 top-priced (已改但未 commit) — 让 9B 突破 P=0.90
+- **未提交**: evaluator.rs (投资列表修复)
+- **进程状态**: 只有 DeepSeek proxy 在 8089（siliconflow）
 
 ## Changes This Session
 
-### 修复
-1. **Reactor-Agent 死锁修复** (`4be6dec`) — timeout 分支加心跳广播
-2. **context.txt 漏题修复** (`4be6dec`) — 删除 "divergent series and regularization"
-3. **problem.txt [COMPLETE] 规则** (`4be6dec`) — 添加完成协议
-4. **GENESIS_COINS 可配置** (`4be6dec`) — wallet.rs 支持环境变量
-5. **Oracle/Librarian 独立 API key** (未提交) — ORACLE_URL/KEY/MODEL + LIBRARIAN_URL/KEY/MODEL
+### N Sweep 实验
+1. **DeepSeek API N sweep** (V3.2): N=3 OMEGA (2/3), N≥5 全部失败。Brooks's Law 实证。
+2. **Qwen3.5-122B N sweep**: N=3,5,7,10 全部 OMEGA (4/4, 100%)。N=3 PPUT=9.87×10⁻³ (49x V3.2)。
+3. **模型地板 sweep**: 35B-A3B/27B OMEGA (genuine)，9B 卡在 P=0.887 (fix 前)，4B 崩溃
 
-### OMEGA 机制演进
-6. **Gate A/B 设计** (`8320c98`) — 去掉 [COMPLETE] 作为必要条件，纯市场触发
-7. **目标值预过滤** (`8320c98`) — OMEGA_TARGET_VALUE 环境变量，防 Oracle 脑补
-8. **回滚 Gate A/B** (未提交) — 恢复 [COMPLETE]+P≥0.90，保留目标值预过滤
-9. **回滚结构化 Oracle 审计** (未提交) — Oracle 回归 YES/NO，不做 [C]/[P] 分类
-10. **回滚 SUBSTANCE 投资维度** (未提交) — 投资 prompt 回归简洁版
+### 代码修复
+4. **投资列表 = 5 recent + 5 top-priced** (未 commit)
+   - 修复 attention dilution: 老的高价 [COMPLETE] 节点不再从视图中消失
+   - 烟测: Q3.5-122B 从 P=0.835 突破到 0.914
+   - 实测: 9B 从 P=0.887 → 0.907 (触发 Oracle，但后续被认定为 false positive)
 
-### 审计
-11. **Phase 2 统一审计** (`b713876`) — 651 行，4 实验，DAG 分析，PPUT，泄露审计
-12. **14B false OMEGA 发现** — 数值验证证明 14B 的闭合形式公式错误（差 16,000 倍）
-13. **Mac 残留进程挖掘** — 74 次 scaling law 实验数据抢救，3 个长跑（125K tx）消耗分析
+### 审计发现
+5. **14B Exp1 是 false positive**: 数值验证证明闭合公式 `-N²/4·(1+e^{-2/N})/(1-e^{-2/N})²` 差 16,000 倍
+6. **9B post-fix OMEGA 是 false positive**: Step 4 空洞 "[COMPLETE] yield -1/12" 没有推导
+7. **Oracle 系统性问题**: 3 次 false positive 都被 DeepSeek Reasoner 接受 — LLM Oracle 用训练知识脑补
 
-### 宪法违规发现与修复
-14. **Over-Alignment (Rule 20)**: SUBSTANCE 投资维度 + Oracle 结构化审计 = Engine 间职责越界 → 全部回滚
-15. **Oracle 做 Engine 2 的事**: [C]/[P] 分类是定价行为不是验证行为 → 回滚到 YES/NO
+### 数据保存
+- `autoresearch/phase2_results/`: 20+ WAL/stderr/proxy 文件
+- `POST_FIX_RESEARCH_SUMMARY.md`: 完整 PPUT 表 + 五阶段分析
+- `nsweep_ds_analysis.md`: DeepSeek API N sweep 分析
+- `qwen35_122b_sweep_analysis.md`: 122B 完整数据
 
 ## Key Decisions
 
-### 1. 苦涩的教训在原子化步骤上的实证
-**每一个"改进"都让结果变差：**
-- + 步骤质量指令 → 代数错误（-1/2≠-1/12）
-- + SUBSTANCE 投资维度 → 推导变慢（30min 不够）
-- + Bear (2M/1B-) → 做空正确步骤 / 逼走复杂路线
-- + Oracle 结构化审计 → Over-Alignment (Rule 20 违反)
-**结论**: 零人工规则 + 市场涌现 = 最优。人工规则扼杀涌现。
+### 1. 苦涩的教训 × 模型 vs 系统调优
+**证据**: V3.2 上 5 个系统调优实验全部失败（0 valid OMEGA），换 Q3.5-122B 一次成功 49× 提升。
+**结论**: Compute >> Engineering。停止 V3.2 系统调优。
 
-### 2. Oracle 是 LLM 而非形式化验证器
-- DeepSeek Reasoner 接受了 14B 的错误证明（闭合形式差 16,000 倍）
-- DeepSeek Reasoner 接受了 3 步不完整链（用训练数据脑补）
-- 目标值预过滤是唯一可靠的防伪层（字符串匹配，零 LLM 依赖）
-- 大宪章的终极 Oracle 应是 Lean 4 编译器，LLM Oracle 是临时替代
+### 2. Rule 20 (禁止 Over-Alignment) 实证
+所有人工规则（quality instructions / SUBSTANCE / Bear / Oracle 结构化审计）都让 OMEGA 成功率从 2/3 降到 0/5。全部已回滚。
 
-### 3. 价格信号的两个维度（架构师指令）
-高价格应传递：(1) Ground Truth 合规 (2) 目标推进。
-当前市场自然地编码了这两个维度（在零人工规则下）。人工添加第三维度（如 SUBSTANCE）反而破坏信号。
+### 3. N=3 是所有模型的最优 swarm size
+V3.2 和 Q3.5-122B 都在 N=3 取得最高 PPUT。N≥5 时 Brooks's Law 主导（注意力稀释 + 每 agent 步数变少）。
 
-### 4. [COMPLETE] 是行为指令而非质量规则
-skill.txt 的 PROOF COMPLETION PROTOCOL 不是质量控制，是必要的行为引导。
-没有它 → 70+ 次运行零 [COMPLETE]。有它 → agent 自然写出 [COMPLETE]。
+### 4. 投资列表修复是结构改进不是人工规则
+当前 invest prompt 展示"最近 10 节点"有 recency 偏差。改为"5 recent + 5 top-priced"让市场信号可以持续表达，不因时间衰减。符合大宪章 — 不改变评价标准，只改变信息可见性。
 
-### 5. Bear 在 N=3 下效果为负
-1 Bear / 3 agents = 1/3 做空权重。Bear 做空正确步骤的概率和做空错误步骤的概率一样高。
-Bear 可能在 N≥7 (Bear 权重 ≤ 1/7) 时才有正面效果。
-
-## Experiment Results (PPUT 为唯一评估标准)
-
-| Experiment | Config | OMEGA | PPUT | Quality | Key Finding |
-|------------|--------|-------|------|---------|-------------|
-| Baseline oneshot | bare V3.2 | N/A | N/A | SHORTCUT 4/5 | 无构造性推导 |
-| **OMEGA #1 ★** | **3M 50K** | **YES** | **2.19e-4** | **8.5/10** | **最佳** |
-| Exp 1 (14B) | 3M 50K 14B | YES(INVALID) | N/A | WRONG MATH | Oracle 检不出错 |
-| Exp 2/2b (质量) | 3M 50K | NO | N/A | -1/2 错误 | 细粒度→错误累积 |
-| **Exp 3 (复现)** | **3M 50K** | **YES** | **2.00e-4** | **6/10** | **OMEGA 可复现** |
-| Exp 4 (SUBSTANCE) | 3M 50K | NO | N/A | 100% substantive | 推导变慢 |
-| Exp 5b (Bear+规则) | 2M/1B- 50K | NO | N/A | Bear 做空 [COMPLETE] | C∩P90=0 |
-| Exp 6 (Bear 干净) | 2M/1B- 50K | NO | N/A | sinh² 弯路 | Bear 逼走复杂路线 |
+### 5. LLM Oracle 是系统最弱环节
+3 次 false positive 证明 DeepSeek Reasoner 会脑补不完整链。需要分离"文本提取"（LLM）和"数学验证"（机械）。
 
 ## Next Steps
-1. **Commit 当前回滚** — evaluator.rs 的大宪章对齐版本
-2. **N=5 实验** — 3M/1B+/1B-，测试 Bear 在更大 swarm 中的效果
-3. **PPUT 跨 N 曲线** — 用最佳配置 (3M 50K) 测 N=3,5,7 的 PPUT
-4. **换题测试** — 用不同的数学问题验证 PPUT 是否问题无关
-5. **Lean 4 Oracle** — 替代 LLM Oracle 实现真正的形式化验证
-6. **[OPEN SPRINT] bus.rs tick_map_reduce 重构**
-7. **[OPEN SPRINT] math_membrane.rs 语义断头台对齐**
+
+### [OPEN SPRINT] 实现 Oracle 数值验证 Layer 1
+目标: 抓到所有历史 false positive，保留所有真实 OMEGA
+1. 新增 `ORACLE_NUMERIC_TARGET` 环境变量
+2. 创建 `verify_proof.py`: LLM 提取最终公式 → Python 数值验证
+3. evaluator.rs Oracle 分支: 先数值验证，通过后调 DeepSeek Reasoner 做最终确认
+4. 回归测试: V3.2/Q3.5-122B/35B-A3B/27B OMEGA 应仍通过；14B/9B false positive 应被拒
+
+### 高优先级
+1. **Commit + push** 当前 evaluator.rs 修复 (投资列表)
+2. **多次复跑 27B 和 35B-A3B** 验证 PPUT 稳定性
+3. **修复 Oracle** (Layer 1 数值验证)
+4. **用修复后的 Oracle 重测 9B/14B** 找真正的模型地板
+
+### 中优先级
+5. 跨问题测试（Basel 问题、简单积分等），验证 N=3 是否问题无关
+6. MoE vs Dense 效率研究（35B-A3B 3B active 已接近 27B dense）
+
+### NOT 推荐
+- ❌ V3.2 系统调优 — 死路
+- ❌ 加更多人工规则 — 违反 Rule 20
+- ❌ 测 4B 以下 — LLM 延迟限制
+- ❌ N≤3 加 Bear — 做空权重太大
 
 ## Warnings
-- **Oracle (DeepSeek Reasoner) 不可靠**: 接受了 14B 错误证明 + 3 步不完整链。OMEGA_TARGET_VALUE 预过滤是必须的
-- **Mac 上不要遗留进程**: 本次发现 12 个 evaluator + 4 个 proxy 遗留 40 小时消耗 ~3 亿 tokens
-- **实验间不要 pkill proxy**: 只 reset stats，不杀进程。否则下一个实验静默失败
-- **14B 的 OMEGA 是 false positive**: 数学审计证明闭合形式公式差 16,000 倍
-- **未提交变更**: evaluator.rs 有大量回滚改动待 commit
+- **evaluator.rs 未提交** - 投资列表修复需要 commit
+- **9B OMEGA 是 false positive** - 不要把它当成真 OMEGA 用于 PPUT 比较
+- **Oracle 不可靠** - 所有 9B/4B 附近的数据需要 Oracle 修复后重新验证
+- **修复 Oracle 之前不要测更小模型** - 会产生更多 false positive
+- **不要杀 proxy** - 实验之间只 reset stats
+- **Mac 残留进程** - 本 session 开始时发现 Mac 上 40 小时残留消耗 ~3 亿 tokens (已清理)
 
 ## Architect Insights (本次会话)
-- **苦涩的教训 × 原子步骤**: 人工规则（质量指令、SUBSTANCE、结构化审计）全部让 OMEGA 成功率从 100% 降到 0%。零规则 + 市场涌现 = 最优。已通过 8 次对照实验实证。
-- **价格信号两维度**: 高价格 = Ground Truth 合规 + 目标推进。市场自然编码这两个维度。人工添加第三维度（SUBSTANCE、方法论纯粹性）破坏信号。
-- （未归档到 architect-insights/ — 建议下次会话归档）
+- **苦涩的教训 × 原子步骤**: 人工规则（质量指令、SUBSTANCE、结构化审计）全部让 OMEGA 成功率从 100% 降到 0%。已通过 8 次对照实验实证。
+- **价格信号两维度**: 高价格 = Ground Truth 合规 + 目标推进。市场自然编码这两个维度。
+- **Compute >> Engineering**: V3.2 5次系统调优 vs 换 Q3.5-122B 一次 → 49× PPUT 提升。
+- **Oracle LLM 不可替代形式验证**: 3 次 false positive 证明 LLM 无法可靠验证复杂数学。Lean 4 才是终极方案。
+- （本次会话未创建新 architect-insights 归档文件 — 建议下次会话归档以上四条）

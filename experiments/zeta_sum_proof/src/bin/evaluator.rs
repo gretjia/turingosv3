@@ -506,13 +506,34 @@ YOUR APPROACH:\n\
                 let snap_for_invest = rx.borrow().clone();
                 let invest_balance = snap_for_invest.balances.get(&agent_name).copied().unwrap_or(0.0);
                 if invest_balance >= 2.0 && !snap_for_invest.tape.files.is_empty() {
-                    let node_list: String = snap_for_invest.tape.time_arrow.iter().rev().take(10)
-                        .filter_map(|nid| snap_for_invest.tape.files.get(nid))
-                        .map(|n| {
+                    // Investment list: 5 most recent + 5 top-priced (deduped)
+                    // Keeps high-consensus candidates visible for continued investment,
+                    // prevents attention dilution on [COMPLETE] nodes.
+                    let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+                    let mut list_entries: Vec<String> = Vec::new();
+
+                    // 5 most recent
+                    for nid in snap_for_invest.tape.time_arrow.iter().rev().take(5) {
+                        if let Some(n) = snap_for_invest.tape.files.get(nid) {
+                            if seen_ids.insert(n.id.clone()) {
+                                let preview: String = n.payload.chars().take(80).collect();
+                                list_entries.push(format!("[{}] P:{:.2} | {}", n.id, n.price, preview.replace('\n', " ")));
+                            }
+                        }
+                    }
+
+                    // 5 highest-priced (sorted desc)
+                    let mut by_price: Vec<&turingosv3::kernel::File> = snap_for_invest.tape.files.values().collect();
+                    by_price.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap_or(std::cmp::Ordering::Equal));
+                    for n in by_price.iter().take(10) {
+                        if seen_ids.len() >= 10 { break; }
+                        if seen_ids.insert(n.id.clone()) {
                             let preview: String = n.payload.chars().take(80).collect();
-                            format!("[{}] P:{:.2} | {}", n.id, n.price, preview.replace('\n', " "))
-                        })
-                        .collect::<Vec<_>>().join("\n");
+                            list_entries.push(format!("[{}] P:{:.2} | {}", n.id, n.price, preview.replace('\n', " ")));
+                        }
+                    }
+
+                    let node_list: String = list_entries.join("\n");
 
                     let role_bias = if i < math_count {
                         "You are a Mathematician. Invest when you can VERIFY the math: YES on correct steps (50-100 Coins), SHORT on errors (50-100 Coins). PASS only when you genuinely cannot judge."

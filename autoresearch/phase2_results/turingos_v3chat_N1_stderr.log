@@ -1,0 +1,873 @@
+[2026-04-07T18:49:26Z INFO  evaluator] Prompt dir: ./experiments/zeta_sum_proof/prompt (context=122 problem=349 skill=2168 chars)
+[2026-04-07T18:49:26Z INFO  evaluator] === ζ-Sum AutoResearch — 1M/0B+/0B- ===
+[2026-04-07T18:49:26Z INFO  evaluator] N=1, Max Tx=18446744073709551615
+[2026-04-07T18:49:26Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Mounted. Skills: /tmp/turingos_v3_tape_test/skills | Logs: /tmp/turingos_v3_tape_test/logs | Compress every 8 appends
+[2026-04-07T18:49:26Z INFO  turingosv3::sdk::tools::wallet] >>> [GENESIS] Agent Agent_0 allocated 10,000 Coins.
+[2026-04-07T18:49:26Z INFO  evaluator] Provider: Local llama.cpp | 1 endpoints | Model: deepseek-chat
+[2026-04-07T18:49:26Z INFO  evaluator]   Endpoint 0: http://127.0.0.1:8089/v1/chat/completions
+[2026-04-07T18:49:26Z INFO  evaluator] DeepSeek Oracle: ARMED (deepseek-reasoner, triggers at P >= 90%)
+[2026-04-07T18:49:26Z INFO  evaluator] DeepSeek Librarian: ARMED (deepseek-chat, management layer)
+[2026-04-07T18:49:26Z INFO  evaluator] >>> [ROLE] Agent_0 seeded as Mathematician
+[2026-04-07T18:49:26Z INFO  evaluator] >>> [ENGINE 4] Role trifecta: 1M/0B+/0B-
+[2026-04-07T18:49:26Z INFO  evaluator] >>> [SPAWN] Agent 0 → deepseek-chat [MATH]
+[2026-04-07T18:49:26Z INFO  evaluator] >>> TuringOS v3 ζ-Sum Booted. 1 agents (5M/5B+/5B-). <<<
+[2026-04-07T18:49:32Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_1_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:49:32Z INFO  evaluator] [Tx 1 Append #1] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:49:43Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_2_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:49:43Z INFO  evaluator] [Tx 2 Append #2] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:49:44Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:49:44Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_0 (L:0.35 P:0.50) from 2 frontier nodes
+[2026-04-07T18:49:51Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_3_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:49:51Z INFO  evaluator] [Tx 3 Append #3] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:49:53Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_2_by_0
+[2026-04-07T18:49:53Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_2_by_0!
+[2026-04-07T18:49:53Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_2_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:49:53Z INFO  evaluator] [Tx 4 Append #4] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:49:53Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_3_by_0 (L:0.55 P:0.50) from 3 frontier nodes
+[2026-04-07T18:49:58Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_5_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:49:58Z INFO  evaluator] [Tx 5 Append #5] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:00Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_3_by_0
+[2026-04-07T18:50:00Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_3_by_0!
+[2026-04-07T18:50:00Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_3_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T18:50:00Z INFO  evaluator] [Tx 6 Append #6] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_5_by_0 (L:0.66 P:0.50) from 3 frontier nodes
+[2026-04-07T18:50:09Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_7_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:50:09Z INFO  evaluator] [Tx 7 Append #7] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:11Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_5_by_0
+[2026-04-07T18:50:11Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_1_by_0 (L:0.05 P:0.50) from 4 frontier nodes
+[2026-04-07T18:50:11Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_5_by_0!
+[2026-04-07T18:50:11Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_5_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T18:50:11Z INFO  evaluator] [Tx 8 Append #8] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:11Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #8
+[2026-04-07T18:50:11Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 5 nodes, deepest chain = 4 steps (leaf: tx_7_by_0), 0 rejections
+[2026-04-07T18:50:11Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (0 success + 0 failure nodes)...
+[2026-04-07T18:50:20Z INFO  evaluator] >>> [SHORT] Agent_0 NO 80 on tx_7_by_0
+[2026-04-07T18:50:27Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2329 chars)
+[2026-04-07T18:50:27Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #1)
+[2026-04-07T18:50:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_2_by_0!
+[2026-04-07T18:50:27Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 228.6 YES on tx_2_by_0 for 100.00 (P_yes=57.6%)
+[2026-04-07T18:50:27Z INFO  evaluator] [Tx 9 Append #9] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:27Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_0 (L:0.89 P:0.50) from 4 frontier nodes
+[2026-04-07T18:50:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 80.00 Coins on Node tx_7_by_0!
+[2026-04-07T18:50:27Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 137.1 NO on tx_7_by_0 for 80.00 (P_yes=33.8%)
+[2026-04-07T18:50:27Z INFO  evaluator] [Tx 10 Append #10] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:31Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_11_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:50:31Z INFO  evaluator] [Tx 11 Append #11] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:33Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_7_by_0
+[2026-04-07T18:50:33Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_7_by_0!
+[2026-04-07T18:50:33Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 137.6 NO on tx_7_by_0 for 100.00 (P_yes=21.7%)
+[2026-04-07T18:50:33Z INFO  evaluator] [Tx 12 Append #12] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:33Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_11_by_0 (L:0.88 P:0.50) from 3 frontier nodes
+[2026-04-07T18:50:38Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_13_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:50:38Z INFO  evaluator] [Tx 13 Append #13] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:40Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_11_by_0
+[2026-04-07T18:50:40Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_11_by_0!
+[2026-04-07T18:50:40Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_11_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:50:40Z INFO  evaluator] [Tx 14 Append #14] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:40Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:0.92 P:0.50) from 4 frontier nodes
+[2026-04-07T18:50:46Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_15_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:50:46Z INFO  evaluator] [Tx 15 Append #15] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:48Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_11_by_0
+[2026-04-07T18:50:48Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_11_by_0!
+[2026-04-07T18:50:48Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 133.3 NO on tx_11_by_0 for 100.00 (P_yes=20.0%)
+[2026-04-07T18:50:48Z INFO  evaluator] [Tx 16 Append #16] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:48Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_15_by_0 (L:0.95 P:0.50) from 4 frontier nodes
+[2026-04-07T18:50:48Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #16
+[2026-04-07T18:50:48Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 8 nodes, deepest chain = 7 steps (leaf: tx_15_by_0), 0 rejections
+[2026-04-07T18:50:48Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (0 success + 2 failure nodes)...
+[2026-04-07T18:50:57Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (1478 chars)
+[2026-04-07T18:50:57Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #2)
+[2026-04-07T18:50:57Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_17_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:50:57Z INFO  evaluator] [Tx 17 Append #17] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:59Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_15_by_0
+[2026-04-07T18:50:59Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_15_by_0!
+[2026-04-07T18:50:59Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_15_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:50:59Z INFO  evaluator] [Tx 18 Append #18] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:50:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_5_by_0 (L:0.89 P:0.66) from 6 frontier nodes
+[2026-04-07T18:51:11Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_7_by_0 (branch-aware)
+[2026-04-07T18:51:11Z WARN  evaluator] [Tx 19] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_7_by_0. Try a DIFFERENT step. | Expand e^{(i-1)/N} for large N using Taylor series up to second order: e^{(i-1)/N} = 1 + (i-1)/N + (
+[2026-04-07T18:51:22Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_17_by_0
+[2026-04-07T18:51:22Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_17_by_0!
+[2026-04-07T18:51:22Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_17_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T18:51:22Z INFO  evaluator] [Tx 20 Append #19] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:22Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:0.76 P:0.50) from 5 frontier nodes
+[2026-04-07T18:51:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_15_by_0!
+[2026-04-07T18:51:27Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 228.6 YES on tx_15_by_0 for 100.00 (P_yes=57.6%)
+[2026-04-07T18:51:27Z INFO  evaluator] [Tx 21 Append #20] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:29Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_17_by_0
+[2026-04-07T18:51:29Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_17_by_0!
+[2026-04-07T18:51:29Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 215.3 NO on tx_17_by_0 for 100.00 (P_yes=40.4%)
+[2026-04-07T18:51:29Z INFO  evaluator] [Tx 22 Append #21] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:29Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_3_by_0 (L:0.67 P:0.66) from 4 frontier nodes
+[2026-04-07T18:51:34Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_5_by_0!
+[2026-04-07T18:51:34Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 111.7 YES on tx_5_by_0 for 80.00 (P_yes=76.4%)
+[2026-04-07T18:51:34Z INFO  evaluator] [Tx 23 Append #22] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:36Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_17_by_0
+[2026-04-07T18:51:36Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_17_by_0!
+[2026-04-07T18:51:36Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 148.0 NO on tx_17_by_0 for 100.00 (P_yes=25.4%)
+[2026-04-07T18:51:36Z INFO  evaluator] [Tx 24 Append #23] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:36Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_5_by_0 (L:0.96 P:0.76) from 4 frontier nodes
+[2026-04-07T18:51:45Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_7_by_0!
+[2026-04-07T18:51:45Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 285.1 YES on tx_7_by_0 for 100.00 (P_yes=51.3%)
+[2026-04-07T18:51:45Z INFO  evaluator] [Tx 25 Append #24] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:45Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #24
+[2026-04-07T18:51:45Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 9 nodes, deepest chain = 8 steps (leaf: tx_17_by_0), 1 rejections
+[2026-04-07T18:51:45Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (1 success + 2 failure nodes)...
+[2026-04-07T18:51:53Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_17_by_0
+[2026-04-07T18:51:53Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_15_by_0 (L:1.00 P:0.58) from 4 frontier nodes
+[2026-04-07T18:51:58Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (1940 chars)
+[2026-04-07T18:51:58Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #3)
+[2026-04-07T18:51:58Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_17_by_0!
+[2026-04-07T18:51:58Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 219.5 YES on tx_17_by_0 for 80.00 (P_yes=49.2%)
+[2026-04-07T18:51:58Z INFO  evaluator] [Tx 26 Append #25] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:51:59Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_27_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:51:59Z INFO  evaluator] [Tx 27 Append #26] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:52:08Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:52:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_0 (L:0.97 P:0.51) from 5 frontier nodes
+[2026-04-07T18:52:18Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_11_by_0 (branch-aware)
+[2026-04-07T18:52:18Z WARN  evaluator] [Tx 28] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_11_by_0. Try a DIFFERENT step. | Compute 1 - e^{(i-1)/N} using the Taylor expansion from Step 5: 1 - e^{(i-1)/N} = -[(i-1)/N + (i-1)^
+[2026-04-07T18:52:25Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:52:25Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_15_by_0 (L:1.04 P:0.58) from 5 frontier nodes
+[2026-04-07T18:52:38Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_29_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:52:38Z INFO  evaluator] [Tx 29 Append #27] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:52:49Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_27_by_0
+[2026-04-07T18:52:49Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_27_by_0!
+[2026-04-07T18:52:49Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_27_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T18:52:49Z INFO  evaluator] [Tx 30 Append #28] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:52:49Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_0 (L:0.97 P:0.51) from 6 frontier nodes
+[2026-04-07T18:52:58Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_31_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:52:58Z INFO  evaluator] [Tx 31 Append #29] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:07Z INFO  evaluator] >>> [SHORT] Agent_0 NO 80 on tx_29_by_0
+[2026-04-07T18:53:07Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 80.00 Coins on Node tx_29_by_0!
+[2026-04-07T18:53:07Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 137.1 NO on tx_29_by_0 for 80.00 (P_yes=33.8%)
+[2026-04-07T18:53:07Z INFO  evaluator] [Tx 32 Append #30] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:07Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_17_by_0 (L:1.09 P:0.49) from 6 frontier nodes
+[2026-04-07T18:53:20Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_33_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:53:20Z INFO  evaluator] [Tx 33 Append #31] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:30Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_31_by_0
+[2026-04-07T18:53:30Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_31_by_0!
+[2026-04-07T18:53:30Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_31_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T18:53:30Z INFO  evaluator] [Tx 34 Append #32] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:30Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_0 (L:0.97 P:0.51) from 6 frontier nodes
+[2026-04-07T18:53:30Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #32
+[2026-04-07T18:53:30Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 13 nodes, deepest chain = 9 steps (leaf: tx_33_by_0), 2 rejections
+[2026-04-07T18:53:30Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (1 success + 1 failure nodes)...
+[2026-04-07T18:53:39Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_33_by_0
+[2026-04-07T18:53:42Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2208 chars)
+[2026-04-07T18:53:42Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #4)
+[2026-04-07T18:53:42Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_11_by_0 (branch-aware)
+[2026-04-07T18:53:42Z WARN  evaluator] [Tx 35] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_11_by_0. Try a DIFFERENT step. | Compute 1 - e^{(i-1)/N} using the Taylor expansion from Step 5: 1 - e^{(i-1)/N} = 1 - [1 + (i-1)/N +
+[2026-04-07T18:53:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_33_by_0!
+[2026-04-07T18:53:42Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_33_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:53:42Z INFO  evaluator] [Tx 36 Append #33] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_29_by_0 (L:0.91 P:0.34) from 5 frontier nodes
+[2026-04-07T18:53:51Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_37_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:53:51Z INFO  evaluator] [Tx 37 Append #34] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:59Z INFO  evaluator] >>> [SHORT] Agent_0 NO 80 on tx_33_by_0
+[2026-04-07T18:53:59Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 80.00 Coins on Node tx_33_by_0!
+[2026-04-07T18:53:59Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 108.1 NO on tx_33_by_0 for 80.00 (P_yes=21.7%)
+[2026-04-07T18:53:59Z INFO  evaluator] [Tx 38 Append #35] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:53:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_33_by_0 (L:0.93 P:0.31) from 6 frontier nodes
+[2026-04-07T18:54:07Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_39_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:54:07Z INFO  evaluator] [Tx 39 Append #36] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:54:17Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:54:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_37_by_0 (L:1.08 P:0.50) from 6 frontier nodes
+[2026-04-07T18:54:24Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_40_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:54:24Z INFO  evaluator] [Tx 40 Append #37] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:54:25Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_39_by_0
+[2026-04-07T18:54:25Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_39_by_0!
+[2026-04-07T18:54:25Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_39_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:54:25Z INFO  evaluator] [Tx 41 Append #38] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:54:25Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_27_by_0 (L:1.29 P:0.66) from 7 frontier nodes
+[2026-04-07T18:54:36Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_42_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:54:36Z INFO  evaluator] [Tx 42 Append #39] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:54:37Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_40_by_0
+[2026-04-07T18:54:37Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_40_by_0!
+[2026-04-07T18:54:37Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_40_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:54:37Z INFO  evaluator] [Tx 43 Append #40] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:54:37Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.27 P:0.50) from 8 frontier nodes
+[2026-04-07T18:54:37Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #40
+[2026-04-07T18:54:37Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 17 nodes, deepest chain = 10 steps (leaf: tx_40_by_0), 3 rejections
+[2026-04-07T18:54:37Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (1 success + 2 failure nodes)...
+[2026-04-07T18:54:52Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2384 chars)
+[2026-04-07T18:54:52Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #5)
+[2026-04-07T18:54:52Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_44_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:54:52Z INFO  evaluator] [Tx 44 Append #41] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:54:58Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:54:58Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_27_by_0 (L:1.29 P:0.66) from 9 frontier nodes
+[2026-04-07T18:55:07Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_42_by_0!
+[2026-04-07T18:55:07Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_42_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T18:55:07Z INFO  evaluator] [Tx 45 Append #42] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:11Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:55:11Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_31_by_0 (L:1.14 P:0.66) from 9 frontier nodes
+[2026-04-07T18:55:17Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_46_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:55:17Z INFO  evaluator] [Tx 46 Append #43] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:19Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_44_by_0
+[2026-04-07T18:55:19Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_44_by_0!
+[2026-04-07T18:55:19Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_44_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:55:19Z INFO  evaluator] [Tx 47 Append #44] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:19Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.37 P:0.50) from 10 frontier nodes
+[2026-04-07T18:55:28Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_48_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:55:28Z INFO  evaluator] [Tx 48 Append #45] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:35Z INFO  evaluator] >>> [SHORT] Agent_0 NO 80 on tx_46_by_0
+[2026-04-07T18:55:35Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 80.00 Coins on Node tx_46_by_0!
+[2026-04-07T18:55:35Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 137.1 NO on tx_46_by_0 for 80.00 (P_yes=33.8%)
+[2026-04-07T18:55:35Z INFO  evaluator] [Tx 49 Append #46] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:35Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.47 P:0.66) from 10 frontier nodes
+[2026-04-07T18:55:41Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_44_by_0!
+[2026-04-07T18:55:41Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 228.6 YES on tx_44_by_0 for 100.00 (P_yes=57.6%)
+[2026-04-07T18:55:41Z INFO  evaluator] [Tx 50 Append #47] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:43Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:55:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_39_by_0 (L:0.78 P:0.31) from 11 frontier nodes
+[2026-04-07T18:55:55Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_51_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:55:55Z INFO  evaluator] [Tx 51 Append #48] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:55:55Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #48
+[2026-04-07T18:55:55Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 21 nodes, deepest chain = 11 steps (leaf: tx_48_by_0), 3 rejections
+[2026-04-07T18:55:55Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (1 success + 2 failure nodes)...
+[2026-04-07T18:55:57Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_48_by_0
+[2026-04-07T18:56:07Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2025 chars)
+[2026-04-07T18:56:07Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #6)
+[2026-04-07T18:56:07Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_48_by_0!
+[2026-04-07T18:56:07Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_48_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:56:07Z INFO  evaluator] [Tx 52 Append #49] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:07Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_46_by_0 (L:0.93 P:0.34) from 11 frontier nodes
+[2026-04-07T18:56:14Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_53_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:56:14Z INFO  evaluator] [Tx 53 Append #50] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:15Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_51_by_0
+[2026-04-07T18:56:15Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_51_by_0!
+[2026-04-07T18:56:15Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_51_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:56:15Z INFO  evaluator] [Tx 54 Append #51] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:15Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.47 P:0.66) from 11 frontier nodes
+[2026-04-07T18:56:21Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_44_by_0!
+[2026-04-07T18:56:21Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 151.4 YES on tx_44_by_0 for 100.00 (P_yes=73.5%)
+[2026-04-07T18:56:21Z INFO  evaluator] [Tx 55 Append #52] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:23Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_53_by_0
+[2026-04-07T18:56:23Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_53_by_0!
+[2026-04-07T18:56:23Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_53_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:56:23Z INFO  evaluator] [Tx 56 Append #53] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:23Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_53_by_0 (L:1.00 P:0.50) from 11 frontier nodes
+[2026-04-07T18:56:28Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_57_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:56:28Z INFO  evaluator] [Tx 57 Append #54] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:29Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_53_by_0
+[2026-04-07T18:56:29Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_53_by_0!
+[2026-04-07T18:56:29Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 133.3 NO on tx_53_by_0 for 100.00 (P_yes=20.0%)
+[2026-04-07T18:56:29Z INFO  evaluator] [Tx 58 Append #55] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:29Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_37_by_0 (L:1.08 P:0.50) from 12 frontier nodes
+[2026-04-07T18:56:35Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_40_by_0 (branch-aware)
+[2026-04-07T18:56:35Z WARN  evaluator] [Tx 59] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_40_by_0. Try a DIFFERENT step. | Perform polynomial long division of the series: (1 + z + z²/2 + z³/6 + O(z⁴)) divided by (z² + z³ + 
+[2026-04-07T18:56:41Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:56:41Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_46_by_0 (L:0.93 P:0.34) from 12 frontier nodes
+[2026-04-07T18:56:47Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_53_by_0!
+[2026-04-07T18:56:47Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 300.0 YES on tx_53_by_0 for 100.00 (P_yes=50.0%)
+[2026-04-07T18:56:47Z INFO  evaluator] [Tx 60 Append #56] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:56:47Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #56
+[2026-04-07T18:56:47Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 23 nodes, deepest chain = 11 steps (leaf: tx_48_by_0), 4 rejections
+[2026-04-07T18:56:47Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (2 success + 2 failure nodes)...
+[2026-04-07T18:56:49Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_57_by_0
+[2026-04-07T18:57:03Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2445 chars)
+[2026-04-07T18:57:03Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #7)
+[2026-04-07T18:57:03Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_57_by_0!
+[2026-04-07T18:57:03Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_57_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:57:03Z INFO  evaluator] [Tx 61 Append #57] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:03Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_5_by_0 (L:0.96 P:0.76) from 12 frontier nodes
+[2026-04-07T18:57:09Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_7_by_0!
+[2026-04-07T18:57:09Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 163.8 YES on tx_7_by_0 for 100.00 (P_yes=70.0%)
+[2026-04-07T18:57:09Z INFO  evaluator] [Tx 62 Append #58] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:10Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_57_by_0
+[2026-04-07T18:57:10Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_57_by_0!
+[2026-04-07T18:57:10Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 133.3 NO on tx_57_by_0 for 100.00 (P_yes=20.0%)
+[2026-04-07T18:57:10Z INFO  evaluator] [Tx 63 Append #59] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:10Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_53_by_0 (L:1.02 P:0.50) from 13 frontier nodes
+[2026-04-07T18:57:16Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_64_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:57:16Z INFO  evaluator] [Tx 64 Append #60] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:18Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:57:18Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_40_by_0 (L:0.91 P:0.31) from 14 frontier nodes
+[2026-04-07T18:57:30Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_65_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:57:30Z INFO  evaluator] [Tx 65 Append #61] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:36Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:57:36Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_27_by_0 (L:1.29 P:0.66) from 14 frontier nodes
+[2026-04-07T18:57:45Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 200.00 Coins on Node tx_42_by_0!
+[2026-04-07T18:57:45Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 259.5 YES on tx_42_by_0 for 200.00 (P_yes=85.2%)
+[2026-04-07T18:57:45Z INFO  evaluator] [Tx 66 Append #62] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:49Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:57:49Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.79 P:0.74) from 14 frontier nodes
+[2026-04-07T18:57:56Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_67_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:57:56Z INFO  evaluator] [Tx 67 Append #63] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:57:57Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:57:57Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.79 P:0.74) from 15 frontier nodes
+[2026-04-07T18:58:04Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_68_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:58:04Z INFO  evaluator] [Tx 68 Append #64] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:58:04Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #64
+[2026-04-07T18:58:04Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 27 nodes, deepest chain = 11 steps (leaf: tx_48_by_0), 4 rejections
+[2026-04-07T18:58:04Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (3 success + 3 failure nodes)...
+[2026-04-07T18:58:06Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_67_by_0
+[2026-04-07T18:58:17Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2008 chars)
+[2026-04-07T18:58:17Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #8)
+[2026-04-07T18:58:17Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_67_by_0!
+[2026-04-07T18:58:17Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_67_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:58:17Z INFO  evaluator] [Tx 69 Append #65] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:58:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.79 P:0.74) from 16 frontier nodes
+[2026-04-07T18:58:23Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_48_by_0!
+[2026-04-07T18:58:23Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 228.6 YES on tx_48_by_0 for 100.00 (P_yes=57.6%)
+[2026-04-07T18:58:23Z INFO  evaluator] [Tx 70 Append #66] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:58:25Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_68_by_0
+[2026-04-07T18:58:25Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:58:25Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_68_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T18:58:25Z INFO  evaluator] [Tx 71 Append #67] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:58:25Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.71 P:0.85) from 16 frontier nodes
+[2026-04-07T18:58:38Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_44_by_0 (branch-aware)
+[2026-04-07T18:58:38Z WARN  evaluator] [Tx 72] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_44_by_0. Try a DIFFERENT step. | Substitute the computed values from Step 10 into the expansion from Step 9: (1 - e^{(i-1)/N})^2 = (-
+[2026-04-07T18:58:40Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_68_by_0
+[2026-04-07T18:58:40Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:58:40Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 133.3 NO on tx_68_by_0 for 100.00 (P_yes=20.0%)
+[2026-04-07T18:58:40Z INFO  evaluator] [Tx 73 Append #68] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:58:40Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:1.64 P:0.58) from 16 frontier nodes
+[2026-04-07T18:58:53Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_67_by_0 (cross-branch)
+[2026-04-07T18:58:53Z WARN  evaluator] [Tx 74] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_67_by_0. Build something NEW. | Factor out the leading term from the denominator expansion and write the reciprocal as a product: 1/
+[2026-04-07T18:58:54Z INFO  evaluator] >>> [SHORT] Agent_0 NO 80 on tx_68_by_0
+[2026-04-07T18:58:54Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 80.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:58:54Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 96.7 NO on tx_68_by_0 for 80.00 (P_yes=14.8%)
+[2026-04-07T18:58:54Z INFO  evaluator] [Tx 75 Append #69] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:58:54Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.71 P:0.85) from 16 frontier nodes
+[2026-04-07T18:59:02Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_44_by_0!
+[2026-04-07T18:59:02Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 127.7 YES on tx_44_by_0 for 100.00 (P_yes=82.4%)
+[2026-04-07T18:59:02Z INFO  evaluator] [Tx 76 Append #70] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:04Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_68_by_0
+[2026-04-07T18:59:04Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:59:04Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 114.4 NO on tx_68_by_0 for 100.00 (P_yes=10.6%)
+[2026-04-07T18:59:04Z INFO  evaluator] [Tx 77 Append #71] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:04Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 16 frontier nodes
+[2026-04-07T18:59:13Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:59:13Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 443.3 YES on tx_68_by_0 for 100.00 (P_yes=41.6%)
+[2026-04-07T18:59:13Z INFO  evaluator] [Tx 78 Append #72] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:13Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #72
+[2026-04-07T18:59:13Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 27 nodes, deepest chain = 11 steps (leaf: tx_48_by_0), 6 rejections
+[2026-04-07T18:59:13Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (3 success + 3 failure nodes)...
+[2026-04-07T18:59:15Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_68_by_0
+[2026-04-07T18:59:15Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:1.70 P:0.58) from 16 frontier nodes
+[2026-04-07T18:59:26Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2140 chars)
+[2026-04-07T18:59:26Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #9)
+[2026-04-07T18:59:26Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:59:26Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 150.2 NO on tx_68_by_0 for 100.00 (P_yes=26.1%)
+[2026-04-07T18:59:26Z INFO  evaluator] [Tx 79 Append #73] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:26Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_80_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:59:26Z INFO  evaluator] [Tx 80 Append #74] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:28Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_68_by_0
+[2026-04-07T18:59:28Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_68_by_0!
+[2026-04-07T18:59:28Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 127.2 NO on tx_68_by_0 for 100.00 (P_yes=17.3%)
+[2026-04-07T18:59:28Z INFO  evaluator] [Tx 81 Append #75] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:28Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_37_by_0 (L:1.08 P:0.50) from 17 frontier nodes
+[2026-04-07T18:59:37Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_40_by_0!
+[2026-04-07T18:59:37Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 228.6 YES on tx_40_by_0 for 100.00 (P_yes=57.6%)
+[2026-04-07T18:59:37Z INFO  evaluator] [Tx 82 Append #76] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:39Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:59:39Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_0 (L:1.13 P:0.70) from 17 frontier nodes
+[2026-04-07T18:59:47Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_83_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T18:59:47Z INFO  evaluator] [Tx 83 Append #77] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T18:59:52Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T18:59:52Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.71 P:0.85) from 18 frontier nodes
+[2026-04-07T19:00:08Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_84_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:00:08Z INFO  evaluator] [Tx 84 Append #78] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:00:17Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_83_by_0
+[2026-04-07T19:00:17Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_83_by_0!
+[2026-04-07T19:00:17Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_83_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:00:17Z INFO  evaluator] [Tx 85 Append #79] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:00:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_40_by_0 (L:1.26 P:0.58) from 19 frontier nodes
+[2026-04-07T19:00:26Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_65_by_0!
+[2026-04-07T19:00:26Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_65_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-07T19:00:26Z INFO  evaluator] [Tx 86 Append #80] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:00:26Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #80
+[2026-04-07T19:00:26Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 30 nodes, deepest chain = 12 steps (leaf: tx_80_by_0), 6 rejections
+[2026-04-07T19:00:26Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (3 success + 4 failure nodes)...
+[2026-04-07T19:00:34Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_84_by_0
+[2026-04-07T19:00:34Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_84_by_0 (L:1.49 P:0.50) from 19 frontier nodes
+[2026-04-07T19:00:42Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2534 chars)
+[2026-04-07T19:00:42Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #10)
+[2026-04-07T19:00:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_84_by_0!
+[2026-04-07T19:00:42Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_84_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:00:42Z INFO  evaluator] [Tx 87 Append #81] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:00:44Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_88_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:00:44Z INFO  evaluator] [Tx 88 Append #82] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:00:46Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_84_by_0
+[2026-04-07T19:00:46Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_84_by_0!
+[2026-04-07T19:00:46Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 215.3 NO on tx_84_by_0 for 100.00 (P_yes=40.4%)
+[2026-04-07T19:00:46Z INFO  evaluator] [Tx 89 Append #83] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:00:46Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_17_by_0 (L:1.09 P:0.49) from 19 frontier nodes
+[2026-04-07T19:00:58Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_90_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:00:58Z INFO  evaluator] [Tx 90 Append #84] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:00Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_88_by_0
+[2026-04-07T19:01:00Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_88_by_0!
+[2026-04-07T19:01:00Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_88_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T19:01:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:1.70 P:0.58) from 18 frontier nodes
+[2026-04-07T19:01:00Z INFO  evaluator] [Tx 91 Append #85] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:10Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_80_by_0!
+[2026-04-07T19:01:10Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_80_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-07T19:01:10Z INFO  evaluator] [Tx 92 Append #86] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:11Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_90_by_0
+[2026-04-07T19:01:11Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_90_by_0!
+[2026-04-07T19:01:11Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_90_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T19:01:11Z INFO  evaluator] [Tx 93 Append #87] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:11Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 18 frontier nodes
+[2026-04-07T19:01:26Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_94_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:01:26Z INFO  evaluator] [Tx 94 Append #88] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:26Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #88
+[2026-04-07T19:01:26Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 33 nodes, deepest chain = 12 steps (leaf: tx_80_by_0), 6 rejections
+[2026-04-07T19:01:26Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (3 success + 4 failure nodes)...
+[2026-04-07T19:01:28Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_90_by_0
+[2026-04-07T19:01:28Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 19 frontier nodes
+[2026-04-07T19:01:38Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_90_by_0
+[2026-04-07T19:01:42Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2454 chars)
+[2026-04-07T19:01:42Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #11)
+[2026-04-07T19:01:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_90_by_0!
+[2026-04-07T19:01:42Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 133.3 NO on tx_90_by_0 for 100.00 (P_yes=20.0%)
+[2026-04-07T19:01:42Z INFO  evaluator] [Tx 95 Append #89] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 20 frontier nodes
+[2026-04-07T19:01:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 200.00 Coins on Node tx_48_by_0!
+[2026-04-07T19:01:42Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 279.1 YES on tx_48_by_0 for 200.00 (P_yes=82.4%)
+[2026-04-07T19:01:42Z INFO  evaluator] [Tx 96 Append #90] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_90_by_0!
+[2026-04-07T19:01:42Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 120.0 NO on tx_90_by_0 for 100.00 (P_yes=13.8%)
+[2026-04-07T19:01:42Z INFO  evaluator] [Tx 97 Append #91] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:01:53Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_94_by_0 (branch-aware)
+[2026-04-07T19:01:53Z WARN  evaluator] [Tx 98] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_94_by_0. Try a DIFFERENT step. | Substitute the computed values of (i-1)^2 = -2i and (i-1)^3 = 2+2i into the Taylor expansion of e^{(
+[2026-04-07T19:02:00Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_94_by_0
+[2026-04-07T19:02:00Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_94_by_0!
+[2026-04-07T19:02:00Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_94_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:02:00Z INFO  evaluator] [Tx 99 Append #92] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:02:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_80_by_0 (L:1.94 P:0.69) from 21 frontier nodes
+[2026-04-07T19:02:08Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_100_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:02:08Z INFO  evaluator] [Tx 100 Append #93] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:02:10Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_94_by_0
+[2026-04-07T19:02:10Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_94_by_0!
+[2026-04-07T19:02:10Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 215.3 NO on tx_94_by_0 for 100.00 (P_yes=40.4%)
+[2026-04-07T19:02:10Z INFO  evaluator] [Tx 101 Append #94] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:02:10Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_94_by_0 (L:1.82 P:0.66) from 22 frontier nodes
+[2026-04-07T19:02:20Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_102_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:02:20Z INFO  evaluator] [Tx 102 Append #95] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:02:25Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:02:25Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_65_by_0 (L:1.52 P:0.69) from 22 frontier nodes
+[2026-04-07T19:02:31Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_103_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:02:31Z INFO  evaluator] [Tx 103 Append #96] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:02:31Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #96
+[2026-04-07T19:02:31Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 36 nodes, deepest chain = 13 steps (leaf: tx_100_by_0), 7 rejections
+[2026-04-07T19:02:31Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (4 success + 5 failure nodes)...
+[2026-04-07T19:02:36Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:02:46Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2393 chars)
+[2026-04-07T19:02:46Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #12)
+[2026-04-07T19:02:46Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_17_by_0 (L:1.09 P:0.49) from 23 frontier nodes
+[2026-04-07T19:02:55Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_104_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:02:55Z INFO  evaluator] [Tx 104 Append #97] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:02:59Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:02:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 23 frontier nodes
+[2026-04-07T19:03:07Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_105_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:03:07Z INFO  evaluator] [Tx 105 Append #98] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:12Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_104_by_0
+[2026-04-07T19:03:12Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_104_by_0!
+[2026-04-07T19:03:12Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_104_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:03:12Z INFO  evaluator] [Tx 106 Append #99] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:12Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.71 P:0.85) from 24 frontier nodes
+[2026-04-07T19:03:19Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_107_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:03:19Z INFO  evaluator] [Tx 107 Append #100] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:27Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_105_by_0
+[2026-04-07T19:03:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_105_by_0!
+[2026-04-07T19:03:27Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_105_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:03:27Z INFO  evaluator] [Tx 108 Append #101] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:27Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_88_by_0 (L:1.07 P:0.31) from 25 frontier nodes
+[2026-04-07T19:03:35Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_109_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:03:35Z INFO  evaluator] [Tx 109 Append #102] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:42Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_107_by_0
+[2026-04-07T19:03:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_107_by_0!
+[2026-04-07T19:03:42Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_107_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:03:42Z INFO  evaluator] [Tx 110 Append #103] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 25 frontier nodes
+[2026-04-07T19:03:48Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_105_by_0!
+[2026-04-07T19:03:48Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.6 YES on tx_105_by_0 for 100.00 (P_yes=78.3%)
+[2026-04-07T19:03:48Z INFO  evaluator] [Tx 111 Append #104] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:03:48Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #104
+[2026-04-07T19:03:48Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 40 nodes, deepest chain = 13 steps (leaf: tx_100_by_0), 7 rejections
+[2026-04-07T19:03:48Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (5 success + 5 failure nodes)...
+[2026-04-07T19:03:50Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:03:50Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:2.03 P:0.82) from 25 frontier nodes
+[2026-04-07T19:03:58Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_109_by_0
+[2026-04-07T19:04:03Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2466 chars)
+[2026-04-07T19:04:03Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #13)
+[2026-04-07T19:04:03Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_80_by_0!
+[2026-04-07T19:04:03Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 133.3 YES on tx_80_by_0 for 100.00 (P_yes=80.0%)
+[2026-04-07T19:04:03Z INFO  evaluator] [Tx 112 Append #105] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:04:03Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_67_by_0 (L:1.35 P:0.31) from 25 frontier nodes
+[2026-04-07T19:04:03Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_109_by_0!
+[2026-04-07T19:04:03Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_109_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T19:04:03Z INFO  evaluator] [Tx 113 Append #106] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:04:29Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_114_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:04:29Z INFO  evaluator] [Tx 114 Append #107] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:04:31Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_109_by_0
+[2026-04-07T19:04:31Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_109_by_0!
+[2026-04-07T19:04:31Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 133.3 NO on tx_109_by_0 for 100.00 (P_yes=20.0%)
+[2026-04-07T19:04:31Z INFO  evaluator] [Tx 115 Append #108] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:04:31Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_102_by_0 (L:1.39 P:0.50) from 26 frontier nodes
+[2026-04-07T19:05:01Z INFO  evaluator] [TIMEOUT] 30s idle. Solvent: 1/1. Invest: 30s, Free: 71s.
+[2026-04-07T19:05:04Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_67_by_0 (cross-branch)
+[2026-04-07T19:05:04Z WARN  evaluator] [Tx 116] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_67_by_0. Build something NEW. | Factor out the leading term from the denominator and rewrite the ratio as a series expansion in powe
+[2026-04-07T19:05:08Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:05:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_107_by_0 (L:1.70 P:0.66) from 26 frontier nodes
+[2026-04-07T19:05:17Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_117_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:05:17Z INFO  evaluator] [Tx 117 Append #109] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:05:19Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:05:19Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:2.03 P:0.82) from 27 frontier nodes
+[2026-04-07T19:05:32Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_118_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:05:32Z INFO  evaluator] [Tx 118 Append #110] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:05:34Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_117_by_0
+[2026-04-07T19:05:34Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_117_by_0!
+[2026-04-07T19:05:34Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_117_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T19:05:34Z INFO  evaluator] [Tx 119 Append #111] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:05:34Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_0 (L:1.90 P:0.82) from 28 frontier nodes
+[2026-04-07T19:05:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_105_by_0!
+[2026-04-07T19:05:42Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 121.9 YES on tx_105_by_0 for 100.00 (P_yes=85.2%)
+[2026-04-07T19:05:42Z INFO  evaluator] [Tx 120 Append #112] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:05:42Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #112
+[2026-04-07T19:05:42Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 43 nodes, deepest chain = 13 steps (leaf: tx_100_by_0), 8 rejections
+[2026-04-07T19:05:42Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (6 success + 6 failure nodes)...
+[2026-04-07T19:05:44Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_118_by_0
+[2026-04-07T19:05:44Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:1.70 P:0.50) from 28 frontier nodes
+[2026-04-07T19:05:56Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:05:58Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2691 chars)
+[2026-04-07T19:05:58Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #14)
+[2026-04-07T19:05:58Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_118_by_0!
+[2026-04-07T19:05:58Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_118_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T19:05:58Z INFO  evaluator] [Tx 121 Append #113] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:05:58Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:2.03 P:0.82) from 27 frontier nodes
+[2026-04-07T19:05:58Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_122_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:05:58Z INFO  evaluator] [Tx 122 Append #114] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:06Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_67_by_0 (cross-branch)
+[2026-04-07T19:06:06Z WARN  evaluator] [Tx 123] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_67_by_0. Build something NEW. | Factor out the leading term from the denominator expansion to prepare for series division: (1 - e^{(
+[2026-04-07T19:06:12Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:06:12Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_48_by_0 (L:2.03 P:0.82) from 28 frontier nodes
+[2026-04-07T19:06:18Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_80_by_0!
+[2026-04-07T19:06:18Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 120.0 YES on tx_80_by_0 for 100.00 (P_yes=86.2%)
+[2026-04-07T19:06:18Z INFO  evaluator] [Tx 124 Append #115] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:29Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_122_by_0
+[2026-04-07T19:06:29Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_80_by_0 (L:2.17 P:0.86) from 27 frontier nodes
+[2026-04-07T19:06:29Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_122_by_0!
+[2026-04-07T19:06:29Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_122_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:06:29Z INFO  evaluator] [Tx 125 Append #116] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:36Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:06:36Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_100_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-07T19:06:36Z INFO  evaluator] [Tx 126 Append #117] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:42Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:06:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.02 P:0.69) from 27 frontier nodes
+[2026-04-07T19:06:50Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_122_by_0!
+[2026-04-07T19:06:50Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.6 YES on tx_122_by_0 for 100.00 (P_yes=78.3%)
+[2026-04-07T19:06:50Z INFO  evaluator] [Tx 127 Append #118] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:51Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:06:51Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_65_by_0 (L:1.52 P:0.69) from 26 frontier nodes
+[2026-04-07T19:06:58Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_103_by_0!
+[2026-04-07T19:06:58Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_103_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-07T19:06:58Z INFO  evaluator] [Tx 128 Append #119] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:59Z INFO  evaluator] >>> [SHORT] Agent_0 NO 280 on tx_122_by_0
+[2026-04-07T19:06:59Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 280.00 Coins on Node tx_122_by_0!
+[2026-04-07T19:06:59Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 556.2 NO on tx_122_by_0 for 280.00 (P_yes=21.2%)
+[2026-04-07T19:06:59Z INFO  evaluator] [Tx 129 Append #120] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:06:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_80_by_0 (L:2.17 P:0.86) from 26 frontier nodes
+[2026-04-07T19:06:59Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #120
+[2026-04-07T19:06:59Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 44 nodes, deepest chain = 14 steps (leaf: tx_122_by_0), 9 rejections
+[2026-04-07T19:06:59Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (6 success + 7 failure nodes)...
+[2026-04-07T19:07:15Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2347 chars)
+[2026-04-07T19:07:15Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #15)
+[2026-04-07T19:07:15Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:07:15Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 133.3 YES on tx_100_by_0 for 100.00 (P_yes=80.0%)
+[2026-04-07T19:07:15Z INFO  evaluator] [Tx 130 Append #121] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:07:17Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:07:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.17 P:0.80) from 27 frontier nodes
+[2026-04-07T19:07:22Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_122_by_0 (branch-aware)
+[2026-04-07T19:07:22Z WARN  evaluator] [Tx 131] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_122_by_0. Try a DIFFERENT step. | Expand the reciprocal factor using geometric series: 1/(1 - (1+i)/N + (7i/6)/N² + O(1/N³)) = 1 + (1+
+[2026-04-07T19:07:30Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:07:30Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_80_by_0 (L:2.17 P:0.86) from 27 frontier nodes
+[2026-04-07T19:07:35Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:07:35Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 120.0 YES on tx_100_by_0 for 100.00 (P_yes=86.2%)
+[2026-04-07T19:07:35Z INFO  evaluator] [Tx 132 Append #122] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:07:42Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:07:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_104_by_0 (L:1.37 P:0.66) from 27 frontier nodes
+[2026-04-07T19:07:50Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_133_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:07:50Z INFO  evaluator] [Tx 133 Append #123] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:07:52Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_122_by_0
+[2026-04-07T19:07:52Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_122_by_0!
+[2026-04-07T19:07:52Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 121.4 NO on tx_122_by_0 for 100.00 (P_yes=14.5%)
+[2026-04-07T19:07:52Z INFO  evaluator] [Tx 134 Append #124] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:07:52Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_80_by_0 (L:2.17 P:0.86) from 28 frontier nodes
+[2026-04-07T19:07:57Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:07:57Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 113.3 YES on tx_100_by_0 for 100.00 (P_yes=90.0%)
+[2026-04-07T19:07:57Z INFO  evaluator] [Tx 135 Append #125] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:08:05Z INFO  evaluator] >>> [SHORT] Agent_0 NO 100 on tx_133_by_0
+[2026-04-07T19:08:05Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 100.00 Coins on Node tx_133_by_0!
+[2026-04-07T19:08:05Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 166.7 NO on tx_133_by_0 for 100.00 (P_yes=30.8%)
+[2026-04-07T19:08:05Z INFO  evaluator] [Tx 136 Append #126] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:08:05Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_103_by_0 (L:1.70 P:0.69) from 27 frontier nodes
+[2026-04-07T19:08:22Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_137_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:08:22Z INFO  evaluator] [Tx 137 Append #127] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:08:31Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_133_by_0
+[2026-04-07T19:08:31Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_133_by_0!
+[2026-04-07T19:08:31Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 192.5 YES on tx_133_by_0 for 80.00 (P_yes=53.2%)
+[2026-04-07T19:08:31Z INFO  evaluator] [Tx 138 Append #128] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:08:31Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_103_by_0 (L:1.70 P:0.69) from 28 frontier nodes
+[2026-04-07T19:08:31Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #128
+[2026-04-07T19:08:31Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 46 nodes, deepest chain = 14 steps (leaf: tx_122_by_0), 10 rejections
+[2026-04-07T19:08:31Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (7 success + 7 failure nodes)...
+[2026-04-07T19:08:48Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2509 chars)
+[2026-04-07T19:08:48Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #16)
+[2026-04-07T19:08:48Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_137_by_0!
+[2026-04-07T19:08:48Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_137_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:08:48Z INFO  evaluator] [Tx 139 Append #129] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:08:49Z INFO  evaluator] >>> [SHORT] Agent_0 NO 80 on tx_137_by_0
+[2026-04-07T19:08:49Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 80.00 Coins on Node tx_137_by_0!
+[2026-04-07T19:08:49Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 180.5 NO on tx_137_by_0 for 80.00 (P_yes=44.6%)
+[2026-04-07T19:08:49Z INFO  evaluator] [Tx 140 Append #130] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:08:49Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_118_by_0 (L:1.41 P:0.31) from 28 frontier nodes
+[2026-04-07T19:08:56Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_67_by_0 (cross-branch)
+[2026-04-07T19:08:56Z WARN  evaluator] [Tx 141] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_67_by_0. Build something NEW. | Factor out the leading term from the denominator to prepare for series division: Let x = 1/N. Then (
+[2026-04-07T19:09:03Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:09:03Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_53_by_0 (L:1.02 P:0.50) from 28 frontier nodes
+[2026-04-07T19:09:09Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_57_by_0!
+[2026-04-07T19:09:09Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 300.0 YES on tx_57_by_0 for 100.00 (P_yes=50.0%)
+[2026-04-07T19:09:09Z INFO  evaluator] [Tx 142 Append #131] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:09:14Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:09:14Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_114_by_0 (L:1.32 P:0.50) from 28 frontier nodes
+[2026-04-07T19:09:25Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_143_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:09:25Z INFO  evaluator] [Tx 143 Append #132] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:09:33Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_137_by_0
+[2026-04-07T19:09:33Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_137_by_0!
+[2026-04-07T19:09:33Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 148.7 YES on tx_137_by_0 for 80.00 (P_yes=62.7%)
+[2026-04-07T19:09:33Z INFO  evaluator] [Tx 144 Append #133] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:09:33Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_102_by_0 (L:1.39 P:0.50) from 29 frontier nodes
+[2026-04-07T19:09:50Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_145_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:09:50Z INFO  evaluator] [Tx 145 Append #134] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:09:58Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_143_by_0
+[2026-04-07T19:09:58Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_143_by_0!
+[2026-04-07T19:09:58Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_143_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:09:58Z INFO  evaluator] [Tx 146 Append #135] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:09:58Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 30 frontier nodes
+[2026-04-07T19:10:28Z INFO  evaluator] [TIMEOUT] 30s idle. Solvent: 1/1. Invest: 30s, Free: 74s.
+[2026-04-07T19:10:58Z INFO  evaluator] [TIMEOUT] 30s idle. Solvent: 1/1. Invest: 60s, Free: 104s.
+[2026-04-07T19:11:10Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_145_by_0
+[2026-04-07T19:11:10Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_145_by_0!
+[2026-04-07T19:11:10Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_145_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:11:10Z INFO  evaluator] [Tx 147 Append #136] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:11:10Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_5_by_0 (L:0.96 P:0.76) from 29 frontier nodes
+[2026-04-07T19:11:10Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #136
+[2026-04-07T19:11:10Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 48 nodes, deepest chain = 14 steps (leaf: tx_122_by_0), 11 rejections
+[2026-04-07T19:11:10Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (7 success + 6 failure nodes)...
+[2026-04-07T19:11:21Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_145_by_0
+[2026-04-07T19:11:27Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2421 chars)
+[2026-04-07T19:11:27Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #17)
+[2026-04-07T19:11:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_7_by_0!
+[2026-04-07T19:11:27Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 132.3 YES on tx_7_by_0 for 100.00 (P_yes=80.4%)
+[2026-04-07T19:11:27Z INFO  evaluator] [Tx 148 Append #137] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:11:27Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_0 (L:1.13 P:0.70) from 28 frontier nodes
+[2026-04-07T19:11:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_145_by_0!
+[2026-04-07T19:11:27Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 111.7 YES on tx_145_by_0 for 80.00 (P_yes=76.4%)
+[2026-04-07T19:11:27Z INFO  evaluator] [Tx 149 Append #138] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:11:36Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_31_by_0 (branch-aware)
+[2026-04-07T19:11:36Z WARN  evaluator] [Tx 150] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_31_by_0. Try a DIFFERENT step. | Compute 1 - e^{(i-1)/N} from the Taylor expansion in Step 5: 1 - e^{(i-1)/N} = 1 - [1 + (i-1)/N + (i
+[2026-04-07T19:11:43Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_145_by_0
+[2026-04-07T19:11:43Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_145_by_0!
+[2026-04-07T19:11:43Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 100.2 YES on tx_145_by_0 for 80.00 (P_yes=82.9%)
+[2026-04-07T19:11:43Z INFO  evaluator] [Tx 151 Append #139] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:11:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 27 frontier nodes
+[2026-04-07T19:11:56Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:11:56Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 109.5 YES on tx_100_by_0 for 100.00 (P_yes=92.5%)
+[2026-04-07T19:11:56Z INFO  evaluator] [Tx 152 Append #140] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:04Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:12:04Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.34 P:0.92) from 27 frontier nodes
+[2026-04-07T19:12:11Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_122_by_0 (branch-aware)
+[2026-04-07T19:12:11Z WARN  evaluator] [Tx 153] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_122_by_0. Try a DIFFERENT step. | Expand the reciprocal factor using geometric series: (1 - (1+i)/N + (7i/6)/N² + O(1/N³))⁻¹ = 1 + (1+
+[2026-04-07T19:12:17Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_145_by_0
+[2026-04-07T19:12:17Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_145_by_0!
+[2026-04-07T19:12:17Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 94.0 YES on tx_145_by_0 for 80.00 (P_yes=87.1%)
+[2026-04-07T19:12:17Z INFO  evaluator] [Tx 154 Append #141] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.34 P:0.92) from 27 frontier nodes
+[2026-04-07T19:12:25Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_155_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:12:25Z INFO  evaluator] [Tx 155 Append #142] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:27Z INFO  evaluator] >>> [SHORT] Agent_0 NO 90 on tx_145_by_0
+[2026-04-07T19:12:27Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 90.00 Coins on Node tx_145_by_0!
+[2026-04-07T19:12:27Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 370.4 NO on tx_145_by_0 for 90.00 (P_yes=58.9%)
+[2026-04-07T19:12:27Z INFO  evaluator] [Tx 156 Append #143] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:27Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_133_by_0 (L:1.35 P:0.53) from 28 frontier nodes
+[2026-04-07T19:12:39Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_157_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:12:39Z INFO  evaluator] [Tx 157 Append #144] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:39Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #144
+[2026-04-07T19:12:39Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 50 nodes, deepest chain = 14 steps (leaf: tx_155_by_0), 13 rejections
+[2026-04-07T19:12:39Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (8 success + 6 failure nodes)...
+[2026-04-07T19:12:45Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_155_by_0
+[2026-04-07T19:12:45Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 28 frontier nodes
+[2026-04-07T19:12:57Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2819 chars)
+[2026-04-07T19:12:57Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #18)
+[2026-04-07T19:12:57Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_155_by_0!
+[2026-04-07T19:12:57Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_155_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:12:57Z INFO  evaluator] [Tx 158 Append #145] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:57Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:12:57Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 85.9 YES on tx_100_by_0 for 80.00 (P_yes=93.8%)
+[2026-04-07T19:12:57Z INFO  evaluator] [Tx 159 Append #146] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:59Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_155_by_0
+[2026-04-07T19:12:59Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_155_by_0!
+[2026-04-07T19:12:59Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 111.7 YES on tx_155_by_0 for 80.00 (P_yes=76.4%)
+[2026-04-07T19:12:59Z INFO  evaluator] [Tx 160 Append #147] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:12:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 29 frontier nodes
+[2026-04-07T19:13:05Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:13:05Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 105.8 YES on tx_100_by_0 for 100.00 (P_yes=95.1%)
+[2026-04-07T19:13:05Z INFO  evaluator] [Tx 161 Append #148] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:13:06Z INFO  evaluator] >>> [SHORT] Agent_0 NO 60 on tx_157_by_0
+[2026-04-07T19:13:06Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 60.00 Coins on Node tx_157_by_0!
+[2026-04-07T19:13:06Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 106.2 NO on tx_157_by_0 for 60.00 (P_yes=37.2%)
+[2026-04-07T19:13:06Z INFO  evaluator] [Tx 162 Append #149] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:13:06Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_88_by_0 (L:1.07 P:0.31) from 29 frontier nodes
+[2026-04-07T19:13:15Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_163_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:13:15Z INFO  evaluator] [Tx 163 Append #150] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:13:17Z INFO  evaluator] >>> [SHORT] Agent_0 NO 50 on tx_157_by_0
+[2026-04-07T19:13:17Z INFO  turingosv3::sdk::tools::wallet] >>> [BET SHORT] Agent Agent_0 bet 50.00 Coins on Node tx_157_by_0!
+[2026-04-07T19:13:17Z INFO  turingosv3::bus] >>> [BUY NO] Agent_0 bought 74.8 NO on tx_157_by_0 for 50.00 (P_yes=29.4%)
+[2026-04-07T19:13:17Z INFO  evaluator] [Tx 164 Append #151] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:13:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_103_by_0 (L:1.70 P:0.69) from 29 frontier nodes
+[2026-04-07T19:13:23Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_137_by_0!
+[2026-04-07T19:13:23Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 142.9 YES on tx_137_by_0 for 100.00 (P_yes=76.4%)
+[2026-04-07T19:13:23Z INFO  evaluator] [Tx 165 Append #152] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:13:23Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #152
+[2026-04-07T19:13:23Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 51 nodes, deepest chain = 14 steps (leaf: tx_155_by_0), 13 rejections
+[2026-04-07T19:13:23Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (10 success + 7 failure nodes)...
+[2026-04-07T19:13:27Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:13:27Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_155_by_0 (L:2.25 P:0.76) from 29 frontier nodes
+[2026-04-07T19:13:37Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2353 chars)
+[2026-04-07T19:13:37Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #19)
+[2026-04-07T19:13:38Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_166_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:13:38Z INFO  evaluator] [Tx 166 Append #153] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:13:44Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:13:44Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 29 frontier nodes
+[2026-04-07T19:13:51Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_67_by_0 (cross-branch)
+[2026-04-07T19:13:51Z WARN  evaluator] [Tx 167] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_67_by_0. Build something NEW. | Factor out the leading term from the denominator expansion to prepare for reciprocal expansion: Let 
+[2026-04-07T19:14:00Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:14:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_122_by_0 (L:1.36 P:0.15) from 29 frontier nodes
+[2026-04-07T19:14:10Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_143_by_0 (cross-branch)
+[2026-04-07T19:14:10Z WARN  evaluator] [Tx 168] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_143_by_0. Build something NEW. | Multiply the numerator expansion by the reciprocal expansion from Step 15, then multiply by the fact
+[2026-04-07T19:14:16Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:14:16Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_155_by_0 (L:2.25 P:0.76) from 29 frontier nodes
+[2026-04-07T19:14:27Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_169_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:14:27Z INFO  evaluator] [Tx 169 Append #154] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:14:33Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-07T19:14:33Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.38 P:0.95) from 30 frontier nodes
+[2026-04-07T19:14:41Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_155_by_0!
+[2026-04-07T19:14:41Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 124.2 YES on tx_155_by_0 for 100.00 (P_yes=84.1%)
+[2026-04-07T19:14:41Z INFO  evaluator] [Tx 170 Append #155] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:14:47Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_169_by_0
+[2026-04-07T19:14:47Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 80.00 Coins on Node tx_169_by_0!
+[2026-04-07T19:14:47Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 137.1 YES on tx_169_by_0 for 80.00 (P_yes=66.2%)
+[2026-04-07T19:14:47Z INFO  evaluator] [Tx 171 Append #156] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:14:47Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 30 frontier nodes
+[2026-04-07T19:14:54Z INFO  evaluator] >>> [VIEW] Agent_0 views: 'tx_100_by_0'
+[2026-04-07T19:15:00Z INFO  evaluator] >>> [INVEST] Agent_0 YES 70 on tx_169_by_0
+[2026-04-07T19:15:00Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 70.00 Coins on Node tx_169_by_0!
+[2026-04-07T19:15:00Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 98.6 YES on tx_169_by_0 for 70.00 (P_yes=75.4%)
+[2026-04-07T19:15:00Z INFO  evaluator] [Tx 172 Append #157] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:15:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_143_by_0 (L:1.54 P:0.66) from 30 frontier nodes
+[2026-04-07T19:15:15Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_173_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:15:15Z INFO  evaluator] [Tx 173 Append #158] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:15:21Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_169_by_0
+[2026-04-07T19:15:21Z WARN  turingosv3::bus] >>> [TOOL VETO] Author: Agent_0, Reason: Margin Call: Insufficient liquidity. Balance: 10.00, Requested: 80.00. Reduce your stake!
+[2026-04-07T19:15:21Z WARN  evaluator] [Tx 174] Agent_0 REJECTED: Margin Call: Insufficient liquidity. Balance: 10.00, Requested: 80.00. Reduce your stake! | [Tool: Wallet | Action: Invest | Node: tx_169_by_0 | Amount: 80.00]
+[2026-04-07T19:15:21Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_109_by_0 (L:0.77 P:0.20) from 30 frontier nodes
+[2026-04-07T19:15:28Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 10.00 Coins on Node tx_100_by_0!
+[2026-04-07T19:15:28Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 10.5 YES on tx_100_by_0 for 10.00 (P_yes=95.2%)
+[2026-04-07T19:15:28Z INFO  evaluator] [Tx 175 Append #159] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:15:28Z INFO  evaluator] >>> [AUTOPSY] Agent_0 — real-time bankruptcy mutation
+[2026-04-07T19:15:33Z INFO  evaluator] >>> [INVEST] Agent_0 YES 80 on tx_173_by_0
+[2026-04-07T19:15:33Z WARN  turingosv3::bus] >>> [TOOL VETO] Author: Agent_0, Reason: Bankrupt: Liquidated. Balance: 0.00
+[2026-04-07T19:15:33Z WARN  evaluator] [Tx 176] Agent_0 REJECTED: Bankrupt: Liquidated. Balance: 0.00 | [Tool: Wallet | Action: Invest | Node: tx_173_by_0 | Amount: 80.00]
+[2026-04-07T19:15:33Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_84_by_0 (L:1.37 P:0.40) from 30 frontier nodes
+[2026-04-07T19:15:45Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_177_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:15:45Z INFO  evaluator] [Tx 177 Append #160] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:15:45Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #160
+[2026-04-07T19:15:45Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_107_by_0 (L:1.70 P:0.66) from 30 frontier nodes
+[2026-04-07T19:15:45Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 55 nodes, deepest chain = 15 steps (leaf: tx_169_by_0), 17 rejections
+[2026-04-07T19:15:45Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (11 success + 7 failure nodes)...
+[2026-04-07T19:16:01Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2672 chars)
+[2026-04-07T19:16:01Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #20)
+[2026-04-07T19:16:01Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_178_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:16:01Z INFO  evaluator] [Tx 178 Append #161] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:16:01Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_169_by_0 (L:2.25 P:0.75) from 30 frontier nodes
+[2026-04-07T19:16:08Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_143_by_0 (cross-branch)
+[2026-04-07T19:16:08Z WARN  evaluator] [Tx 179] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_143_by_0. Build something NEW. | Multiply the numerator expansion by the reciprocal expansion from Step 16, then multiply by the fact
+[2026-04-07T19:16:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_65_by_0 (L:1.52 P:0.69) from 30 frontier nodes
+[2026-04-07T19:16:17Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_180_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:16:17Z INFO  evaluator] [Tx 180 Append #162] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:16:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_169_by_0 (L:2.25 P:0.75) from 30 frontier nodes
+[2026-04-07T19:16:28Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_143_by_0 (cross-branch)
+[2026-04-07T19:16:28Z WARN  evaluator] [Tx 181] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_143_by_0. Build something NEW. | Multiply the numerator expansion by the reciprocal expansion (1+x)⁻¹ from Step 16 to obtain the prod
+[2026-04-07T19:16:28Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_65_by_0 (L:1.52 P:0.69) from 30 frontier nodes
+[2026-04-07T19:16:35Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_103_by_0 (branch-aware)
+[2026-04-07T19:16:35Z WARN  evaluator] [Tx 182] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_103_by_0. Try a DIFFERENT step. | Substitute z = (i-1)/N back into the series expansion from Step 12: e^{(i-1)/N}/(1 - e^{(i-1)/N})^2 
+[2026-04-07T19:16:35Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_180_by_0 (L:1.44 P:0.50) from 30 frontier nodes
+[2026-04-07T19:16:43Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_183_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:16:43Z INFO  evaluator] [Tx 183 Append #163] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:16:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_105_by_0 (L:2.07 P:0.85) from 30 frontier nodes
+[2026-04-07T19:16:51Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_184_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:16:51Z INFO  evaluator] [Tx 184 Append #164] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:16:51Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_57_by_0 (L:1.07 P:0.50) from 30 frontier nodes
+[2026-04-07T19:16:58Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_185_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:16:58Z INFO  evaluator] [Tx 185 Append #165] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:16:58Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_133_by_0 (L:1.35 P:0.53) from 30 frontier nodes
+[2026-04-07T19:17:07Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_186_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:17:07Z INFO  evaluator] [Tx 186 Append #166] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:17:07Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_122_by_0 (L:1.36 P:0.15) from 30 frontier nodes
+[2026-04-07T19:17:15Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_187_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:17:15Z INFO  evaluator] [Tx 187 Append #167] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:17:15Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_57_by_0 (L:1.07 P:0.50) from 30 frontier nodes
+[2026-04-07T19:17:20Z WARN  turingosv3::bus] >>> [TOOL VETO] Author: Agent_0, Reason: Bankrupt: Liquidated. Balance: 0.00
+[2026-04-07T19:17:20Z WARN  evaluator] [Tx 188] Agent_0 REJECTED: Bankrupt: Liquidated. Balance: 0.00 |  [Tool: Wallet | Action: Invest | Node: tx_185_by_0 | Amount: 50.00]
+[2026-04-07T19:17:20Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_178_by_0 (L:1.49 P:0.50) from 30 frontier nodes
+[2026-04-07T19:17:31Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_189_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:17:31Z INFO  evaluator] [Tx 189 Append #168] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:17:31Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #168
+[2026-04-07T19:17:31Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 63 nodes, deepest chain = 15 steps (leaf: tx_169_by_0), 21 rejections
+[2026-04-07T19:17:31Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (11 success + 7 failure nodes)...
+[2026-04-07T19:17:31Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.38 P:0.95) from 30 frontier nodes
+[2026-04-07T19:17:47Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2739 chars)
+[2026-04-07T19:17:47Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 1/1 agents (compression #21)
+[2026-04-07T19:17:47Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_122_by_0 (branch-aware)
+[2026-04-07T19:17:47Z WARN  evaluator] [Tx 190] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_122_by_0. Try a DIFFERENT step. | Expand the reciprocal factor using geometric series: (1 - (1+i)/N + (7i/6)/N² + O(1/N³))⁻¹ = 1 + ((1
+[2026-04-07T19:17:47Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_107_by_0 (L:1.70 P:0.66) from 30 frontier nodes
+[2026-04-07T19:17:55Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_44_by_0 (cross-branch)
+[2026-04-07T19:17:55Z WARN  evaluator] [Tx 191] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_44_by_0. Build something NEW. | Substitute the computed values from Step 10 into the expansion from Step 11 and simplify the express
+[2026-04-07T19:17:55Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_107_by_0 (L:1.70 P:0.66) from 30 frontier nodes
+[2026-04-07T19:18:02Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_44_by_0 (cross-branch)
+[2026-04-07T19:18:02Z WARN  evaluator] [Tx 192] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_44_by_0. Build something NEW. | Substitute the computed values from Step 10 into the expansion from Step 9 and simplify: (1 - e^{(i-
+[2026-04-07T19:18:02Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_137_by_0 (L:1.91 P:0.76) from 30 frontier nodes
+[2026-04-07T19:18:08Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_193_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:18:08Z INFO  evaluator] [Tx 193 Append #169] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:18:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_155_by_0 (L:2.36 P:0.84) from 30 frontier nodes
+[2026-04-07T19:18:17Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_166_by_0 (branch-aware)
+[2026-04-07T19:18:17Z WARN  evaluator] [Tx 194] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_166_by_0. Try a DIFFERENT step. | Compute the reciprocal expansion by substituting x = -(1+i)/N + (7i/6)/N² + O(1/N³) into (1 + x)⁻¹ =
+[2026-04-07T19:18:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_155_by_0 (L:2.36 P:0.84) from 30 frontier nodes
+[2026-04-07T19:18:25Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_195_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:18:25Z INFO  evaluator] [Tx 195 Append #170] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:18:25Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_166_by_0 (L:1.87 P:0.50) from 30 frontier nodes
+[2026-04-07T19:18:29Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_196_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:18:29Z INFO  evaluator] [Tx 196 Append #171] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:18:29Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_196_by_0 (L:1.63 P:0.50) from 30 frontier nodes
+[2026-04-07T19:18:35Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_197_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:18:35Z INFO  evaluator] [Tx 197 Append #172] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:18:35Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_100_by_0 (L:2.38 P:0.95) from 30 frontier nodes
+[2026-04-07T19:18:43Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_155_by_0 (branch-aware)
+[2026-04-07T19:18:43Z WARN  evaluator] [Tx 198] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_155_by_0. Try a DIFFERENT step. | Expand the reciprocal factor using the geometric series: (1 - (1+i)/N + (7i/6)/N^2 + O(1/N^3))^{-1} 
+[2026-04-07T19:18:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_196_by_0 (L:1.63 P:0.50) from 30 frontier nodes
+[2026-04-07T19:18:52Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_199_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:18:52Z INFO  evaluator] [Tx 199 Append #173] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:18:52Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_195_by_0 (L:1.87 P:0.50) from 30 frontier nodes
+[2026-04-07T19:18:59Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_200_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-07T19:18:59Z INFO  evaluator] [Tx 200 Append #174] Agent_0 (deepseek-chat) → Appended
+[2026-04-07T19:18:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_166_by_0 (L:1.87 P:0.50) from 30 frontier nodes
+[2026-04-07T19:19:08Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_196_by_0 (branch-aware)
+[2026-04-07T19:19:08Z WARN  evaluator] [Tx 201] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_196_by_0. Try a DIFFERENT step. | Multiply the numerator expansion from Step 12 with the reciprocal expansion from Step 16 to obtain t
+[2026-04-07T19:19:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_42_by_0 (L:1.71 P:0.85) from 30 frontier nodes
+[2026-04-07T19:19:17Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_44_by_0 (branch-aware)
+[2026-04-07T19:19:17Z WARN  evaluator] [Tx 202] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_44_by_0. Try a DIFFERENT step. | Substitute the computed values from Step 10 into the expansion from Step 9: (1 - e^{(i-1)/N})^2 = [(
+[2026-04-07T19:19:17Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_107_by_0 (L:1.70 P:0.66) from 30 frontier nodes
+[2026-04-07T19:19:22Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_44_by_0 (cross-branch)
+[2026-04-07T19:19:22Z WARN  evaluator] [Tx 203] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_44_by_0. Build something NEW. | Substitute the computed values from Step 10 into the expansion from Step 9 and simplify: (1 - e^{(i-
+[2026-04-07T19:19:22Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_195_by_0 (L:1.87 P:0.50) from 30 frontier nodes

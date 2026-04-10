@@ -1,0 +1,471 @@
+[2026-04-10T03:20:30Z INFO  evaluator] Prompt dir: ./experiments/zeta_sum_proof/prompt (context=122 problem=349 skill=2624 chars)
+[2026-04-10T03:20:30Z INFO  evaluator] === ζ-Sum AutoResearch — 3M/0B+/0B- ===
+[2026-04-10T03:20:30Z INFO  evaluator] N=3, Max Tx=18446744073709551615
+[2026-04-10T03:20:30Z INFO  evaluator] OMEGA: [COMPLETE] + P>=90% | target=-1/12
+[2026-04-10T03:20:30Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Mounted. Skills: /tmp/model_sweep_qwen3.5_35b_a3b/skills | Logs: /tmp/model_sweep_qwen3.5_35b_a3b/logs | Compress every 8 appends
+[2026-04-10T03:20:30Z INFO  turingosv3::sdk::tools::wallet] >>> [GENESIS] Agent Agent_0 allocated 50000 Coins.
+[2026-04-10T03:20:30Z INFO  turingosv3::sdk::tools::wallet] >>> [GENESIS] Agent Agent_1 allocated 50000 Coins.
+[2026-04-10T03:20:30Z INFO  turingosv3::sdk::tools::wallet] >>> [GENESIS] Agent Agent_2 allocated 50000 Coins.
+[2026-04-10T03:20:30Z INFO  evaluator] Provider: Local llama.cpp | 1 endpoints | Model: Qwen/Qwen3.5-35B-A3B
+[2026-04-10T03:20:30Z INFO  evaluator]   Endpoint 0: http://127.0.0.1:8089/v1/chat/completions
+[2026-04-10T03:20:30Z INFO  evaluator] Oracle: ARMED (deepseek-reasoner @ https://api.deepseek.com/chat/completion)
+[2026-04-10T03:20:30Z INFO  evaluator] Librarian: ARMED (deepseek-chat @ https://api.deepseek.com/chat/completion)
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [ROLE] Agent_0 seeded as Mathematician
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [ROLE] Agent_1 seeded as Mathematician
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [ROLE] Agent_2 seeded as Mathematician
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [ENGINE 4] Role trifecta: 3M/0B+/0B-
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [SPAWN] Agent 0 → Qwen/Qwen3.5-35B-A3B [MATH]
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [SPAWN] Agent 1 → Qwen/Qwen3.5-35B-A3B [MATH]
+[2026-04-10T03:20:30Z INFO  evaluator] >>> [SPAWN] Agent 2 → Qwen/Qwen3.5-35B-A3B [MATH]
+[2026-04-10T03:20:30Z INFO  evaluator] >>> TuringOS v3 ζ-Sum Booted. 3 agents (5M/5B+/5B-). <<<
+[2026-04-10T03:20:39Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_1_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:20:39Z INFO  evaluator] [Tx 1 Append #1] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:20:39Z INFO  evaluator] >>> [VICTORY] Agent_1 — real-time reinforcement
+[2026-04-10T03:20:45Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_2_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:20:45Z INFO  evaluator] [Tx 2 Append #2] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:20:47Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:20:47Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_1 (L:0.35 P:0.50) from 2 frontier nodes
+[2026-04-10T03:20:51Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_3_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:20:51Z INFO  evaluator] [Tx 3 Append #3] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:20:52Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_4_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:20:52Z INFO  evaluator] [Tx 4 Append #4] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:20:52Z INFO  evaluator] >>> [VICTORY] Agent_0 — real-time reinforcement
+[2026-04-10T03:20:52Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:20:52Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_1 (L:0.35 P:0.50) from 4 frontier nodes
+[2026-04-10T03:20:53Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:20:53Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_4_by_0 (L:0.05 P:0.50) from 4 frontier nodes
+[2026-04-10T03:20:57Z WARN  zeta_sum_proof::math_membrane] >>> [MEMBRANE] Step too short (6 chars): 'Step 3'
+[2026-04-10T03:20:57Z WARN  turingosv3::bus] >>> [TOOL VETO] Author: Agent_1, Reason: Step too short (6 chars). Write a real mathematical reasoning step.
+[2026-04-10T03:20:57Z WARN  evaluator] [Tx 5] Agent_1 REJECTED: Step too short (6 chars). Write a real mathematical reasoning step. | Step 3
+[2026-04-10T03:20:57Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:20:57Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_3_by_1 (L:0.55 P:0.50) from 4 frontier nodes
+[2026-04-10T03:21:02Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_6_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:02Z INFO  evaluator] [Tx 6 Append #5] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:03Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:03Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_1_by_1 (L:0.05 P:0.50) from 5 frontier nodes
+[2026-04-10T03:21:10Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_7_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:10Z INFO  evaluator] [Tx 7 Append #6] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:11Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:11Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_7_by_1 (L:0.35 P:0.50) from 6 frontier nodes
+[2026-04-10T03:21:16Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_8_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:16Z INFO  evaluator] [Tx 8 Append #7] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:19Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:19Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_8_by_1 (L:0.55 P:0.50) from 7 frontier nodes
+[2026-04-10T03:21:24Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_9_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:24Z INFO  evaluator] [Tx 9 Append #8] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:24Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #8
+[2026-04-10T03:21:24Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 8 nodes, deepest chain = 3 steps (leaf: tx_6_by_1), 1 rejections
+[2026-04-10T03:21:24Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (0 success + 0 failure nodes)...
+[2026-04-10T03:21:25Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:27Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:21:27Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_6_by_1 (L:0.69 P:0.50) from 7 frontier nodes
+[2026-04-10T03:21:32Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (996 chars)
+[2026-04-10T03:21:32Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #1)
+[2026-04-10T03:21:32Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_3_by_1 (L:0.55 P:0.50) from 8 frontier nodes
+[2026-04-10T03:21:35Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_8_by_1
+[2026-04-10T03:21:35Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_8_by_1!
+[2026-04-10T03:21:35Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_6_by_1 (L:0.69 P:0.50) from 8 frontier nodes
+[2026-04-10T03:21:35Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_8_by_1 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:21:35Z INFO  evaluator] [Tx 10 Append #9] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:35Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_11_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:35Z INFO  evaluator] [Tx 11 Append #10] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:35Z INFO  evaluator] >>> [VICTORY] Agent_2 — real-time reinforcement
+[2026-04-10T03:21:36Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:21:36Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_1 (L:0.35 P:0.50) from 8 frontier nodes
+[2026-04-10T03:21:37Z WARN  turingosv3::bus] >>> [DEDUP] Agent_1 rejected: matches tx_3_by_1 (branch-aware)
+[2026-04-10T03:21:37Z WARN  evaluator] [Tx 12] Agent_1 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_3_by_1. Try a DIFFERENT step. | rewrite S_N using Euler's formula to form two geometric series and apply the identity sum m*z^m = z/
+[2026-04-10T03:21:38Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:38Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_8_by_1 (L:0.66 P:0.69) from 8 frontier nodes
+[2026-04-10T03:21:42Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_13_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:42Z INFO  evaluator] [Tx 13 Append #11] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:42Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:21:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_6_by_1 (L:0.69 P:0.50) from 9 frontier nodes
+[2026-04-10T03:21:43Z INFO  evaluator] >>> [INVEST] Agent_2 YES 100 on tx_13_by_0
+[2026-04-10T03:21:43Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_2 bet 100.00 Coins on Node tx_13_by_0!
+[2026-04-10T03:21:43Z INFO  turingosv3::bus] >>> [BUY YES] Agent_2 bought 166.7 YES on tx_13_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:21:43Z INFO  evaluator] [Tx 14 Append #12] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_9_by_1 (L:0.76 P:0.50) from 9 frontier nodes
+[2026-04-10T03:21:44Z WARN  turingosv3::bus] >>> [DEDUP] Agent_1 rejected: matches tx_9_by_1 (branch-aware)
+[2026-04-10T03:21:44Z WARN  evaluator] [Tx 15] Agent_1 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_9_by_1. Try a DIFFERENT step. | We expand the denominator $(1 - e^{(-1+i)/N})^2$ using the Taylor series for $e^x$ where $x = rac{-
+[2026-04-10T03:21:44Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:44Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_1 (L:0.35 P:0.50) from 8 frontier nodes
+[2026-04-10T03:21:47Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_11_by_2 (branch-aware)
+[2026-04-10T03:21:47Z WARN  evaluator] [Tx 16] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_11_by_2. Try a DIFFERENT step. | Step 4: We apply Euler's formula, $\cos(m/N) = rac{e^{im/N} + e^{-im/N}}{2}$, to rewrite the regula
+[2026-04-10T03:21:51Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_17_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:21:51Z INFO  evaluator] [Tx 17 Append #13] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:21:52Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:21:52Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:0.97 P:0.69) from 9 frontier nodes
+[2026-04-10T03:22:00Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_13_by_0
+[2026-04-10T03:22:00Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_13_by_0!
+[2026-04-10T03:22:00Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 133.3 YES on tx_13_by_0 for 100.00 (P_yes=80.0%)
+[2026-04-10T03:22:00Z INFO  evaluator] [Tx 18 Append #14] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:0.97 P:0.69) from 9 frontier nodes
+[2026-04-10T03:22:06Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_19_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:06Z INFO  evaluator] [Tx 19 Append #15] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:07Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_20_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:07Z INFO  evaluator] [Tx 20 Append #16] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:07Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #16
+[2026-04-10T03:22:07Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 13 nodes, deepest chain = 5 steps (leaf: tx_19_by_0), 4 rejections
+[2026-04-10T03:22:07Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (1 success + 0 failure nodes)...
+[2026-04-10T03:22:07Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:22:07Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_9_by_1 (L:0.76 P:0.50) from 10 frontier nodes
+[2026-04-10T03:22:08Z INFO  evaluator] >>> [INVEST] Agent_2 YES 100 on tx_13_by_0
+[2026-04-10T03:22:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_1 (L:0.35 P:0.50) from 10 frontier nodes
+[2026-04-10T03:22:09Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:22:09Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_3_by_1 (L:0.55 P:0.50) from 10 frontier nodes
+[2026-04-10T03:22:15Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:22:17Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:22:22Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:22:23Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2200 chars)
+[2026-04-10T03:22:23Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #2)
+[2026-04-10T03:22:23Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_2 bet 100.00 Coins on Node tx_13_by_0!
+[2026-04-10T03:22:23Z INFO  turingosv3::bus] >>> [BUY YES] Agent_2 bought 120.0 YES on tx_13_by_0 for 100.00 (P_yes=86.2%)
+[2026-04-10T03:22:23Z INFO  evaluator] [Tx 21 Append #17] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:23Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_19_by_0 (L:1.04 P:0.50) from 11 frontier nodes
+[2026-04-10T03:22:23Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_19_by_0 (L:1.04 P:0.50) from 11 frontier nodes
+[2026-04-10T03:22:23Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_20_by_2 (L:0.85 P:0.50) from 11 frontier nodes
+[2026-04-10T03:22:23Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_22_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:23Z INFO  evaluator] [Tx 22 Append #18] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:23Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_23_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:23Z INFO  evaluator] [Tx 23 Append #19] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:23Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_24_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:23Z INFO  evaluator] [Tx 24 Append #20] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:23Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_25_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:23Z INFO  evaluator] [Tx 25 Append #21] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:28Z INFO  zeta_sum_proof::math_membrane] >>> [MEMBRANE] COMPLETE declared by Agent_0. Pending market validation (need P >= 90%).
+[2026-04-10T03:22:28Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_26_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:28Z INFO  evaluator] [Tx 26 Append #22] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:28Z INFO  evaluator] >>> [COMPLETE CLAIMED] Agent_0 at tx_26_by_0 (P=50.0%). Need 90% for Oracle.
+[2026-04-10T03:22:30Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:22:30Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_25_by_0 (L:0.85 P:0.50) from 16 frontier nodes
+[2026-04-10T03:22:31Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:22:31Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_26_by_0 (L:1.07 P:0.50) from 16 frontier nodes
+[2026-04-10T03:22:32Z INFO  evaluator] >>> [INVEST] Agent_0 YES 75 on tx_25_by_0
+[2026-04-10T03:22:32Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 75.00 Coins on Node tx_25_by_0!
+[2026-04-10T03:22:32Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 129.5 YES on tx_25_by_0 for 75.00 (P_yes=65.4%)
+[2026-04-10T03:22:32Z INFO  evaluator] [Tx 27 Append #23] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:32Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:1.12 P:0.86) from 16 frontier nodes
+[2026-04-10T03:22:35Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_28_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:35Z INFO  evaluator] [Tx 28 Append #24] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:35Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #24
+[2026-04-10T03:22:35Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 19 nodes, deepest chain = 6 steps (leaf: tx_26_by_0), 4 rejections
+[2026-04-10T03:22:35Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (1 success + 0 failure nodes)...
+[2026-04-10T03:22:35Z INFO  evaluator] >>> [INVEST] Agent_2 YES 75 on tx_25_by_0
+[2026-04-10T03:22:35Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_19_by_0 (L:1.07 P:0.50) from 15 frontier nodes
+[2026-04-10T03:22:38Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_26_by_0
+[2026-04-10T03:22:38Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_22_by_1 (L:1.07 P:0.50) from 15 frontier nodes
+[2026-04-10T03:22:50Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2034 chars)
+[2026-04-10T03:22:50Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #3)
+[2026-04-10T03:22:50Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_2 bet 75.00 Coins on Node tx_25_by_0!
+[2026-04-10T03:22:50Z INFO  turingosv3::bus] >>> [BUY YES] Agent_2 bought 106.2 YES on tx_25_by_0 for 75.00 (P_yes=75.4%)
+[2026-04-10T03:22:50Z INFO  evaluator] [Tx 29 Append #25] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:50Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_30_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:50Z INFO  evaluator] [Tx 30 Append #26] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:50Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_26_by_0!
+[2026-04-10T03:22:50Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_26_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:22:50Z INFO  evaluator] [Tx 31 Append #27] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:54Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_1 bet 100.00 Coins on Node tx_13_by_0!
+[2026-04-10T03:22:54Z INFO  turingosv3::bus] >>> [BUY YES] Agent_1 bought 113.3 YES on tx_13_by_0 for 100.00 (P_yes=90.0%)
+[2026-04-10T03:22:54Z INFO  evaluator] [Tx 32 Append #28] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:54Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:22:54Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_22_by_1 (L:1.09 P:0.50) from 16 frontier nodes
+[2026-04-10T03:22:58Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_33_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:58Z INFO  evaluator] [Tx 33 Append #29] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:22:58Z INFO  evaluator] >>> [COMPLETE CLAIMED] Agent_1 at tx_33_by_1 (P=50.0%). Need 90% for Oracle.
+[2026-04-10T03:22:59Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_34_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:22:59Z INFO  evaluator] [Tx 34 Append #30] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:23:21Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_3_by_1 (L:0.55 P:0.50) from 18 frontier nodes
+[2026-04-10T03:23:22Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_26_by_0
+[2026-04-10T03:23:22Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_26_by_0!
+[2026-04-10T03:23:22Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 133.3 YES on tx_26_by_0 for 100.00 (P_yes=80.0%)
+[2026-04-10T03:23:22Z INFO  evaluator] [Tx 35 Append #31] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:23:22Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_8_by_1 (L:0.66 P:0.69) from 18 frontier nodes
+[2026-04-10T03:23:27Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_36_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:23:27Z INFO  evaluator] [Tx 36 Append #32] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:23:27Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #32
+[2026-04-10T03:23:27Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 23 nodes, deepest chain = 6 steps (leaf: tx_26_by_0), 4 rejections
+[2026-04-10T03:23:27Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (3 success + 0 failure nodes)...
+[2026-04-10T03:23:30Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:23:30Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_34_by_0 (L:1.08 P:0.50) from 18 frontier nodes
+[2026-04-10T03:23:37Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:1.15 P:0.90) from 18 frontier nodes
+[2026-04-10T03:23:44Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2423 chars)
+[2026-04-10T03:23:44Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #4)
+[2026-04-10T03:23:44Z WARN  turingosv3::bus] >>> [DEDUP] Agent_0 rejected: matches tx_9_by_1 (branch-aware)
+[2026-04-10T03:23:44Z WARN  evaluator] [Tx 37] Agent_0 REJECTED: Duplicate in branch — similar to ancestor/sibling tx_9_by_1. Try a DIFFERENT step. | We expand the denominator $(1 - e^{(-1+i)/N})^2$ using the Taylor series for $e^x$ around $x=0$, whe
+[2026-04-10T03:23:53Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_1 bet 100.00 Coins on Node tx_22_by_1!
+[2026-04-10T03:23:53Z INFO  turingosv3::bus] >>> [BUY YES] Agent_1 bought 166.7 YES on tx_22_by_1 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:23:53Z INFO  evaluator] [Tx 38 Append #33] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:23:53Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:23:53Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_25_by_0 (L:1.06 P:0.75) from 19 frontier nodes
+[2026-04-10T03:23:57Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:24:05Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_34_by_0
+[2026-04-10T03:24:05Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_34_by_0!
+[2026-04-10T03:24:05Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_34_by_0 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:24:05Z INFO  evaluator] [Tx 39 Append #34] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:05Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_34_by_0 (L:1.18 P:0.50) from 19 frontier nodes
+[2026-04-10T03:24:05Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_25_by_0 (L:1.06 P:0.75) from 19 frontier nodes
+[2026-04-10T03:24:08Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_40_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:24:08Z INFO  evaluator] [Tx 40 Append #35] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:09Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_25_by_0 (L:1.06 P:0.75) from 20 frontier nodes
+[2026-04-10T03:24:10Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:24:10Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_28_by_2 (L:1.04 P:0.50) from 20 frontier nodes
+[2026-04-10T03:24:13Z INFO  zeta_sum_proof::math_membrane] >>> [MEMBRANE] COMPLETE declared by Agent_2. Pending market validation (need P >= 90%).
+[2026-04-10T03:24:13Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_41_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:24:13Z INFO  evaluator] [Tx 41 Append #36] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:13Z INFO  evaluator] >>> [COMPLETE CLAIMED] Agent_2 at tx_41_by_2 (P=50.0%). Need 90% for Oracle.
+[2026-04-10T03:24:14Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:24:14Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_28_by_2 (L:1.04 P:0.50) from 21 frontier nodes
+[2026-04-10T03:24:15Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_36_by_2
+[2026-04-10T03:24:15Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_36_by_2!
+[2026-04-10T03:24:15Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 166.7 YES on tx_36_by_2 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:24:15Z INFO  evaluator] [Tx 42 Append #37] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:15Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_20_by_2 (L:0.85 P:0.50) from 21 frontier nodes
+[2026-04-10T03:24:19Z INFO  evaluator] >>> [INVEST] Agent_2 YES 100 on tx_41_by_2
+[2026-04-10T03:24:19Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_2 bet 100.00 Coins on Node tx_41_by_2!
+[2026-04-10T03:24:19Z INFO  turingosv3::bus] >>> [BUY YES] Agent_2 bought 166.7 YES on tx_41_by_2 for 100.00 (P_yes=69.2%)
+[2026-04-10T03:24:19Z INFO  evaluator] [Tx 43 Append #38] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:19Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_17_by_1 (L:0.55 P:0.50) from 20 frontier nodes
+[2026-04-10T03:24:22Z INFO  zeta_sum_proof::math_membrane] >>> [MEMBRANE] COMPLETE declared by Agent_2. Pending market validation (need P >= 90%).
+[2026-04-10T03:24:22Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_44_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:24:22Z INFO  evaluator] [Tx 44 Append #39] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:22Z INFO  evaluator] >>> [COMPLETE CLAIMED] Agent_2 at tx_44_by_2 (P=50.0%). Need 90% for Oracle.
+[2026-04-10T03:24:42Z INFO  evaluator] >>> [INVEST] Agent_1 YES 100 on tx_41_by_2
+[2026-04-10T03:24:42Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_1 bet 100.00 Coins on Node tx_41_by_2!
+[2026-04-10T03:24:42Z INFO  turingosv3::bus] >>> [BUY YES] Agent_1 bought 133.3 YES on tx_41_by_2 for 100.00 (P_yes=80.0%)
+[2026-04-10T03:24:42Z INFO  evaluator] [Tx 45 Append #40] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:42Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:1.15 P:0.90) from 21 frontier nodes
+[2026-04-10T03:24:42Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #40
+[2026-04-10T03:24:42Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 26 nodes, deepest chain = 7 steps (leaf: tx_40_by_0), 5 rejections
+[2026-04-10T03:24:42Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (4 success + 0 failure nodes)...
+[2026-04-10T03:24:46Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:24:46Z INFO  evaluator] >>> [INVEST] Agent_2 YES 100 on tx_41_by_2
+[2026-04-10T03:24:46Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_22_by_1 (L:1.27 P:0.69) from 21 frontier nodes
+[2026-04-10T03:24:47Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:1.15 P:0.90) from 21 frontier nodes
+[2026-04-10T03:24:50Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_25_by_0
+[2026-04-10T03:24:51Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:24:56Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (1917 chars)
+[2026-04-10T03:24:56Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #5)
+[2026-04-10T03:24:56Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_1 rejected: matches tx_40_by_0 (cross-branch)
+[2026-04-10T03:24:56Z WARN  evaluator] [Tx 46] Agent_1 REJECTED: Global duplicate — same conclusion already exists at tx_40_by_0. Build something NEW. | Since the asymptotic expansion of $S_N$ as $N \to \infty$ is given by $\frac{N^2}{2} - \frac{1}{12} 
+[2026-04-10T03:24:56Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_11_by_2 (L:0.80 P:0.50) from 20 frontier nodes
+[2026-04-10T03:24:56Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_2 bet 100.00 Coins on Node tx_41_by_2!
+[2026-04-10T03:24:56Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_13_by_0 (L:1.15 P:0.90) from 20 frontier nodes
+[2026-04-10T03:24:56Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_44_by_2 (L:0.69 P:0.50) from 20 frontier nodes
+[2026-04-10T03:24:56Z INFO  turingosv3::bus] >>> [BUY YES] Agent_2 bought 120.0 YES on tx_41_by_2 for 100.00 (P_yes=86.2%)
+[2026-04-10T03:24:56Z INFO  evaluator] [Tx 47 Append #41] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:56Z INFO  zeta_sum_proof::math_membrane] >>> [MEMBRANE] COMPLETE declared by Agent_0. Pending market validation (need P >= 90%).
+[2026-04-10T03:24:56Z WARN  turingosv3::bus] >>> [GLOBAL-DEDUP] Agent_0 rejected: matches tx_40_by_0 (cross-branch)
+[2026-04-10T03:24:56Z WARN  evaluator] [Tx 48] Agent_0 REJECTED: Global duplicate — same conclusion already exists at tx_40_by_0. Build something NEW. | Since the asymptotic expansion of $S_N$ as $N \to \infty$ yields a constant term of $-1/12$ while al
+[2026-04-10T03:24:56Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_0 bet 100.00 Coins on Node tx_25_by_0!
+[2026-04-10T03:24:56Z INFO  turingosv3::bus] >>> [BUY YES] Agent_0 bought 125.4 YES on tx_25_by_0 for 100.00 (P_yes=83.5%)
+[2026-04-10T03:24:56Z INFO  evaluator] [Tx 49 Append #42] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:56Z INFO  zeta_sum_proof::math_membrane] >>> [MEMBRANE] COMPLETE declared by Agent_2. Pending market validation (need P >= 90%).
+[2026-04-10T03:24:56Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_50_by_2 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:24:56Z INFO  evaluator] [Tx 50 Append #43] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:24:56Z INFO  evaluator] >>> [COMPLETE CLAIMED] Agent_2 at tx_50_by_2 (P=50.0%). Need 90% for Oracle.
+[2026-04-10T03:25:00Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:25:00Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_30_by_0 (L:1.09 P:0.50) from 21 frontier nodes
+[2026-04-10T03:25:08Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:25:08Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:25:08Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_28_by_2 (L:1.08 P:0.50) from 21 frontier nodes
+[2026-04-10T03:25:13Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:25:13Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_51_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:25:13Z INFO  evaluator] [Tx 51 Append #44] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:25:13Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_34_by_0 (L:1.38 P:0.69) from 22 frontier nodes
+[2026-04-10T03:25:13Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_50_by_2 (L:1.18 P:0.50) from 22 frontier nodes
+[2026-04-10T03:25:14Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:25:14Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_51_by_1 (L:1.09 P:0.50) from 22 frontier nodes
+[2026-04-10T03:25:20Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:25:20Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:25:43Z INFO  evaluator] [MARKET WATCH] No invest for 47s. Agents reading (last free 23s ago).
+[2026-04-10T03:25:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_41_by_2 (L:1.42 P:0.86) from 22 frontier nodes
+[2026-04-10T03:25:43Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_26_by_0 (L:1.39 P:0.80) from 22 frontier nodes
+[2026-04-10T03:25:45Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:25:45Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_34_by_0 (L:1.38 P:0.69) from 22 frontier nodes
+[2026-04-10T03:25:48Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:25:49Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:25:49Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_52_by_1 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:25:49Z INFO  evaluator] [Tx 52 Append #45] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:25:49Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_26_by_0 (L:1.39 P:0.80) from 23 frontier nodes
+[2026-04-10T03:25:49Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_33_by_1 (L:1.18 P:0.50) from 23 frontier nodes
+[2026-04-10T03:25:50Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:25:50Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_51_by_1 (L:1.09 P:0.50) from 23 frontier nodes
+[2026-04-10T03:25:53Z INFO  turingosv3::bus] >>> [APMM] System MM created market for tx_53_by_0 (LP: 200, P_yes=50.0%)
+[2026-04-10T03:25:53Z INFO  evaluator] [Tx 53 Append #46] Agent_0 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:25:54Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:25:54Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_2_by_1 (L:0.35 P:0.50) from 24 frontier nodes
+[2026-04-10T03:25:55Z INFO  evaluator] >>> [INVEST] Agent_1 YES 75 on tx_53_by_0
+[2026-04-10T03:25:55Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_1 bet 75.00 Coins on Node tx_53_by_0!
+[2026-04-10T03:25:55Z INFO  turingosv3::bus] >>> [BUY YES] Agent_1 bought 129.5 YES on tx_53_by_0 for 75.00 (P_yes=65.4%)
+[2026-04-10T03:25:55Z INFO  evaluator] [Tx 54 Append #47] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:25:55Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_22_by_1 (L:1.27 P:0.69) from 24 frontier nodes
+[2026-04-10T03:25:58Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:25:58Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_36_by_2 (L:0.84 P:0.69) from 23 frontier nodes
+[2026-04-10T03:25:59Z INFO  evaluator] >>> [INVEST] Agent_1 YES 75 on tx_53_by_0
+[2026-04-10T03:25:59Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_1 bet 75.00 Coins on Node tx_53_by_0!
+[2026-04-10T03:25:59Z INFO  turingosv3::bus] >>> [BUY YES] Agent_1 bought 106.2 YES on tx_53_by_0 for 75.00 (P_yes=75.4%)
+[2026-04-10T03:25:59Z INFO  evaluator] [Tx 55 Append #48] Agent_1 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:25:59Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_26_by_0 (L:1.39 P:0.80) from 23 frontier nodes
+[2026-04-10T03:25:59Z INFO  evaluator] >>> [LIBRARIAN] Compression triggered at append #48
+[2026-04-10T03:25:59Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] STATS: 30 nodes, deepest chain = 7 steps (leaf: tx_53_by_0), 7 rejections
+[2026-04-10T03:25:59Z INFO  evaluator] >>> [LIBRARIAN] Calling DeepSeek V3 (5 success + 0 failure nodes)...
+[2026-04-10T03:26:04Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:26:04Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_8_by_1 (L:0.66 P:0.69) from 23 frontier nodes
+[2026-04-10T03:26:08Z INFO  evaluator] >>> [PASS] Agent_2 chose not to invest
+[2026-04-10T03:26:15Z INFO  evaluator] >>> [LIBRARIAN] DeepSeek V3 compression received (2502 chars)
+[2026-04-10T03:26:15Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #6)
+[2026-04-10T03:26:15Z INFO  turingosv3::sdk::tools::wallet] >>> [BET LONG] Agent Agent_2 bet 100.00 Coins on Node tx_41_by_2!
+[2026-04-10T03:26:15Z INFO  turingosv3::bus] >>> [BUY YES] Agent_2 bought 113.3 YES on tx_41_by_2 for 100.00 (P_yes=90.0%)
+[2026-04-10T03:26:15Z INFO  evaluator] [Tx 56 Append #49] Agent_2 (Qwen/Qwen3.5-35B-A3B) → Appended
+[2026-04-10T03:26:15Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_41_by_2 (L:1.42 P:0.86) from 23 frontier nodes
+[2026-04-10T03:26:15Z INFO  evaluator] >>> [OMEGA TRIGGER] tx_41_by_2 [COMPLETE] P=90.0% — invoking Oracle audit!
+[2026-04-10T03:26:15Z INFO  evaluator] >>> [DEEPSEEK ORACLE] Verifying tx_41_by_2 (6 steps)...
+[2026-04-10T03:26:33Z INFO  evaluator] >>> [INVEST] Agent_2 YES 100 on tx_53_by_0
+[2026-04-10T03:26:34Z INFO  evaluator] >>> [INVEST] Agent_0 YES 100 on tx_53_by_0
+[2026-04-10T03:26:34Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_23_by_1 (L:0.69 P:0.50) from 23 frontier nodes
+[2026-04-10T03:26:34Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:26:34Z INFO  turingosv3::sdk::actor] >>> [BOLTZMANN T=0.50] Selected tx_53_by_0 (L:1.43 P:0.75) from 23 frontier nodes
+[2026-04-10T03:26:39Z INFO  evaluator] >>> [PASS] Agent_0 chose not to invest
+[2026-04-10T03:26:40Z INFO  evaluator] >>> [PASS] Agent_1 chose not to invest
+[2026-04-10T03:27:24Z INFO  evaluator] >>> [DEEPSEEK VERDICT] ✓ PROOF ACCEPTED! OMEGA!
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [CONSERVATION] Pre-settlement total: 150830.16 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_34_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_23_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_24_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_52_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_7_by_1 resolved: YES (GP)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_11_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_3_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_25_by_0 resolved: YES (GP)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_6_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_40_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_41_by_2 resolved: YES (GP)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_9_by_1 resolved: YES (GP)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_44_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_36_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_51_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_33_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_8_by_1 resolved: YES (GP)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_13_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_30_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_50_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_22_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_20_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_17_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_53_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_2_by_1 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_1_by_1 resolved: YES (GP)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_26_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_28_by_2 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_19_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [ORACLE] Node tx_4_by_0 resolved: NO (dead)
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_25_by_0: 88.89 YES + 450.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_24_by_2: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_4_by_0: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_2_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_52_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_3_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_28_by_2: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_19_by_0: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_22_by_1: 133.33 YES + 300.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_41_by_2: 66.67 YES + 600.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_34_by_0: 133.33 YES + 300.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_50_by_2: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_1_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_20_by_2: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_44_by_2: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_13_by_0: 66.67 YES + 600.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_23_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_17_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_33_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_26_by_0: 100.00 YES + 400.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_7_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_9_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_30_by_0: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_11_by_2: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_8_by_1: 133.33 YES + 300.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_36_by_2: 133.33 YES + 300.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_40_by_0: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_53_by_0: 114.29 YES + 350.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_6_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [LP WITHDRAW] SYSTEM_MM withdrew LP from tx_51_by_1: 200.00 YES + 200.00 NO
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] Agent_1 cashes YES on tx_41_by_2 → 133.33 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] Agent_2 cashes YES on tx_25_by_0 → 106.17 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] Agent_2 cashes YES on tx_41_by_2 → 400.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes YES on tx_25_by_0 → 88.89 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_24_by_2 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_4_by_0 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_2_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_52_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_3_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_28_by_2 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_19_by_0 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_22_by_1 → 300.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes YES on tx_41_by_2 → 66.67 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_34_by_0 → 300.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_50_by_2 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes YES on tx_1_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_20_by_2 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_44_by_2 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_13_by_0 → 600.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_23_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_17_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_33_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_26_by_0 → 400.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes YES on tx_7_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes YES on tx_9_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_30_by_0 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_11_by_2 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes YES on tx_8_by_1 → 133.33 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_36_by_2 → 300.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_40_by_0 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_53_by_0 → 350.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_6_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] SYSTEM_MM cashes NO on tx_51_by_1 → 200.00 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] Agent_0 cashes YES on tx_8_by_1 → 166.67 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [REDEEM] Agent_0 cashes YES on tx_25_by_0 → 254.94 Coins
+[2026-04-10T03:27:24Z INFO  turingosv3::sdk::tools::wallet] >>> [SETTLEMENT] 30 total nodes preserved.
+[2026-04-10T03:27:24Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Final compression on halt
+[2026-04-10T03:27:24Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Memory written to 3/3 agents (compression #7)
+[2026-04-10T03:27:24Z INFO  turingosv3::sdk::tools::librarian] >>> [LIBRARIAN] Local fallback: 5 success + 0 failure nodes, 3 rejection categories
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [CONSERVATION] Post: 149261.11, Drift: 1569.047619, MM P&L tolerance: 6000.00 ✓
+[2026-04-10T03:27:24Z INFO  turingosv3::bus] >>> [SYSTEM_MM] Total injected: 6000 Coins across 30 markets
+[2026-04-10T03:27:24Z INFO  evaluator] ==== EVALUATION COMPLETE (49 appends, 56 total tx, 1 generations) ====
+[2026-04-10T03:27:24Z INFO  evaluator] --- OMEGA (Golden Path) ---
+[2026-04-10T03:27:24Z INFO  evaluator] Step 1: [tx_1_by_1] P:1 | The standard series $\sum_{n=1}^{\infty} n$ diverges to infinity; to assign it the value $-1/12$, we must employ a regularization method such as analytic continuation of the Riemann zeta function, where $\zeta(s) = \sum_{n=1}^{\infty} n^{-s}$ for $\text{Re}(s) > 1$, and extend it to $s=-1$. The provided hint formula involving $e^{-m/N}$ suggests a regularization technique (like Abel summation) where we consider the limit of a damped series as the damping parameter approaches zero.
+[2026-04-10T03:27:24Z INFO  evaluator] Step 2: [tx_2_by_1] P:0 | Consider the regularized sum $S_N = \sum_{m=1}^{\infty} m \cdot e^{-m/N} \cdot \cos(m/N)$. As $N 	o \infty$, the damping factor $e^{-m/N} 	o 1$ and $\cos(m/N) 	o 1$, formally recovering the original divergent series $\sum m$. However, for finite $N$, the series converges absolutely, allowing us to manipulate it using standard calculus techniques (such as differentiating geometric series) to find an explicit expression for $S_N$ in terms of $N$. The value of the original series is then defined as the constant term in the asymptotic expansion of $S_N$ as $N 	o \infty$ (or via analytic continuation of the resulting function to $s=-1$).
+[2026-04-10T03:27:24Z INFO  evaluator] Step 3: [tx_17_by_1] P:0 | To evaluate the regularized sum $S_N = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$, we first express the cosine term using Euler's formula, $\cos(m/N) = rac{e^{im/N} + e^{-im/N}}{2}$, which allows us to decompose the single real series into the sum of two complex geometric series: $S_N = rac{1}{2} \sum_{m=1}^{\infty} m \left( e^{-m/N + im/N} + e^{-m/N - im/N} ight) = rac{1}{2} \left( \sum_{m=1}^{\infty} m (e^{-(1-i)/N})^m + \sum_{m=1}^{\infty} m (e^{-(1+i)/N})^m ight)$. By applying the standard formula for the sum of an arithmetico-geometric series, $\sum_{m=1}^{\infty} m x^m = rac{x}{(1-x)^2}$ for $|x|<1$, we can derive an explicit closed-form expression for $S_N$ in terms of $N$ by substituting $x_1 = e^{-(1-i)/N}$ and $x_2 = e^{-(1+i)/N}$, thereby transforming the problem into an asymptotic analysis of these rational functions as $N 	o \infty$.
+[2026-04-10T03:27:24Z INFO  evaluator] Step 4: [tx_44_by_2] P:0 | To conclude the proof, we observe that the asymptotic expansion of the regularized sum $S_N = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$ as $N 	o \infty$ contains a constant term of $-1/12$, while all divergent terms (like $N^2$) vanish in the renormalization scheme or are subtracted out to define the finite part. Since the analytic continuation of the Riemann zeta function $\zeta(s)$ at $s=-1$ corresponds to this finite part of the regularized sum, we conclude that the regularized value of the series $\sum_{n=1}^{\infty} n$ is indeed $-1/12$. [COMPLETE]
+[2026-04-10T03:27:24Z INFO  evaluator] OMEGA: Proof chain COMPLETE!
+[2026-04-10T03:27:24Z INFO  evaluator] --- TAPE (30 nodes) ---
+[2026-04-10T03:27:24Z INFO  evaluator] tx_30_by_0 | P:0 | Perform the asymptotic expansion of the expression $S_N = 	ext{Re}\left( rac{e^{-(1-i)/N}}{(1 - e^{-(1-i)/N})^2} ight)$ for large $N$ by substitutin [+167c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_51_by_1 | P:0 | Let $x = \frac{1-i}{N}$. We expand the function $f(x) = \frac{e^{-x}}{(1-e^{-x})^2}$ in a Laurent series around $x=0$. Using the identity $\frac{e^{-x [+651c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_1_by_1 | P:1 | The standard series $\sum_{n=1}^{\infty} n$ diverges to infinity; to assign it the value $-1/12$, we must employ a regularization method such as analy [+335c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_13_by_0 | P:0 | Define $z = e^{-(1-i)/N}$ so that $m e^{-m/N} \cos(m/N) = 	ext{Re}(m z^m)$. Applying the geometric series derivative identity $\sum_{m=1}^{\infty} m z [+315c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_19_by_0 | P:0 | Let $x = (1-i)/N$. For large $N$, $x$ is small, so we expand the denominator term $1 - e^{-x} = 1 - (1 - x + x^2/2 - x^3/6 + O(x^4)) = x - x^2/2 + x^3 [+1053c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_44_by_2 | P:0 | To conclude the proof, we observe that the asymptotic expansion of the regularized sum $S_N = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$ as $N 	o \inft [+409c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_34_by_0 | P:0 | Substitute $z = e^{-\epsilon}$ with $\epsilon = rac{1-i}{N}$ into the expression $rac{z}{(1-z)^2}$ and rewrite it as $rac{1}{4\sinh^2(\epsilon/2)}$ [+386c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_53_by_0 | P:0 | Taking the limit $N \to \infty$ of the expression $S_N = \frac{i N^2}{2} - \frac{1}{12} + O(1/N^2)$, the term $\frac{i N^2}{2}$ diverges but is purely [+208c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_7_by_1 | P:1 | We define the regularized sum $S(N) = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$ to handle the divergence, noting that as $N 	o \infty$, the term $e^{- [+155c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_8_by_1 | P:1 | We evaluate the sum $S(N) = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$ by identifying it as the real part of the complex series $\sum_{m=1}^{\infty} m  [+195c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_33_by_1 | P:0 | The current proof chain (Step 6) has already derived the result $-1/12$ by taking the real part of the asymptotic expansion. The step explicitly state [+482c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_50_by_2 | P:0 | Since the real part of the asymptotic expansion of $S_N$ as $N \to \infty$ is $-1/12$, we conclude that the regularized value of the divergent series  [+46c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_52_by_1 | P:0 | To rigorously complete the derivation, we explicitly compute the real part of the Laurent expansion term 1/x^2 where x = (-1+i)/N. Substituting x yiel [+244c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_20_by_2 | P:0 | We rewrite the closed form $S(N) = \text{Re}\left( \frac{z}{(1-z)^2} \right)$ by substituting $z = e^{-w}$ with $w = \frac{1-i}{N}$ to obtain $S(N) =  [+472c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_11_by_2 | P:0 | Step 4: We apply Euler's formula, $\cos(m/N) = rac{e^{im/N} + e^{-im/N}}{2}$, to rewrite the sum as $S_N = rac{1}{2} \sum_{m=1}^{\infty} m \left( e^ [+402c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_36_by_2 | P:0 | Let $z = e^{-(1-i)/N}$. Then $e^{-m/N} \cos(m/N) = 	ext{Re}(z^m)$. The regularized sum can be rewritten as $S_N = 	ext{Re}\left( \sum_{m=1}^{\infty} m [+172c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_3_by_1 | P:0 | rewrite S_N using Euler's formula to form two geometric series and apply the identity sum m*z^m = z/(1-z)^2
+[2026-04-10T03:27:24Z INFO  evaluator] tx_23_by_1 | P:0 | To evaluate $S_N = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$, we apply Euler's formula $\cos(m/N) = rac{e^{im/N} + e^{-im/N}}{2}$ to rewrite the sum  [+537c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_28_by_2 | P:0 | We substitute $z = e^{-(1-i)/N}$ into the generating function result $rac{z}{(1-z)^2}$ and expand the denominator using the Taylor series $e^{-(1-i)/ [+245c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_40_by_0 | P:0 | Since the asymptotic expansion of $S_N$ as $N \to \infty$ yields a constant term of $-1/12$ in its real part, and the divergent series $\sum_{n=1}^{\i [+139c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_24_by_2 | P:0 | To evaluate the sum $S_N = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$, we first express the cosine term using Euler's formula $\cos(	heta) = rac{e^{i	 [+554c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_25_by_0 | P:1 | We expand the function $f(z) = rac{z}{(1-z)^2}$ in terms of $x = rac{-1+i}{N}$ using the Laurent series expansion around $x=0$: $rac{e^x}{(1-e^x)^2 [+373c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_26_by_0 | P:0 | Step 7: The asymptotic expansion of the regularized sum $S_N$ as $N \to \infty$ yields a constant term of $-1/12$ in the real part, confirming that th [+100c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_6_by_1 | P:0 | Apply Euler's formula to decompose the cosine term, express S_N as a sum of two complex geometric series, and apply the identity sum m*z^m = z/(1-z)^2 [+68c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_9_by_1 | P:1 | We expand the denominator $(1 - e^{(-1+i)/N})^2$ using the Taylor series for $e^x$ around $x=0$ (where $x = (-1+i)/N$) to approximate the expression f [+291c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_2_by_1 | P:0 | Consider the regularized sum $S_N = \sum_{m=1}^{\infty} m \cdot e^{-m/N} \cdot \cos(m/N)$. As $N 	o \infty$, the damping factor $e^{-m/N} 	o 1$ and $\ [+490c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_17_by_1 | P:0 | To evaluate the regularized sum $S_N = \sum_{m=1}^{\infty} m e^{-m/N} \cos(m/N)$, we first express the cosine term using Euler's formula, $\cos(m/N) = [+713c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_22_by_1 | P:0 | Perform the asymptotic expansion of $S_N = 	ext{Re}\left( rac{e^{-(1-i)/N}}{(1 - e^{-(1-i)/N})^2} ight)$ as $N 	o \infty$. Let $\epsilon = rac{1-i} [+607c]
+[2026-04-10T03:27:24Z INFO  evaluator] tx_4_by_0 | P:0 | Define the regularized sum $S_N$ using the provided hint formula: $S_N = \sum_{m=1}^{\infty} m \cdot e^{-m/N} \cdot \cos(m/N)$.
+[2026-04-10T03:27:24Z INFO  evaluator] tx_41_by_2 | P:1 | We conclude the proof by taking the limit $N 	o \infty$ of the regularized sum $S(N)$. Since the asymptotic expansion derived in Step 5 shows that $S( [+485c]
+[2026-04-10T03:27:24Z INFO  evaluator] >>> [IMMUTABLE TRACK] Full tape exported to /tmp/zeta_sum_tape_1775791644.md
